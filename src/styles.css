@@ -17,6 +17,28 @@
   --color-brand-700: #2b7fa8;
 }
 
+/* Classes de formulário reutilizadas pelas telas da plataforma */
+
+@utility field-label {
+  @apply block text-xs font-medium text-slate-300;
+}
+
+@utility field-input {
+  @apply w-full rounded-lg border border-white/10 bg-ink-800/70 px-3 py-2.5 text-sm text-white
+    placeholder:text-slate-500 transition outline-none
+    focus-visible:border-brand-400 focus-visible:ring-2 focus-visible:ring-brand-400/50
+    aria-invalid:border-rose-500/70 disabled:cursor-not-allowed disabled:text-slate-400;
+}
+
+@utility section-legend {
+  @apply mb-4 w-full border-b border-white/10 pb-2 text-xs font-semibold tracking-widest
+    text-brand-300 uppercase;
+}
+
+@utility field-error {
+  @apply mt-1.5 text-xs text-rose-300;
+}
+
 html {
   color-scheme: dark;
 }
