@@ -1,3 +1,36 @@
 /* You can add global styles to this file, and also import other style files */
 
 @import 'tailwindcss';
+
+@theme {
+  /* Fundos escuros da plataforma */
+  --color-ink-950: #0a161c;
+  --color-ink-900: #0f1f26;
+  --color-ink-800: #16262e;
+  --color-ink-700: #1e333c;
+
+  /* Identidade Conecta+ */
+  --color-brand-300: #8ff0e0;
+  --color-brand-400: #4ecec2;
+  --color-brand-500: #2bb3b8;
+  --color-brand-600: #3aa7cd;
+  --color-brand-700: #2b7fa8;
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  background-color: var(--color-ink-950);
+}
+
+/* Respeita quem prefere menos animação */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
