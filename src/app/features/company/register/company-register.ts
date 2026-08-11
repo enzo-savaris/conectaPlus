@@ -1,10 +1,14 @@
 import { afterNextRender, ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
-import { formatCep, formatCnpj, formatPhone } from '../../../shared/utils/masks';
-import { cepValidator, cnpjValidator, phoneValidator } from '../../../shared/validators/br-validators';
+import { formatarCep, formatarCnpj, formatarTelefone } from '../../../shared/utils/masks';
+import {
+  validadorCep,
+  validadorCnpj,
+  validadorTelefone
+} from '../../../shared/validators/br-validators';
 
-type MaskedField = 'cnpj' | 'phone' | 'cep';
+type CampoComMascara = 'cnpj' | 'telefone' | 'cep';
 
 @Component({
   selector: 'app-company-register',
@@ -13,14 +17,14 @@ type MaskedField = 'cnpj' | 'phone' | 'cep';
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class CompanyRegister {
-  private readonly router = inject(Router);
+  private readonly roteador = inject(Router);
 
-  protected readonly states = [
+  protected readonly estados = [
     'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS', 'MG',
     'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN', 'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO'
   ];
 
-  protected readonly form = new FormGroup({
+  protected readonly formulario = new FormGroup({
     // Dados da empresa
     razaoSocial: new FormControl('', {
       nonNullable: true,
@@ -32,16 +36,16 @@ export class CompanyRegister {
     }),
     cnpj: new FormControl('', {
       nonNullable: true,
-      validators: [Validators.required, cnpjValidator()]
+      validators: [Validators.required, validadorCnpj()]
     }),
     email: new FormControl('', {
       nonNullable: true,
       validators: [Validators.required, Validators.email]
     }),
-    phone: new FormControl('', { nonNullable: true, validators: [phoneValidator()] }),
+    telefone: new FormControl('', { nonNullable: true, validators: [validadorTelefone()] }),
     cep: new FormControl('', {
       nonNullable: true,
-      validators: [Validators.required, cepValidator()]
+      validators: [Validators.required, validadorCep()]
     }),
 
     // Endereço
@@ -59,65 +63,69 @@ export class CompanyRegister {
     status: new FormControl<'ativo' | 'inativo'>('ativo', { nonNullable: true })
   });
 
-  protected readonly showPassword = signal(false);
-  protected readonly submitting = signal(false);
-  protected readonly formError = signal<string | null>(null);
+  protected readonly senhaVisivel = signal(false);
+  protected readonly enviando = signal(false);
+  protected readonly erroFormulario = signal<string | null>(null);
 
   /**
    * Campos de sistema. Ficam vazios na renderização do servidor e só são
    * preenchidos no navegador — senão a data gerada no SSR divergiria da
    * gerada no cliente e quebraria a hidratação.
    */
-  protected readonly registeredAt = signal('—');
-  protected readonly companyId = signal('—');
+  protected readonly dataCadastro = signal('—');
+  protected readonly idEmpresa = signal('—');
 
   constructor() {
     afterNextRender(() => {
-      this.registeredAt.set(
+      this.dataCadastro.set(
         new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date())
       );
       // Provisório: o ID definitivo é gerado pelo backend ao salvar.
-      this.companyId.set(`ID - ${Math.floor(1_000_000 + Math.random() * 9_000_000)}`);
+      this.idEmpresa.set(`ID - ${Math.floor(1_000_000 + Math.random() * 9_000_000)}`);
     });
   }
 
-  protected togglePassword(): void {
-    this.showPassword.update((visible) => !visible);
+  protected alternarVisibilidadeSenha(): void {
+    this.senhaVisivel.update((visivel) => !visivel);
   }
 
-  protected hasError(field: keyof typeof this.form.controls): boolean {
-    const control = this.form.controls[field];
-    return control.invalid && (control.touched || control.dirty);
+  protected temErro(campo: keyof typeof this.formulario.controls): boolean {
+    const controle = this.formulario.controls[campo];
+    return controle.invalid && (controle.touched || controle.dirty);
   }
 
   /** Aplica a máscara enquanto o usuário digita, sem disparar validação em loop. */
-  protected applyMask(field: MaskedField, event: Event): void {
-    const input = event.target as HTMLInputElement;
-    const formatters = { cnpj: formatCnpj, phone: formatPhone, cep: formatCep };
-    const masked = formatters[field](input.value);
+  protected aplicarMascara(campo: CampoComMascara, evento: Event): void {
+    const entrada = evento.target as HTMLInputElement;
+    const formatadores = {
+      cnpj: formatarCnpj,
+      telefone: formatarTelefone,
+      cep: formatarCep
+    };
+    const mascarado = formatadores[campo](entrada.value);
 
-    input.value = masked;
-    this.form.controls[field].setValue(masked, { emitEvent: false });
+    entrada.value = mascarado;
+    this.formulario.controls[campo].setValue(mascarado, { emitEvent: false });
   }
 
-  protected onCancel(): void {
-    this.router.navigate(['/login']);
+  protected aoCancelar(): void {
+    this.roteador.navigate(['/teste']);
   }
 
-  protected onSubmit(): void {
-    this.formError.set(null);
+  protected aoEnviar(): void {  
+    this.erroFormulario.set(null);
 
-    if (this.form.invalid) {
-      this.form.markAllAsTouched();
-      this.formError.set('Revise os campos destacados antes de continuar.');
+    if (this.formulario.invalid) {
+      this.formulario.markAllAsTouched();
+      this.erroFormulario.set('Revise os campos destacados antes de continuar.');
       return;
     }
 
-    this.submitting.set(true);
+    this.enviando.set(true);
 
-    // TODO: substituir pela chamada real do CompanyService.
-    console.log('cadastro de empresa', this.form.getRawValue());
+    // TODO: substituir pela chamada real do serviço de empresas.
+    console.log('cadastro de empresa', this.formulario.getRawValue());
 
-    this.submitting.set(false);
+    this.enviando.set(false);
   }
 }

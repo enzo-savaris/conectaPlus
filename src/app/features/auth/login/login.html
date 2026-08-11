@@ -57,13 +57,13 @@
     </header>
 
     <!-- Formulário -->
-    <form class="mt-8 space-y-5" [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
-      @if (formError()) {
+    <form class="mt-8 space-y-5" [formGroup]="formulario" (ngSubmit)="aoEnviar()" novalidate>
+      @if (erroFormulario()) {
         <p
           class="rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200"
           role="alert"
         >
-          {{ formError() }}
+          {{ erroFormulario() }}
         </p>
       }
 
@@ -88,13 +88,13 @@
             inputmode="email"
             placeholder="voce@exemplo.com"
             class="w-full rounded-full border border-white/10 bg-ink-800/80 py-3 pl-12 pr-4 text-base text-white placeholder:text-slate-500 transition outline-none focus-visible:border-brand-400 focus-visible:ring-2 focus-visible:ring-brand-400/60 aria-invalid:border-rose-500/70"
-            [attr.aria-invalid]="hasError('email')"
-            [attr.aria-describedby]="hasError('email') ? 'email-error' : null"
+            [attr.aria-invalid]="temErro('email')"
+            [attr.aria-describedby]="temErro('email') ? 'email-error' : null"
           />
         </div>
-        @if (hasError('email')) {
+        @if (temErro('email')) {
           <p id="email-error" class="mt-2 text-sm text-rose-300" role="alert">
-            @if (form.controls.email.hasError('required')) {
+            @if (formulario.controls.email.hasError('required')) {
               Informe seu e-mail.
             } @else {
               Informe um e-mail válido.
@@ -118,33 +118,33 @@
           </span>
           <input
             id="password"
-            [type]="showPassword() ? 'text' : 'password'"
-            formControlName="password"
+            [type]="senhaVisivel() ? 'text' : 'password'"
+            formControlName="senha"
             autocomplete="current-password"
             placeholder="••••••••"
             class="w-full rounded-full border border-white/10 bg-ink-800/80 py-3 pl-12 pr-14 text-base text-white placeholder:text-slate-500 transition outline-none focus-visible:border-brand-400 focus-visible:ring-2 focus-visible:ring-brand-400/60 aria-invalid:border-rose-500/70"
-            [attr.aria-invalid]="hasError('password')"
-            [attr.aria-describedby]="hasError('password') ? 'password-error' : null"
+            [attr.aria-invalid]="temErro('senha')"
+            [attr.aria-describedby]="temErro('senha') ? 'password-error' : null"
           />
           <button
             type="button"
-            (click)="togglePassword()"
+            (click)="alternarVisibilidadeSenha()"
             class="absolute inset-y-0 right-0 flex items-center rounded-full px-4 text-slate-400 transition hover:text-brand-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-400"
-            [attr.aria-label]="showPassword() ? 'Ocultar senha' : 'Mostrar senha'"
-            [attr.aria-pressed]="showPassword()"
+            [attr.aria-label]="senhaVisivel() ? 'Ocultar senha' : 'Mostrar senha'"
+            [attr.aria-pressed]="senhaVisivel()"
           >
             <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
               <path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z" />
               <circle cx="12" cy="12" r="3" />
-              @if (!showPassword()) {
+              @if (!senhaVisivel()) {
                 <path d="m4 20 16-16" stroke-linecap="round" />
               }
             </svg>
           </button>
         </div>
-        @if (hasError('password')) {
+        @if (temErro('senha')) {
           <p id="password-error" class="mt-2 text-sm text-rose-300" role="alert">
-            @if (form.controls.password.hasError('required')) {
+            @if (formulario.controls.senha.hasError('required')) {
               Informe sua senha.
             } @else {
               A senha deve ter ao menos 6 caracteres.
@@ -159,7 +159,7 @@
           <input
             id="remember"
             type="checkbox"
-            formControlName="remember"
+            formControlName="lembrarDeMim"
             class="h-4 w-4 cursor-pointer rounded border-white/20 bg-ink-800 text-brand-400 accent-brand-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-400"
           />
           Lembrar de mim
@@ -175,10 +175,10 @@
       <!-- Entrar -->
       <button
         type="submit"
-        [disabled]="submitting()"
+        [disabled]="enviando()"
         class="flex w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-brand-300 to-brand-600 px-6 py-3.5 text-base font-semibold text-ink-950 shadow-lg shadow-brand-500/20 transition hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-300 disabled:cursor-not-allowed disabled:opacity-60"
       >
-        {{ submitting() ? 'Entrando…' : 'Entrar' }}
+        {{ enviando() ? 'Entrando…' : 'Entrar' }}
         <span aria-hidden="true">→</span>
       </button>
     </form>
@@ -194,7 +194,7 @@
     <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
       <button
         type="button"
-        (click)="onSocialLogin('google')"
+        (click)="aoEntrarComRedeSocial('google')"
         class="flex items-center justify-center gap-2.5 rounded-full border border-white/12 bg-ink-800/60 px-4 py-3 text-sm font-medium text-slate-100 transition hover:border-brand-400/50 hover:bg-ink-700/70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-400"
       >
         <svg class="h-5 w-5" viewBox="0 0 24 24" aria-hidden="true">
@@ -208,7 +208,7 @@
 
       <button
         type="button"
-        (click)="onSocialLogin('apple')"
+        (click)="aoEntrarComRedeSocial('apple')"
         class="flex items-center justify-center gap-2.5 rounded-full border border-white/12 bg-ink-800/60 px-4 py-3 text-sm font-medium text-slate-100 transition hover:border-brand-400/50 hover:bg-ink-700/70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-400"
       >
         <svg class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">

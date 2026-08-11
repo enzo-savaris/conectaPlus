@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 
-type SocialProvider = 'google' | 'apple';
+type ProvedorSocial = 'google' | 'apple';
 
 @Component({
   selector: 'app-login',
@@ -11,51 +11,46 @@ type SocialProvider = 'google' | 'apple';
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class Login {
-  protected readonly form = new FormGroup({
+  protected readonly formulario = new FormGroup({
     email: new FormControl('', {
       nonNullable: true,
       validators: [Validators.required, Validators.email]
     }),
-    password: new FormControl('', {
+    senha: new FormControl('', {
       nonNullable: true,
       validators: [Validators.required, Validators.minLength(6)]
     }),
-    remember: new FormControl(false, { nonNullable: true })
+    lembrarDeMim: new FormControl(false, { nonNullable: true })
   });
 
-  protected readonly showPassword = signal(false);
-  protected readonly submitting = signal(false);
-  protected readonly formError = signal<string | null>(null);
+  protected readonly senhaVisivel = signal(false);
+  protected readonly enviando = signal(false);
+  protected readonly erroFormulario = signal<string | null>(null);
 
-  protected togglePassword(): void {
-    this.showPassword.update((visible) => !visible);
+  protected alternarVisibilidadeSenha(): void {
+    this.senhaVisivel.update((visivel) => !visivel);
   }
 
-  protected hasError(field: 'email' | 'password'): boolean {
-    const control = this.form.controls[field];
-    return control.invalid && (control.touched || control.dirty);
+  protected temErro(campo: 'email' | 'senha'): boolean {
+    const controle = this.formulario.controls[campo];
+    return controle.invalid && (controle.touched || controle.dirty);
   }
 
-  protected onSubmit(): void {
-    this.formError.set(null);
+  protected aoEnviar(): void {
+    this.erroFormulario.set(null);
 
-    if (this.form.invalid) {
-      this.form.markAllAsTouched();
-      this.formError.set('Verifique os campos destacados para continuar.');
+    if (this.formulario.invalid) {
+      this.formulario.markAllAsTouched();
+      this.erroFormulario.set('Verifique os campos destacados para continuar.');
       return;
     }
 
-    this.submitting.set(true);
-    const { email, password, remember } = this.form.getRawValue();
+    this.enviando.set(true);
+    const { email, senha, lembrarDeMim } = this.formulario.getRawValue();
 
-    // TODO: substituir pela chamada real do AuthService.
-    console.log('login', { email, password, remember });
+    // TODO: substituir pela chamada real do serviço de autenticação.
+    console.log('login', { email, senha, lembrarDeMim });
 
-    this.submitting.set(false);
-  }
-
-  protected onSocialLogin(provider: SocialProvider): void {
-    // TODO: substituir pela integração OAuth real.
-    console.log('social login', provider);
+    this.enviando.set(false);
   }
 }

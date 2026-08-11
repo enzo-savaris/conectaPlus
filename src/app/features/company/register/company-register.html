@@ -20,13 +20,13 @@
       </p>
     </header>
 
-    <form class="mt-8" [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
-      @if (formError()) {
+    <form class="mt-8" [formGroup]="formulario" (ngSubmit)="aoEnviar()" novalidate>
+      @if (erroFormulario()) {
         <p
           class="mb-6 rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200"
           role="alert"
         >
-          {{ formError() }}
+          {{ erroFormulario() }}
         </p>
       }
 
@@ -47,12 +47,12 @@
               autocomplete="organization"
               placeholder="Digite a razão social"
               class="field-input mt-1.5"
-              [attr.aria-invalid]="hasError('razaoSocial')"
-              [attr.aria-describedby]="hasError('razaoSocial') ? 'razaoSocial-error' : null"
+              [attr.aria-invalid]="temErro('razaoSocial')"
+              [attr.aria-describedby]="temErro('razaoSocial') ? 'razaoSocial-error' : null"
             />
-            @if (hasError('razaoSocial')) {
+            @if (temErro('razaoSocial')) {
               <p id="razaoSocial-error" class="field-error" role="alert">
-                @if (form.controls.razaoSocial.hasError('required')) {
+                @if (formulario.controls.razaoSocial.hasError('required')) {
                   Informe a razão social.
                 } @else {
                   A razão social deve ter ao menos 3 caracteres.
@@ -72,10 +72,10 @@
               formControlName="nomeFantasia"
               placeholder="Digite o nome fantasia"
               class="field-input mt-1.5"
-              [attr.aria-invalid]="hasError('nomeFantasia')"
-              [attr.aria-describedby]="hasError('nomeFantasia') ? 'nomeFantasia-error' : null"
+              [attr.aria-invalid]="temErro('nomeFantasia')"
+              [attr.aria-describedby]="temErro('nomeFantasia') ? 'nomeFantasia-error' : null"
             />
-            @if (hasError('nomeFantasia')) {
+            @if (temErro('nomeFantasia')) {
               <p id="nomeFantasia-error" class="field-error" role="alert">
                 Informe o nome fantasia.
               </p>
@@ -91,15 +91,15 @@
               id="cnpj"
               type="text"
               formControlName="cnpj"
-              (input)="applyMask('cnpj', $event)"
+              (input)="aplicarMascara('cnpj', $event)"
               placeholder="00.000.000/0000-00"
               class="field-input mt-1.5"
-              [attr.aria-invalid]="hasError('cnpj')"
-              [attr.aria-describedby]="hasError('cnpj') ? 'cnpj-error' : null"
+              [attr.aria-invalid]="temErro('cnpj')"
+              [attr.aria-describedby]="temErro('cnpj') ? 'cnpj-error' : null"
             />
-            @if (hasError('cnpj')) {
+            @if (temErro('cnpj')) {
               <p id="cnpj-error" class="field-error" role="alert">
-                @if (form.controls.cnpj.hasError('required')) {
+                @if (formulario.controls.cnpj.hasError('required')) {
                   Informe o CNPJ.
                 } @else {
                   CNPJ inválido. Confira os números digitados.
@@ -121,12 +121,12 @@
               inputmode="email"
               placeholder="admin@empresa.com"
               class="field-input mt-1.5"
-              [attr.aria-invalid]="hasError('email')"
-              [attr.aria-describedby]="hasError('email') ? 'email-error' : null"
+              [attr.aria-invalid]="temErro('email')"
+              [attr.aria-describedby]="temErro('email') ? 'email-error' : null"
             />
-            @if (hasError('email')) {
+            @if (temErro('email')) {
               <p id="email-error" class="field-error" role="alert">
-                @if (form.controls.email.hasError('required')) {
+                @if (formulario.controls.email.hasError('required')) {
                   Informe o e-mail corporativo.
                 } @else {
                   Informe um e-mail válido.
@@ -141,16 +141,16 @@
             <input
               id="phone"
               type="tel"
-              formControlName="phone"
-              (input)="applyMask('phone', $event)"
+              formControlName="telefone"
+              (input)="aplicarMascara('telefone', $event)"
               autocomplete="tel"
               inputmode="tel"
               placeholder="(00) 00000-0000"
               class="field-input mt-1.5"
-              [attr.aria-invalid]="hasError('phone')"
-              [attr.aria-describedby]="hasError('phone') ? 'phone-error' : null"
+              [attr.aria-invalid]="temErro('telefone')"
+              [attr.aria-describedby]="temErro('telefone') ? 'phone-error' : null"
             />
-            @if (hasError('phone')) {
+            @if (temErro('telefone')) {
               <p id="phone-error" class="field-error" role="alert">
                 Informe um telefone com DDD.
               </p>
@@ -166,17 +166,17 @@
               id="cep"
               type="text"
               formControlName="cep"
-              (input)="applyMask('cep', $event)"
+              (input)="aplicarMascara('cep', $event)"
               autocomplete="postal-code"
               inputmode="numeric"
               placeholder="00000-000"
               class="field-input mt-1.5"
-              [attr.aria-invalid]="hasError('cep')"
-              [attr.aria-describedby]="hasError('cep') ? 'cep-error' : null"
+              [attr.aria-invalid]="temErro('cep')"
+              [attr.aria-describedby]="temErro('cep') ? 'cep-error' : null"
             />
-            @if (hasError('cep')) {
+            @if (temErro('cep')) {
               <p id="cep-error" class="field-error" role="alert">
-                @if (form.controls.cep.hasError('required')) {
+                @if (formulario.controls.cep.hasError('required')) {
                   Informe o CEP.
                 } @else {
                   O CEP deve ter 8 dígitos.
@@ -204,10 +204,10 @@
               inputmode="numeric"
               placeholder="123"
               class="field-input mt-1.5"
-              [attr.aria-invalid]="hasError('numero')"
-              [attr.aria-describedby]="hasError('numero') ? 'numero-error' : null"
+              [attr.aria-invalid]="temErro('numero')"
+              [attr.aria-describedby]="temErro('numero') ? 'numero-error' : null"
             />
-            @if (hasError('numero')) {
+            @if (temErro('numero')) {
               <p id="numero-error" class="field-error" role="alert">Informe o número.</p>
             }
           </div>
@@ -259,7 +259,7 @@
               class="field-input mt-1.5"
             >
               <option value="">Selecione o estado</option>
-              @for (uf of states; track uf) {
+              @for (uf of estados; track uf) {
                 <option [value]="uf">{{ uf }}</option>
               }
             </select>
@@ -280,20 +280,20 @@
             <div class="relative mt-1.5">
               <input
                 id="senha"
-                [type]="showPassword() ? 'text' : 'password'"
+                [type]="senhaVisivel() ? 'text' : 'password'"
                 formControlName="senha"
                 autocomplete="new-password"
                 placeholder="Digite a senha"
                 class="field-input pr-11"
-                [attr.aria-invalid]="hasError('senha')"
-                [attr.aria-describedby]="hasError('senha') ? 'senha-error' : 'senha-hint'"
+                [attr.aria-invalid]="temErro('senha')"
+                [attr.aria-describedby]="temErro('senha') ? 'senha-error' : 'senha-hint'"
               />
               <button
                 type="button"
-                (click)="togglePassword()"
+                (click)="alternarVisibilidadeSenha()"
                 class="absolute inset-y-0 right-0 flex items-center rounded-lg px-3 text-slate-400 transition hover:text-brand-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-400"
-                [attr.aria-label]="showPassword() ? 'Ocultar senha' : 'Mostrar senha'"
-                [attr.aria-pressed]="showPassword()"
+                [attr.aria-label]="senhaVisivel() ? 'Ocultar senha' : 'Mostrar senha'"
+                [attr.aria-pressed]="senhaVisivel()"
               >
                 <svg
                   class="h-4.5 w-4.5"
@@ -305,15 +305,15 @@
                 >
                   <path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z" />
                   <circle cx="12" cy="12" r="3" />
-                  @if (!showPassword()) {
+                  @if (!senhaVisivel()) {
                     <path d="m4 20 16-16" stroke-linecap="round" />
                   }
                 </svg>
               </button>
             </div>
-            @if (hasError('senha')) {
+            @if (temErro('senha')) {
               <p id="senha-error" class="field-error" role="alert">
-                @if (form.controls.senha.hasError('required')) {
+                @if (formulario.controls.senha.hasError('required')) {
                   Informe a senha de acesso.
                 } @else {
                   A senha deve ter ao menos 8 caracteres.
@@ -361,7 +361,7 @@
                 id="companyId"
                 type="text"
                 class="field-input pl-9"
-                [value]="companyId()"
+                [value]="idEmpresa()"
                 readonly
                 tabindex="-1"
                 aria-describedby="system-fields-hint"
@@ -378,7 +378,7 @@
       <div class="flex flex-col-reverse gap-3 sm:flex-row sm:justify-between">
         <button
           type="button"
-          (click)="onCancel()"
+          (click)="aoCancelar()"
           class="rounded-lg border border-white/12 bg-ink-800/60 px-6 py-2.5 text-sm font-medium text-slate-200 transition hover:border-white/25 hover:bg-ink-700/70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-400 sm:min-w-40"
         >
           Cancelar
@@ -386,10 +386,10 @@
 
         <button
           type="submit"
-          [disabled]="submitting()"
+          [disabled]="enviando()"
           class="rounded-lg bg-gradient-to-r from-brand-300 to-brand-600 px-6 py-2.5 text-sm font-semibold text-ink-950 shadow-lg shadow-brand-500/20 transition hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-300 disabled:cursor-not-allowed disabled:opacity-60 sm:min-w-48"
         >
-          {{ submitting() ? 'Cadastrando…' : 'Cadastrar Empresa' }}
+          {{ enviando() ? 'Cadastrando…' : 'Cadastrar Empresa' }}
         </button>
       </div>
     </form>
