@@ -50,6 +50,13 @@ export const routes: Routes = [
         title: 'Candidatos | Conecta+',
         data: { ambiente: 'empresa' },
         loadComponent: () => import('./features/candidatos/candidatos').then((m) => m.Candidatos)
+      },
+      {
+        path: 'empresa/vagas/nova',
+        title: 'Cadastrar Vaga | Conecta+',
+        data: { ambiente: 'empresa' },
+        loadComponent: () =>
+          import('./features/company/vaga-register/vaga-register').then((m) => m.VagaRegister)
       }
     ]
   }
