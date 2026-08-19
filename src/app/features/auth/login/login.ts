@@ -1,8 +1,10 @@
-import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 
-type ProvedorSocial = 'google' | 'apple';
+import { AuthService } from '../../../shared/services/auth.service';
+import { formatarCpfOuCnpj } from '../../../shared/utils/masks';
+import { validadorCpfOuCnpj } from '../../../shared/validators/br-validators';
 
 @Component({
   selector: 'app-login',
@@ -11,10 +13,13 @@ type ProvedorSocial = 'google' | 'apple';
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class Login {
+  private readonly authService = inject(AuthService);
+  private readonly roteador = inject(Router);
+
   protected readonly formulario = new FormGroup({
-    email: new FormControl('', {
+    documento: new FormControl('', {
       nonNullable: true,
-      validators: [Validators.required, Validators.email]
+      validators: [Validators.required, validadorCpfOuCnpj()]
     }),
     senha: new FormControl('', {
       nonNullable: true,
@@ -31,9 +36,18 @@ export class Login {
     this.senhaVisivel.update((visivel) => !visivel);
   }
 
-  protected temErro(campo: 'email' | 'senha'): boolean {
+  protected temErro(campo: 'documento' | 'senha'): boolean {
     const controle = this.formulario.controls[campo];
     return controle.invalid && (controle.touched || controle.dirty);
+  }
+
+  /** Aplica a máscara de CPF/CNPJ enquanto o usuário digita. */
+  protected aplicarMascara(evento: Event): void {
+    const entrada = evento.target as HTMLInputElement;
+    const mascarado = formatarCpfOuCnpj(entrada.value);
+
+    entrada.value = mascarado;
+    this.formulario.controls.documento.setValue(mascarado, { emitEvent: false });
   }
 
   protected aoEnviar(): void {
@@ -46,11 +60,22 @@ export class Login {
     }
 
     this.enviando.set(true);
-    const { email, senha, lembrarDeMim } = this.formulario.getRawValue();
+    const { documento, senha, lembrarDeMim } = this.formulario.getRawValue();
 
-    // TODO: substituir pela chamada real do serviço de autenticação.
-    console.log('login', { email, senha, lembrarDeMim });
-
-    this.enviando.set(false);
+    this.authService.entrar(documento, senha, lembrarDeMim).subscribe({
+      next: (sessao) => {
+        this.enviando.set(false);
+        const destino = sessao.ambiente === 'empresa' ? '/empresa/candidatos' : '/painel';
+        this.roteador.navigate([destino]);
+      },
+      error: (erro: { status?: number }) => {
+        this.enviando.set(false);
+        this.erroFormulario.set(
+          erro.status === 401
+            ? 'CPF/CNPJ ou senha incorretos.'
+            : 'Não foi possível entrar agora. Tente novamente.'
+        );
+      }
+    });
   }
 }

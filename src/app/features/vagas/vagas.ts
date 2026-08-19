@@ -1,10 +1,11 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 
+import { AuthService } from '../../shared/services/auth.service';
 import { VagaService } from '../../shared/services/vaga.service';
 import { Vaga } from '../../shared/types/vaga';
 
-/** Tela de vagas: lista as vagas cadastradas pela empresa, vindas do banco. */
+/** Tela de vagas: lista as vagas da empresa logada, vindas do banco. */
 @Component({
   selector: 'app-vagas',
   templateUrl: './vagas.html',
@@ -12,6 +13,7 @@ import { Vaga } from '../../shared/types/vaga';
 })
 export class Vagas {
   private readonly vagaService = inject(VagaService);
+  private readonly authService = inject(AuthService);
   private readonly roteador = inject(Router);
 
   protected readonly vagas = signal<Vaga[]>([]);
@@ -23,11 +25,17 @@ export class Vagas {
     this.carregarVagas();
   }
 
+  /** Garantido pelo ambienteGuard('empresa'): só entra aqui quem está logado como empresa. */
+  private idEmpresaLogada(): number {
+    const sessao = this.authService.sessao();
+    return sessao?.ambiente === 'empresa' ? sessao.perfil.id : 0;
+  }
+
   protected carregarVagas(): void {
     this.carregando.set(true);
     this.erro.set(null);
 
-    this.vagaService.listar().subscribe({
+    this.vagaService.listar(this.idEmpresaLogada()).subscribe({
       next: (vagas) => {
         this.vagas.set(vagas);
         this.carregando.set(false);
@@ -48,7 +56,7 @@ export class Vagas {
     this.excluindoId.set(vaga.id);
     this.erro.set(null);
 
-    this.vagaService.remover(vaga.id).subscribe({
+    this.vagaService.remover(vaga.id, this.idEmpresaLogada()).subscribe({
       next: () => {
         this.vagas.update((lista) => lista.filter((item) => item.id !== vaga.id));
         this.excluindoId.set(null);

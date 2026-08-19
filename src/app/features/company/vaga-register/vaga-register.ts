@@ -9,6 +9,7 @@ import {
 } from '@angular/forms';
 import { Router } from '@angular/router';
 
+import { AuthService } from '../../../shared/services/auth.service';
 import { VagaService } from '../../../shared/services/vaga.service';
 import { ModeloTrabalho, TipoContratacao } from '../../../shared/types/vaga';
 
@@ -33,6 +34,7 @@ function salarioValido(grupo: AbstractControl): ValidationErrors | null {
 export class VagaRegister {
   private readonly roteador = inject(Router);
   private readonly vagaService = inject(VagaService);
+  private readonly authService = inject(AuthService);
 
   protected readonly estados = [
     'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS', 'MG',
@@ -111,6 +113,12 @@ export class VagaRegister {
     lista.update((itens) => itens.filter((_, i) => i !== indice));
   }
 
+  /** Garantido pelo ambienteGuard('empresa'): só entra aqui quem está logado como empresa. */
+  private idEmpresaLogada(): number {
+    const sessao = this.authService.sessao();
+    return sessao?.ambiente === 'empresa' ? sessao.perfil.id : 0;
+  }
+
   protected aoCancelar(): void {
     this.roteador.navigate(['/vagas']);
   }
@@ -128,21 +136,24 @@ export class VagaRegister {
     const valores = this.formulario.getRawValue();
 
     this.vagaService
-      .cadastrar({
-        titulo: valores.titulo,
-        area: valores.area || null,
-        descricao: valores.descricao,
-        cidade: valores.cidade || null,
-        estado: valores.estado || null,
-        modeloTrabalho: valores.modeloTrabalho,
-        tipoContratacao: valores.tipoContratacao,
-        salarioMinimo: valores.salarioMinimo,
-        salarioMaximo: valores.salarioMaximo,
-        responsabilidades: this.responsabilidades(),
-        requisitos: this.requisitos(),
-        acessibilidade: this.acessibilidade(),
-        beneficios: this.beneficios()
-      })
+      .cadastrar(
+        {
+          titulo: valores.titulo,
+          area: valores.area || null,
+          descricao: valores.descricao,
+          cidade: valores.cidade || null,
+          estado: valores.estado || null,
+          modeloTrabalho: valores.modeloTrabalho,
+          tipoContratacao: valores.tipoContratacao,
+          salarioMinimo: valores.salarioMinimo,
+          salarioMaximo: valores.salarioMaximo,
+          responsabilidades: this.responsabilidades(),
+          requisitos: this.requisitos(),
+          acessibilidade: this.acessibilidade(),
+          beneficios: this.beneficios()
+        },
+        this.idEmpresaLogada()
+      )
       .subscribe({
         next: () => {
           this.enviando.set(false);

@@ -1,6 +1,7 @@
-import { ChangeDetectionStrategy, Component, input, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, input, signal } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 
+import { AuthService } from '../../shared/services/auth.service';
 import { Ambiente } from '../../shared/types/ambiente';
 
 /** Menu lateral global do sistema: recolhe para ícones e expande sob demanda. */
@@ -15,6 +16,8 @@ export class Sidebar {
 
   protected readonly aberta = signal(true);
 
+  private readonly authService = inject(AuthService);
+
   constructor(private readonly roteador: Router) {}
 
   protected alternar(): void {
@@ -22,7 +25,7 @@ export class Sidebar {
   }
 
   protected sair(): void {
-    // TODO: encerrar a sessão real quando o serviço de autenticação existir.
+    this.authService.sair();
     this.roteador.navigate(['/login']);
   }
 }
