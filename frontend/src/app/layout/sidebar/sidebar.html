@@ -5,7 +5,7 @@
 >
   <div class="flex items-center gap-2 px-4 py-5">
     @if (aberta()) {
-      <span class="truncate text-lg font-bold tracking-wide text-white">CONECTA+</span>
+      <span class="truncate text-lg font-bold tracking-wide text-white">{{ nomeExibido() }}</span>
     }
 
     <button
@@ -29,7 +29,7 @@
 
   <nav class="flex flex-1 flex-col gap-1 px-3">
     <a
-      routerLink="/teste"
+      [routerLink]="ambiente() === 'empresa' ? '/empresa/painel' : '/teste'"
       routerLinkActive="bg-white/10 text-brand-300"
       class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-300 transition hover:bg-white/5 hover:text-white"
       [attr.title]="!aberta() ? 'Início' : null"

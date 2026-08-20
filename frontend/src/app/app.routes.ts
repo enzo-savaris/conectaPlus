@@ -49,6 +49,14 @@ export const routes: Routes = [
           import('./features/company/register/company-register').then((m) => m.CompanyRegister)
       },
       {
+        path: 'empresa/painel',
+        title: 'Painel da empresa | Conecta+',
+        data: { ambiente: 'empresa' },
+        canActivate: [ambienteGuard('empresa')],
+        loadComponent: () =>
+          import('./features/company/painel-empresa/painel-empresa').then((m) => m.PainelEmpresa)
+      },
+      {
         path: 'vagas',
         title: 'Vagas | Conecta+',
         data: { ambiente: 'empresa' },

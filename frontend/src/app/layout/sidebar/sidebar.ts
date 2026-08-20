@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject, input, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 
 import { AuthService } from '../../shared/services/auth.service';
@@ -17,6 +17,20 @@ export class Sidebar {
   protected readonly aberta = signal(true);
 
   private readonly authService = inject(AuthService);
+
+  /**
+   * No ambiente da empresa, mostra o nome fantasia (ou a razão social, se não
+   * houver fantasia) da empresa logada no lugar da marca "CONECTA+".
+   */
+  protected readonly nomeExibido = computed(() => {
+    const sessao = this.authService.sessao();
+
+    if (this.ambiente() === 'empresa' && sessao?.ambiente === 'empresa') {
+      return sessao.perfil.nomeFantasia ?? sessao.perfil.razaoSocial;
+    }
+
+    return 'CONECTA+';
+  });
 
   constructor(private readonly roteador: Router) {}
 

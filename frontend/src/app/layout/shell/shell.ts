@@ -3,6 +3,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { filter, map } from 'rxjs';
 
+import { AuthService } from '../../shared/services/auth.service';
 import { Ambiente } from '../../shared/types/ambiente';
 import { Sidebar } from '../sidebar/sidebar';
 
@@ -15,6 +16,7 @@ import { Sidebar } from '../sidebar/sidebar';
 })
 export class Shell {
   private readonly roteador = inject(Router);
+  private readonly authService = inject(AuthService);
 
   protected readonly ambiente = toSignal(
     this.roteador.events.pipe(
@@ -27,11 +29,20 @@ export class Shell {
   // Usa a árvore de snapshot do RouterState (já resolvida por completo para a
   // navegação atual) em vez de ActivatedRoute.firstChild, cujo `.snapshot` só
   // fica disponível depois que o outlet do filho realmente o ativa.
+  //
+  // Rotas como /empresa/cadastro marcam data.ambiente explicitamente porque
+  // são acessíveis sem sessão (é por onde uma empresa nova se registra), então
+  // esse dado tem prioridade. Rotas compartilhadas entre os dois ambientes
+  // (/curso, /perfil, /teste) não marcam nada — nesses casos o ambiente vem
+  // da sessão logada, não de um padrão fixo, senão uma empresa logada que
+  // navega para /curso "perderia" o menu da empresa.
   private descobrirAmbiente(): Ambiente {
     let rota = this.roteador.routerState.snapshot.root;
     while (rota.firstChild) {
       rota = rota.firstChild;
     }
-    return (rota.data['ambiente'] as Ambiente | undefined) ?? 'usuario';
+
+    const ambienteDaRota = rota.data['ambiente'] as Ambiente | undefined;
+    return ambienteDaRota ?? this.authService.sessao()?.ambiente ?? 'usuario';
   }
 }

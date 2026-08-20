@@ -4,6 +4,7 @@ import { Router } from '@angular/router';
 import { AuthService } from '../../shared/services/auth.service';
 import { VagaService } from '../../shared/services/vaga.service';
 import { Vaga } from '../../shared/types/vaga';
+import { formatarLocalizacaoVaga, formatarSalarioVaga } from '../../shared/utils/vaga-format';
 
 /** Tela de vagas: lista as vagas da empresa logada, vindas do banco. */
 @Component({
@@ -77,39 +78,11 @@ export class Vagas {
     console.log('detalhes da vaga', vaga.id);
   }
 
-  protected formatarModelo(modelo: Vaga['modeloTrabalho']): string {
-    switch (modelo) {
-      case 'HIBRIDO':
-        return 'Híbrido';
-      case 'REMOTO':
-        return 'Remoto';
-      default:
-        return 'Presencial';
-    }
-  }
-
   protected formatarLocalizacao(vaga: Vaga): string {
-    const partes = [vaga.cidade, vaga.estado].filter((parte): parte is string => !!parte);
-    const local = partes.length > 0 ? partes.join(' - ') : 'Local não informado';
-
-    return `${local} (${this.formatarModelo(vaga.modeloTrabalho)})`;
+    return formatarLocalizacaoVaga(vaga);
   }
 
   protected formatarSalario(vaga: Vaga): string | null {
-    if (vaga.salarioMinimo === null && vaga.salarioMaximo === null) {
-      return null;
-    }
-
-    const formatador = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
-
-    if (vaga.salarioMinimo !== null && vaga.salarioMaximo !== null) {
-      return `${formatador.format(vaga.salarioMinimo)} - ${formatador.format(vaga.salarioMaximo)}`;
-    }
-
-    if (vaga.salarioMinimo !== null) {
-      return `A partir de ${formatador.format(vaga.salarioMinimo)}`;
-    }
-
-    return `Até ${formatador.format(vaga.salarioMaximo!)}`;
+    return formatarSalarioVaga(vaga);
   }
 }

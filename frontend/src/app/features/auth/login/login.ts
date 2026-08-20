@@ -65,7 +65,7 @@ export class Login {
     this.authService.entrar(documento, senha, lembrarDeMim).subscribe({
       next: (sessao) => {
         this.enviando.set(false);
-        const destino = sessao.ambiente === 'empresa' ? '/empresa/candidatos' : '/painel';
+        const destino = sessao.ambiente === 'empresa' ? '/empresa/painel' : '/painel';
         this.roteador.navigate([destino]);
       },
       error: (erro: { status?: number }) => {

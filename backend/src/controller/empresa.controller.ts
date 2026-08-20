@@ -82,6 +82,21 @@ export const atualizarEmpresa = async (
   }
 };
 
+/** GET /empresas/:id/painel — resumo (contagens) para os cards do painel inicial da empresa. */
+export const obterPainelEmpresa = async (
+  requisicao: Request,
+  resposta: Response
+): Promise<void> => {
+  try {
+    const id = validarId(requisicao.params['id']);
+    const resumo = await empresaService.obterResumoPainel(id);
+
+    resposta.json(resumo);
+  } catch (erro) {
+    responderErro(resposta, erro, 'Erro ao buscar o resumo do painel');
+  }
+};
+
 /** DELETE /empresas/:id — remove a empresa. */
 export const removerEmpresa = async (
   requisicao: Request,

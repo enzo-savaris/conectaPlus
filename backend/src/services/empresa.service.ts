@@ -177,6 +177,40 @@ export async function atualizar(
   return obterPorId(id);
 }
 
+/** Resumo do painel inicial da empresa: contagens usadas nos cards de destaque. */
+export interface ResumoPainelEmpresa {
+  totalVagas: number;
+  totalCursos: number;
+  totalInscricoes: number;
+}
+
+export async function obterResumoPainel(idEmpresa: number): Promise<ResumoPainelEmpresa> {
+  await obterPorId(idEmpresa);
+
+  const [[vagas]] = await pool.query<RowDataPacket[]>(
+    'SELECT COUNT(*) AS TOTAL FROM TBLCDSVAG0 WHERE IDEMPRESA = ?',
+    [idEmpresa]
+  );
+
+  const [[cursos]] = await pool.query<RowDataPacket[]>(
+    'SELECT COUNT(*) AS TOTAL FROM TBLCDSCURSO0 WHERE IDEMPRESA = ?',
+    [idEmpresa]
+  );
+
+  const [[inscricoes]] = await pool.query<RowDataPacket[]>(
+    `SELECT COUNT(*) AS TOTAL FROM TBLCDSCAND0 c
+     INNER JOIN TBLCDSVAG0 v ON v.IDVAGA = c.IDVAGA
+     WHERE v.IDEMPRESA = ?`,
+    [idEmpresa]
+  );
+
+  return {
+    totalVagas: Number(vagas?.['TOTAL'] ?? 0),
+    totalCursos: Number(cursos?.['TOTAL'] ?? 0),
+    totalInscricoes: Number(inscricoes?.['TOTAL'] ?? 0)
+  };
+}
+
 /** Remove a empresa. Lança 404 se o id não existir. */
 export async function remover(id: number): Promise<void> {
   const [resultado] = await pool.execute<ResultSetHeader>(
