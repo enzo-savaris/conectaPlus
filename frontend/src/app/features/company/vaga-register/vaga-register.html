@@ -1,0 +1,410 @@
+<main class="relative min-h-dvh bg-ink-950 px-4 py-8 sm:px-6 sm:py-12">
+  <!-- Brilho decorativo de fundo -->
+  <div aria-hidden="true" class="pointer-events-none absolute inset-0 overflow-hidden">
+    <div
+      class="absolute -top-40 left-1/2 h-80 w-80 -translate-x-1/2 rounded-full bg-brand-500/15 blur-3xl"
+    ></div>
+  </div>
+
+  <div class="relative mx-auto w-full max-w-5xl">
+    <header>
+      <h1 class="text-2xl font-bold text-white sm:text-3xl">Cadastrar vaga</h1>
+      <p class="mt-1.5 text-xs text-slate-400 sm:text-sm">
+        Preencha os campos que aparecem para o candidato na página da vaga
+      </p>
+    </header>
+
+    <form class="mt-8" [formGroup]="formulario" (ngSubmit)="aoEnviar()" novalidate>
+      @if (erroFormulario()) {
+        <p
+          class="mb-6 rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200"
+          role="alert"
+        >
+          {{ erroFormulario() }}
+        </p>
+      }
+
+      <div class="grid grid-cols-1 gap-6 lg:grid-cols-[2fr_1fr]">
+        <!-- ============ COLUNA PRINCIPAL ============ -->
+        <div class="flex flex-col gap-6">
+          <!-- Informações principais -->
+          <fieldset
+            class="rounded-3xl border border-white/10 bg-ink-900/80 p-5 shadow-2xl shadow-black/40 backdrop-blur-sm sm:p-6"
+          >
+            <legend class="section-legend">Informações principais</legend>
+
+            <div class="grid grid-cols-1 gap-x-5 gap-y-4 sm:grid-cols-2">
+              <div class="sm:col-span-2">
+                <label for="titulo" class="field-label">
+                  Título da vaga <span class="text-brand-300" aria-hidden="true">*</span>
+                </label>
+                <input
+                  id="titulo"
+                  type="text"
+                  formControlName="titulo"
+                  placeholder="Ex: Desenvolvedor Frontend Júnior"
+                  class="field-input mt-1.5"
+                  [attr.aria-invalid]="temErro('titulo')"
+                />
+                @if (temErro('titulo')) {
+                  <p class="field-error" role="alert">Informe um título com ao menos 3 caracteres.</p>
+                }
+              </div>
+
+              <div>
+                <label for="area" class="field-label">
+                  Empresa <span class="text-brand-300" aria-hidden="true">*</span>
+                </label>
+                <input
+                  id="area"
+                  type="text"
+                  formControlName="area"
+                  placeholder="Ex: Tech Startup"
+                  class="field-input mt-1.5"
+                  [attr.aria-invalid]="temErro('area')"
+                />
+                @if (temErro('area')) {
+                  <p class="field-error" role="alert">Informe o nome da empresa.</p>
+                }
+              </div>
+
+              <div>
+                <label for="tipoContratacao" class="field-label">Tipo de contrato</label>
+                <select id="tipoContratacao" formControlName="tipoContratacao" class="field-input mt-1.5">
+                  @for (tipo of tiposContratacao; track tipo.valor) {
+                    <option [value]="tipo.valor">{{ tipo.rotulo }}</option>
+                  }
+                </select>
+              </div>
+
+              <div>
+                <label for="cidade" class="field-label">Cidade</label>
+                <input
+                  id="cidade"
+                  type="text"
+                  formControlName="cidade"
+                  autocomplete="address-level2"
+                  placeholder="Digite a cidade"
+                  class="field-input mt-1.5"
+                />
+              </div>
+
+              <div>
+                <label for="estado" class="field-label">Estado (UF)</label>
+                <select id="estado" formControlName="estado" class="field-input mt-1.5">
+                  <option value="">Selecione o estado</option>
+                  @for (uf of estados; track uf) {
+                    <option [value]="uf">{{ uf }}</option>
+                  }
+                </select>
+              </div>
+
+              <div class="sm:col-span-2">
+                <label for="modeloTrabalho" class="field-label">Modelo de trabalho</label>
+                <select id="modeloTrabalho" formControlName="modeloTrabalho" class="field-input mt-1.5">
+                  @for (modelo of modelosTrabalho; track modelo.valor) {
+                    <option [value]="modelo.valor">{{ modelo.rotulo }}</option>
+                  }
+                </select>
+              </div>
+
+              <div>
+                <label for="salarioMinimo" class="field-label">Salário mínimo (R$)</label>
+                <input
+                  id="salarioMinimo"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  formControlName="salarioMinimo"
+                  placeholder="0,00"
+                  class="field-input mt-1.5"
+                  [attr.aria-invalid]="temErroDeSalario()"
+                />
+              </div>
+
+              <div>
+                <label for="salarioMaximo" class="field-label">Salário máximo (R$)</label>
+                <input
+                  id="salarioMaximo"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  formControlName="salarioMaximo"
+                  placeholder="0,00"
+                  class="field-input mt-1.5"
+                  [attr.aria-invalid]="temErroDeSalario()"
+                />
+              </div>
+
+              @if (temErroDeSalario()) {
+                <p class="field-error sm:col-span-2" role="alert">
+                  O salário máximo deve ser maior ou igual ao mínimo.
+                </p>
+              }
+
+              <div class="sm:col-span-2">
+                <label for="descricao" class="field-label">
+                  Sobre a vaga <span class="text-brand-300" aria-hidden="true">*</span>
+                </label>
+                <textarea
+                  id="descricao"
+                  formControlName="descricao"
+                  rows="4"
+                  placeholder="Descreva o time, o desafio e o dia a dia da posição"
+                  class="field-input mt-1.5 resize-none"
+                  [attr.aria-invalid]="temErro('descricao')"
+                ></textarea>
+                @if (temErro('descricao')) {
+                  <p class="field-error" role="alert">Descreva a vaga com ao menos 10 caracteres.</p>
+                }
+              </div>
+            </div>
+          </fieldset>
+
+          <!-- Detalhes da vaga -->
+          <fieldset
+            class="rounded-3xl border border-white/10 bg-ink-900/80 p-5 shadow-2xl shadow-black/40 backdrop-blur-sm sm:p-6"
+          >
+            <legend class="section-legend">Detalhes da vaga</legend>
+
+            <div class="flex flex-col gap-5">
+              <div>
+                <p class="field-label">Responsabilidades</p>
+                <p class="mt-1 text-xs text-slate-500">
+                  Uma atividade por linha, como aparece na página da vaga.
+                </p>
+                <div class="mt-2 flex gap-2">
+                  <input
+                    #respInput
+                    type="text"
+                    placeholder="Digite e clique em adicionar"
+                    class="field-input"
+                    (keydown.enter)="$event.preventDefault(); adicionarItem(responsabilidades, respInput)"
+                  />
+                  <button
+                    type="button"
+                    (click)="adicionarItem(responsabilidades, respInput)"
+                    class="shrink-0 rounded-lg border border-white/12 bg-ink-800/60 px-4 py-2.5 text-sm font-medium text-slate-200 transition hover:border-white/25 hover:bg-ink-700/70"
+                  >
+                    + Adicionar
+                  </button>
+                </div>
+                @if (responsabilidades().length > 0) {
+                  <ul class="mt-3 flex flex-col gap-2">
+                    @for (item of responsabilidades(); track $index) {
+                      <li
+                        class="flex items-center justify-between gap-3 rounded-lg border border-white/10 bg-ink-800/40 px-3 py-2 text-sm text-slate-200"
+                      >
+                        <span>{{ item }}</span>
+                        <button
+                          type="button"
+                          (click)="removerItem(responsabilidades, $index)"
+                          class="shrink-0 text-slate-500 transition hover:text-rose-300"
+                          aria-label="Remover item"
+                        >
+                          <svg
+                            class="h-4 w-4"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                            stroke-width="1.8"
+                            aria-hidden="true"
+                          >
+                            <path d="m6 6 12 12M18 6 6 18" stroke-linecap="round" />
+                          </svg>
+                        </button>
+                      </li>
+                    }
+                  </ul>
+                }
+              </div>
+
+              <div>
+                <p class="field-label">Requisitos</p>
+                <p class="mt-1 text-xs text-slate-500">
+                  Tecnologias e habilidades exigidas, em etiquetas.
+                </p>
+                <div class="mt-2 flex gap-2">
+                  <input
+                    #reqInput
+                    type="text"
+                    placeholder="Digite e clique em adicionar"
+                    class="field-input"
+                    (keydown.enter)="$event.preventDefault(); adicionarItem(requisitos, reqInput)"
+                  />
+                  <button
+                    type="button"
+                    (click)="adicionarItem(requisitos, reqInput)"
+                    class="shrink-0 rounded-lg border border-white/12 bg-ink-800/60 px-4 py-2.5 text-sm font-medium text-slate-200 transition hover:border-white/25 hover:bg-ink-700/70"
+                  >
+                    + Adicionar
+                  </button>
+                </div>
+                @if (requisitos().length > 0) {
+                  <ul class="mt-3 flex flex-wrap gap-2">
+                    @for (item of requisitos(); track $index) {
+                      <li
+                        class="inline-flex items-center gap-2 rounded-full border border-brand-400/30 bg-brand-400/10 px-3 py-1.5 text-xs font-medium text-brand-200"
+                      >
+                        {{ item }}
+                        <button
+                          type="button"
+                          (click)="removerItem(requisitos, $index)"
+                          class="text-brand-300/70 transition hover:text-rose-300"
+                          aria-label="Remover item"
+                        >
+                          <svg
+                            class="h-3 w-3"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            aria-hidden="true"
+                          >
+                            <path d="m6 6 12 12M18 6 6 18" stroke-linecap="round" />
+                          </svg>
+                        </button>
+                      </li>
+                    }
+                  </ul>
+                }
+              </div>
+            </div>
+          </fieldset>
+        </div>
+
+        <!-- ============ COLUNA LATERAL ============ -->
+        <div class="flex flex-col gap-6">
+          <fieldset
+            class="rounded-3xl border border-white/10 bg-ink-900/80 p-5 shadow-2xl shadow-black/40 backdrop-blur-sm sm:p-6"
+          >
+            <legend class="section-legend">Acessibilidade e benefícios</legend>
+
+            <div class="flex flex-col gap-5">
+              <div>
+                <p class="field-label">Acessibilidade no processo</p>
+                <p class="mt-1 text-xs text-slate-500">
+                  Ex: canal de entrevistas presencial, entrevistas remotas opcionais.
+                </p>
+                <div class="mt-2 flex gap-2">
+                  <input
+                    #acsInput
+                    type="text"
+                    placeholder="Digite e clique em adicionar"
+                    class="field-input"
+                    (keydown.enter)="$event.preventDefault(); adicionarItem(acessibilidade, acsInput)"
+                  />
+                  <button
+                    type="button"
+                    (click)="adicionarItem(acessibilidade, acsInput)"
+                    class="shrink-0 rounded-lg border border-white/12 bg-ink-800/60 px-4 py-2.5 text-sm font-medium text-slate-200 transition hover:border-white/25 hover:bg-ink-700/70"
+                  >
+                    + Adicionar
+                  </button>
+                </div>
+                @if (acessibilidade().length > 0) {
+                  <ul class="mt-3 flex flex-col gap-2">
+                    @for (item of acessibilidade(); track $index) {
+                      <li
+                        class="flex items-center justify-between gap-3 rounded-lg border border-white/10 bg-ink-800/40 px-3 py-2 text-sm text-slate-200"
+                      >
+                        <span>{{ item }}</span>
+                        <button
+                          type="button"
+                          (click)="removerItem(acessibilidade, $index)"
+                          class="shrink-0 text-slate-500 transition hover:text-rose-300"
+                          aria-label="Remover item"
+                        >
+                          <svg
+                            class="h-4 w-4"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                            stroke-width="1.8"
+                            aria-hidden="true"
+                          >
+                            <path d="m6 6 12 12M18 6 6 18" stroke-linecap="round" />
+                          </svg>
+                        </button>
+                      </li>
+                    }
+                  </ul>
+                }
+              </div>
+
+              <div>
+                <p class="field-label">Benefícios incluídos</p>
+                <p class="mt-1 text-xs text-slate-500">
+                  Ex: vale refeição, plano de saúde, day-off de aniversário.
+                </p>
+                <div class="mt-2 flex gap-2">
+                  <input
+                    #benInput
+                    type="text"
+                    placeholder="Digite e clique em adicionar"
+                    class="field-input"
+                    (keydown.enter)="$event.preventDefault(); adicionarItem(beneficios, benInput)"
+                  />
+                  <button
+                    type="button"
+                    (click)="adicionarItem(beneficios, benInput)"
+                    class="shrink-0 rounded-lg border border-white/12 bg-ink-800/60 px-4 py-2.5 text-sm font-medium text-slate-200 transition hover:border-white/25 hover:bg-ink-700/70"
+                  >
+                    + Adicionar
+                  </button>
+                </div>
+                @if (beneficios().length > 0) {
+                  <ul class="mt-3 flex flex-wrap gap-2">
+                    @for (item of beneficios(); track $index) {
+                      <li
+                        class="inline-flex items-center gap-2 rounded-full border border-brand-400/30 bg-brand-400/10 px-3 py-1.5 text-xs font-medium text-brand-200"
+                      >
+                        {{ item }}
+                        <button
+                          type="button"
+                          (click)="removerItem(beneficios, $index)"
+                          class="text-brand-300/70 transition hover:text-rose-300"
+                          aria-label="Remover item"
+                        >
+                          <svg
+                            class="h-3 w-3"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            aria-hidden="true"
+                          >
+                            <path d="m6 6 12 12M18 6 6 18" stroke-linecap="round" />
+                          </svg>
+                        </button>
+                      </li>
+                    }
+                  </ul>
+                }
+              </div>
+            </div>
+          </fieldset>
+        </div>
+      </div>
+
+      <!-- Ações -->
+      <div class="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+        <button
+          type="button"
+          (click)="aoCancelar()"
+          class="rounded-lg border border-white/12 bg-ink-800/60 px-6 py-2.5 text-sm font-medium text-slate-200 transition hover:border-white/25 hover:bg-ink-700/70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-400 sm:min-w-40"
+        >
+          Cancelar
+        </button>
+
+        <button
+          type="submit"
+          [disabled]="enviando()"
+          class="rounded-full bg-gradient-to-r from-brand-300 to-brand-600 px-8 py-3 text-sm font-semibold text-ink-950 shadow-lg shadow-brand-500/20 transition hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-300 disabled:cursor-not-allowed disabled:opacity-60 sm:min-w-56"
+        >
+          {{ enviando() ? 'Publicando…' : 'Publicar vaga' }}
+        </button>
+      </div>
+    </form>
+  </div>
+</main>
