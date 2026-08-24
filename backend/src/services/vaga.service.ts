@@ -9,11 +9,13 @@ const COLUNAS = `IDVAGA, IDEMPRESA, TITULO, AREA, DESCRICAO, CIDADE, ESTADO,
 
 /** Tabelas filhas que guardam as listas de itens do cadastro, uma linha por item. */
 const TABELAS_DE_ITENS = {
-  responsabilidades: 'TBLCDSVAGRESP0',
-  requisitos: 'TBLCDSVAGREQ0',
-  acessibilidade: 'TBLCDSVAGACS0',
-  beneficios: 'TBLCDSVAGBEN0'
+  responsabilidades: { tabela: 'TBLCDSVAGRESP0', coluna: 'IDRESP' },
+  requisitos: { tabela: 'TBLCDSVAGREQ0', coluna: 'IDREQ' },
+  acessibilidade: { tabela: 'TBLCDSVAGACS0', coluna: 'IDACS' },
+  beneficios: { tabela: 'TBLCDSVAGBEN0', coluna: 'IDBEN' }
 } as const;
+
+type ChaveDeItens = keyof typeof TABELAS_DE_ITENS;
 
 /**
  * Lista as vagas cadastradas, das mais recentes para as mais antigas.
@@ -59,7 +61,7 @@ export async function obterPorId(id: number): Promise<RowDataPacket> {
 
 async function inserirItens(
   conexao: PoolConnection,
-  tabela: string,
+  chave: ChaveDeItens,
   idVaga: number,
   itens: string[]
 ): Promise<void> {
@@ -67,8 +69,40 @@ async function inserirItens(
     return;
   }
 
+  const { tabela } = TABELAS_DE_ITENS[chave];
   const valores = itens.map((item) => [idVaga, item]);
   await conexao.query(`INSERT INTO ${tabela} (IDVAGA, DESCRICAO) VALUES ?`, [valores]);
+}
+
+/** Remove todos os itens de uma lista da vaga, para serem regravados na edição. */
+async function removerItens(conexao: PoolConnection, chave: ChaveDeItens, idVaga: number): Promise<void> {
+  const { tabela } = TABELAS_DE_ITENS[chave];
+  await conexao.query(`DELETE FROM ${tabela} WHERE IDVAGA = ?`, [idVaga]);
+}
+
+/** Lista os itens de uma vaga, na ordem em que foram cadastrados. */
+async function listarItens(chave: ChaveDeItens, idVaga: number): Promise<string[]> {
+  const { tabela, coluna } = TABELAS_DE_ITENS[chave];
+  const [linhas] = await pool.query<RowDataPacket[]>(
+    `SELECT DESCRICAO FROM ${tabela} WHERE IDVAGA = ? ORDER BY ${coluna}`,
+    [idVaga]
+  );
+
+  return linhas.map((linha) => linha['DESCRICAO'] as string);
+}
+
+/** Vaga com as listas de itens do cadastro, usada para preencher a tela de edição. */
+export async function obterDetalhado(id: number): Promise<Record<string, unknown>> {
+  const vaga = await obterPorId(id);
+
+  const [responsabilidades, requisitos, acessibilidade, beneficios] = await Promise.all([
+    listarItens('responsabilidades', id),
+    listarItens('requisitos', id),
+    listarItens('acessibilidade', id),
+    listarItens('beneficios', id)
+  ]);
+
+  return { ...vaga, responsabilidades, requisitos, acessibilidade, beneficios };
 }
 
 export async function cadastrar(dados: DadosVaga, idEmpresa: number): Promise<RowDataPacket> {
@@ -98,10 +132,10 @@ export async function cadastrar(dados: DadosVaga, idEmpresa: number): Promise<Ro
 
     const idVaga = resultado.insertId;
 
-    await inserirItens(conexao, TABELAS_DE_ITENS.responsabilidades, idVaga, dados.responsabilidades);
-    await inserirItens(conexao, TABELAS_DE_ITENS.requisitos, idVaga, dados.requisitos);
-    await inserirItens(conexao, TABELAS_DE_ITENS.acessibilidade, idVaga, dados.acessibilidade);
-    await inserirItens(conexao, TABELAS_DE_ITENS.beneficios, idVaga, dados.beneficios);
+    await inserirItens(conexao, 'responsabilidades', idVaga, dados.responsabilidades);
+    await inserirItens(conexao, 'requisitos', idVaga, dados.requisitos);
+    await inserirItens(conexao, 'acessibilidade', idVaga, dados.acessibilidade);
+    await inserirItens(conexao, 'beneficios', idVaga, dados.beneficios);
 
     await conexao.commit();
 
@@ -112,6 +146,104 @@ export async function cadastrar(dados: DadosVaga, idEmpresa: number): Promise<Ro
   } finally {
     conexao.release();
   }
+}
+
+/**
+ * Atualiza a vaga, só se ela pertencer à empresa informada. Lança 404 tanto se
+ * o id não existir quanto se a vaga for de outra empresa — mesmo critério do
+ * `remover`, pra não revelar dados de vagas de outra empresa.
+ *
+ * Verifica a posse com um SELECT antes do UPDATE em vez de olhar o
+ * `affectedRows` do próprio UPDATE: sem a flag `FOUND_ROWS` do MySQL, uma
+ * atualização que não muda nenhum valor (reenviar a vaga sem editar nada)
+ * também devolve `affectedRows = 0`, o que geraria um 404 incorreto.
+ */
+export async function atualizar(
+  id: number,
+  dados: DadosVaga,
+  idEmpresa: number
+): Promise<RowDataPacket> {
+  const conexao = await pool.getConnection();
+
+  try {
+    await conexao.beginTransaction();
+
+    const [linhas] = await conexao.query<RowDataPacket[]>(
+      'SELECT IDVAGA FROM TBLCDSVAG0 WHERE IDVAGA = ? AND IDEMPRESA = ? FOR UPDATE',
+      [id, idEmpresa]
+    );
+
+    if (linhas.length === 0) {
+      throw erroNaoEncontrado('Vaga não encontrada.');
+    }
+
+    await conexao.execute(
+      `UPDATE TBLCDSVAG0 SET
+        TITULO = ?, AREA = ?, DESCRICAO = ?, CIDADE = ?, ESTADO = ?,
+        MODELOTRABALHO = ?, TIPOCONTRATACAO = ?, SALARIOMIN = ?, SALARIOMAX = ?
+       WHERE IDVAGA = ?`,
+      [
+        dados.titulo,
+        dados.area,
+        dados.descricao,
+        dados.cidade,
+        dados.estado,
+        dados.modeloTrabalho,
+        dados.tipoContratacao,
+        dados.salarioMinimo,
+        dados.salarioMaximo,
+        id
+      ]
+    );
+
+    await removerItens(conexao, 'responsabilidades', id);
+    await removerItens(conexao, 'requisitos', id);
+    await removerItens(conexao, 'acessibilidade', id);
+    await removerItens(conexao, 'beneficios', id);
+
+    await inserirItens(conexao, 'responsabilidades', id, dados.responsabilidades);
+    await inserirItens(conexao, 'requisitos', id, dados.requisitos);
+    await inserirItens(conexao, 'acessibilidade', id, dados.acessibilidade);
+    await inserirItens(conexao, 'beneficios', id, dados.beneficios);
+
+    await conexao.commit();
+
+    return await obterPorId(id);
+  } catch (erro) {
+    await conexao.rollback();
+    throw erro;
+  } finally {
+    conexao.release();
+  }
+}
+
+/**
+ * Lista os inscritos de uma vaga, só se ela pertencer à empresa informada.
+ * Lança 404 tanto se o id não existir quanto se a vaga for de outra empresa —
+ * os dados dos candidatos são mais sensíveis que a própria vaga, então nem a
+ * lista vazia deve vazar pra quem não é dono dela.
+ */
+export async function listarCandidaturas(
+  idVaga: number,
+  idEmpresa: number
+): Promise<RowDataPacket[]> {
+  const vaga = await buscarPorId(idVaga);
+
+  if (vaga === null || vaga['IDEMPRESA'] !== idEmpresa) {
+    throw erroNaoEncontrado('Vaga não encontrada.');
+  }
+
+  const [linhas] = await pool.query<RowDataPacket[]>(
+    `SELECT c.IDCANDIDATURA, c.STATUSCANDIDATURA, c.DTCAD AS DTCANDIDATURA,
+            u.IDPCD, u.NOME, u.EMAIL, u.SOBREMIM
+     FROM TBLCDSCAND0 c
+     INNER JOIN TBLCDSUSR0 u ON u.IDPCD = c.IDPCD
+     WHERE c.IDVAGA = ?
+     ORDER BY c.DTCAD DESC`,
+    [idVaga]
+  );
+
+  return linhas;
 }
 
 /**

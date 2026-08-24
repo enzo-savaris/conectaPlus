@@ -4,7 +4,11 @@ import { Router } from '@angular/router';
 import { AuthService } from '../../shared/services/auth.service';
 import { VagaService } from '../../shared/services/vaga.service';
 import { Vaga } from '../../shared/types/vaga';
-import { formatarLocalizacaoVaga, formatarSalarioVaga } from '../../shared/utils/vaga-format';
+import {
+  formatarLocalizacaoVaga,
+  formatarSalarioVaga,
+  formatarTipoContratacao
+} from '../../shared/utils/vaga-format';
 
 /** Tela de vagas: lista as vagas da empresa logada, vindas do banco. */
 @Component({
@@ -74,8 +78,11 @@ export class Vagas {
   }
 
   protected aoClicarDetalhes(vaga: Vaga): void {
-    // TODO: navegar para a tela de detalhes e inscritos quando ela existir.
-    console.log('detalhes da vaga', vaga.id);
+    this.roteador.navigate(['/empresa/vagas', vaga.id]);
+  }
+
+  protected aoClicarEditar(vaga: Vaga): void {
+    this.roteador.navigate(['/empresa/vagas', vaga.id, 'editar']);
   }
 
   protected formatarLocalizacao(vaga: Vaga): string {
@@ -84,5 +91,9 @@ export class Vagas {
 
   protected formatarSalario(vaga: Vaga): string | null {
     return formatarSalarioVaga(vaga);
+  }
+
+  protected formatarTipoContratacao(vaga: Vaga): string {
+    return formatarTipoContratacao(vaga.tipoContratacao);
   }
 }

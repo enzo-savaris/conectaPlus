@@ -49,6 +49,49 @@ export const listarVagas = async (requisicao: Request, resposta: Response): Prom
   }
 };
 
+/** GET /vagas/:id — busca uma vaga com as listas de itens, para preencher a edição. */
+export const obterVaga = async (requisicao: Request, resposta: Response): Promise<void> => {
+  try {
+    const id = validarId(requisicao.params['id']);
+    const vaga = await vagaService.obterDetalhado(id);
+
+    resposta.json(vaga);
+  } catch (erro) {
+    responderErro(resposta, erro, 'Erro ao buscar vaga');
+  }
+};
+
+/** PUT /vagas/:id — atualiza a vaga, só se ela for da empresa informada em `idEmpresa`. */
+export const atualizarVaga = async (requisicao: Request, resposta: Response): Promise<void> => {
+  try {
+    const corpo = requisicao.body as Record<string, unknown>;
+    const id = validarId(requisicao.params['id']);
+    const idEmpresa = validarId(corpo['idEmpresa']);
+    const dados = validarVaga(corpo);
+    const vaga = await vagaService.atualizar(id, dados, idEmpresa);
+
+    resposta.json(vaga);
+  } catch (erro) {
+    responderErro(resposta, erro, 'Erro ao atualizar vaga');
+  }
+};
+
+/** GET /vagas/:id/candidaturas?idEmpresa= — lista os inscritos, só se a vaga for da empresa informada. */
+export const listarCandidaturasDaVaga = async (
+  requisicao: Request,
+  resposta: Response
+): Promise<void> => {
+  try {
+    const idVaga = validarId(requisicao.params['id']);
+    const idEmpresa = validarId(requisicao.query['idEmpresa']);
+    const candidaturas = await vagaService.listarCandidaturas(idVaga, idEmpresa);
+
+    resposta.json(candidaturas);
+  } catch (erro) {
+    responderErro(resposta, erro, 'Erro ao buscar inscritos da vaga');
+  }
+};
+
 /** DELETE /vagas/:id?idEmpresa= — remove a vaga, só se ela for da empresa informada. */
 export const removerVaga = async (requisicao: Request, resposta: Response): Promise<void> => {
   try {

@@ -27,6 +27,11 @@ export class AuthService {
 
         if (lembrarDeMim) {
           this.salvarSessao(sessao);
+        } else {
+          // Sem isso, um login anterior com "lembrar de mim" marcado deixaria
+          // a sessão salva no localStorage, e um F5 voltaria a logar como
+          // aquela sessão antiga mesmo com a caixa desmarcada agora.
+          this.limparSessaoSalva();
         }
       })
     );
@@ -34,10 +39,7 @@ export class AuthService {
 
   sair(): void {
     this.sessaoSignal.set(null);
-
-    if (typeof localStorage !== 'undefined') {
-      localStorage.removeItem(CHAVE_ARMAZENAMENTO);
-    }
+    this.limparSessaoSalva();
   }
 
   private lerSessaoSalva(): Sessao | null {
@@ -60,6 +62,12 @@ export class AuthService {
   private salvarSessao(sessao: Sessao): void {
     if (typeof localStorage !== 'undefined') {
       localStorage.setItem(CHAVE_ARMAZENAMENTO, JSON.stringify(sessao));
+    }
+  }
+
+  private limparSessaoSalva(): void {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.removeItem(CHAVE_ARMAZENAMENTO);
     }
   }
 }

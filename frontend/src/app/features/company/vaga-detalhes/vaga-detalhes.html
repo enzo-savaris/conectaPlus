@@ -1,0 +1,190 @@
+<div class="p-8">
+  <button
+    type="button"
+    (click)="aoClicarVoltar()"
+    class="inline-flex items-center gap-1.5 rounded-full border border-white/12 bg-ink-800/60 px-4 py-1.5 text-xs font-medium text-slate-300 transition hover:border-white/25 hover:bg-ink-700/70 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-400"
+  >
+    <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+      <path d="M15 19l-7-7 7-7" stroke-linecap="round" stroke-linejoin="round" />
+    </svg>
+    Voltar para vagas
+  </button>
+
+  @if (erro()) {
+    <p
+      class="mt-6 rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200"
+      role="alert"
+    >
+      {{ erro() }}
+    </p>
+  }
+
+  @if (carregando()) {
+    <p class="mt-8 text-sm text-slate-400">Carregando dados da vaga…</p>
+  } @else if (vaga(); as v) {
+    <header class="mt-4">
+      <h1 class="text-2xl font-bold text-white sm:text-3xl">{{ v.titulo }}</h1>
+
+      <span
+        class="mt-2 inline-flex w-fit items-center rounded-full border border-brand-400/40 bg-brand-400/10 px-3 py-1 text-xs font-semibold text-brand-300"
+      >
+        {{ formatarTipoContratacao(v) }}
+      </span>
+
+      <div class="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-400">
+        @if (v.area) {
+          <span class="inline-flex items-center gap-1.5">
+            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+              <rect x="3.5" y="6" width="17" height="12" rx="1.5" />
+              <path d="M8 10v4M12 10v4M16 10v4" stroke-linecap="round" />
+            </svg>
+            {{ v.area }}
+          </span>
+        }
+
+        <span class="inline-flex items-center gap-1.5">
+          <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+            <path d="M12 21s7-6.5 7-11.5A7 7 0 0 0 5 9.5C5 14.5 12 21 12 21Z" />
+            <circle cx="12" cy="9.5" r="2.3" />
+          </svg>
+          {{ formatarLocalizacao(v) }}
+        </span>
+
+        @if (formatarSalario(v); as salario) {
+          <span class="inline-flex items-center gap-1.5">
+            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+              <rect x="2.5" y="6" width="19" height="12" rx="2" />
+              <circle cx="12" cy="12" r="2.5" />
+              <path d="M6 9v.01M18 15v.01" stroke-linecap="round" />
+            </svg>
+            {{ salario }}
+          </span>
+        }
+      </div>
+    </header>
+
+    <div class="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[2fr_1fr]">
+      <!-- ============ COLUNA PRINCIPAL ============ -->
+      <div class="flex flex-col gap-6">
+        <section>
+          <h2 class="text-sm font-semibold text-white">Sobre a vaga</h2>
+          <p class="mt-2 text-sm whitespace-pre-line text-slate-300">{{ v.descricao }}</p>
+        </section>
+
+        @if (v.responsabilidades.length > 0) {
+          <section>
+            <h2 class="text-sm font-semibold text-white">Responsabilidades</h2>
+            <ul class="mt-2 flex flex-col divide-y divide-white/10 border-t border-white/10">
+              @for (item of v.responsabilidades; track $index) {
+                <li class="py-2 text-sm text-slate-300">{{ item }}</li>
+              }
+            </ul>
+          </section>
+        }
+
+        @if (v.requisitos.length > 0) {
+          <section>
+            <h2 class="text-sm font-semibold text-white">Requisitos da vaga</h2>
+            <ul class="mt-2 flex flex-wrap gap-2">
+              @for (item of v.requisitos; track $index) {
+                <li
+                  class="rounded-full border border-brand-400/30 bg-brand-400/10 px-3 py-1.5 text-xs font-medium text-brand-200"
+                >
+                  {{ item }}
+                </li>
+              }
+            </ul>
+          </section>
+        }
+
+        <section class="rounded-2xl border border-white/10 bg-ink-900/60 p-5">
+          <h2 class="text-sm font-semibold text-white">Inscritos ({{ candidaturas().length }})</h2>
+
+          @if (candidaturas().length === 0) {
+            <p class="mt-4 text-sm text-slate-400">Nenhum inscrito ainda.</p>
+          } @else {
+            <ul class="mt-4 flex flex-col gap-3">
+              @for (candidatura of candidaturas(); track candidatura.id) {
+                <li
+                  class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/10 bg-ink-800/40 p-4"
+                >
+                  <div class="min-w-0">
+                    <p class="truncate text-sm font-semibold text-white">{{ candidatura.nome }}</p>
+                    <p class="mt-0.5 truncate text-xs text-slate-400">
+                      @if (candidatura.sobreMim) {
+                        {{ candidatura.sobreMim }} ·
+                      }
+                      @if (candidatura.email) {
+                        <span class="text-brand-300">{{ candidatura.email }}</span>
+                      }
+                    </p>
+                  </div>
+
+                  <div class="flex shrink-0 items-center gap-2">
+                    <span
+                      class="inline-flex items-center gap-1.5 rounded-full border border-white/12 bg-ink-800/60 px-2.5 py-1 text-xs font-medium text-slate-200"
+                    >
+                      <span class="size-1.5 rounded-full" [class]="corStatusCandidatura(candidatura.status)"></span>
+                      {{ formatarStatusCandidatura(candidatura.status) }}
+                    </span>
+
+                    <button
+                      type="button"
+                      disabled
+                      title="Em breve: visualização de currículo"
+                      class="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-ink-800/40 px-3 py-1.5 text-xs font-medium text-slate-500 opacity-60 cursor-not-allowed"
+                    >
+                      <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+                        <rect x="5" y="3.5" width="14" height="17" rx="1.5" />
+                        <path d="M8.5 8h7M8.5 11.5h7M8.5 15h4" stroke-linecap="round" />
+                      </svg>
+                      Ver currículo
+                    </button>
+                  </div>
+                </li>
+              }
+            </ul>
+          }
+        </section>
+      </div>
+
+      <!-- ============ COLUNA LATERAL ============ -->
+      <div class="flex flex-col gap-6">
+        @if (v.acessibilidade.length > 0) {
+          <section class="rounded-2xl border border-brand-400/30 bg-brand-400/5 p-5">
+            <h2 class="inline-flex items-center gap-2 text-sm font-semibold text-brand-300">
+              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                <circle cx="12" cy="12" r="9" />
+                <path d="M12 8v4l2.5 2.5" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+              Acessibilidade no processo
+            </h2>
+            <ul class="mt-3 flex flex-col gap-2">
+              @for (item of v.acessibilidade; track $index) {
+                <li class="flex items-start gap-2 text-sm text-slate-300">
+                  <svg class="mt-0.5 h-4 w-4 shrink-0 text-brand-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                    <path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round" />
+                  </svg>
+                  {{ item }}
+                </li>
+              }
+            </ul>
+          </section>
+        }
+
+        @if (v.beneficios.length > 0) {
+          <section class="rounded-2xl border border-white/10 bg-ink-900/60 p-5">
+            <h2 class="text-sm font-semibold text-white">Benefícios inclusos</h2>
+            <ul class="mt-3 flex flex-wrap gap-2">
+              @for (item of v.beneficios; track $index) {
+                <li class="rounded-full border border-white/12 bg-ink-800/60 px-3 py-1.5 text-xs font-medium text-slate-200">
+                  {{ item }}
+                </li>
+              }
+            </ul>
+          </section>
+        }
+      </div>
+    </div>
+  }
+</div>

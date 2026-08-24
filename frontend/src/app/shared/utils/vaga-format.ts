@@ -12,6 +12,22 @@ export function formatarModeloTrabalho(modelo: Vaga['modeloTrabalho']): string {
   }
 }
 
+/** Formata o tipo de contratação da vaga para exibição. */
+export function formatarTipoContratacao(tipo: Vaga['tipoContratacao']): string {
+  switch (tipo) {
+    case 'PJ':
+      return 'PJ';
+    case 'ESTAGIO':
+      return 'Estágio';
+    case 'TEMPORARIO':
+      return 'Temporário';
+    case 'FREELANCER':
+      return 'Freelancer';
+    default:
+      return 'CLT';
+  }
+}
+
 /** Combina cidade, estado e modelo de trabalho em uma única linha legível. */
 export function formatarLocalizacaoVaga(vaga: Vaga): string {
   const partes = [vaga.cidade, vaga.estado].filter((parte): parte is string => !!parte);

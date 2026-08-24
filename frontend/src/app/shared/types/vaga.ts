@@ -21,6 +21,27 @@ export interface Vaga {
   status: StatusVaga;
 }
 
+/** Vaga com as listas de itens do cadastro, usada para preencher a tela de edição. */
+export interface VagaDetalhada extends Vaga {
+  responsabilidades: string[];
+  requisitos: string[];
+  acessibilidade: string[];
+  beneficios: string[];
+}
+
+export type StatusCandidatura = 'PENDENTE' | 'EM_ANALISE' | 'APROVADO' | 'REPROVADO';
+
+/** Inscrição de um candidato PCD em uma vaga, como exibida na tela de detalhes da vaga. */
+export interface Candidatura {
+  id: number;
+  idCandidato: number;
+  nome: string;
+  email: string | null;
+  sobreMim: string | null;
+  status: StatusCandidatura;
+  dataCandidatura: string;
+}
+
 /** Dados enviados ao cadastrar uma vaga nova. */
 export interface NovaVaga {
   titulo: string;

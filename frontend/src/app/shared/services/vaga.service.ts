@@ -3,7 +3,16 @@ import { Injectable, inject } from '@angular/core';
 import { Observable, map } from 'rxjs';
 
 import { URL_BASE_API } from '../config/api';
-import { ModeloTrabalho, NovaVaga, StatusVaga, TipoContratacao, Vaga } from '../types/vaga';
+import {
+  Candidatura,
+  ModeloTrabalho,
+  NovaVaga,
+  StatusCandidatura,
+  StatusVaga,
+  TipoContratacao,
+  Vaga,
+  VagaDetalhada
+} from '../types/vaga';
 
 /** Formato bruto devolvido pela API: colunas da TBLCDSVAG0. */
 interface VagaDaApi {
@@ -23,6 +32,14 @@ interface VagaDaApi {
   STATUSVAGA: StatusVaga;
 }
 
+/** GET /vagas/:id devolve, além das colunas da vaga, as listas de itens do cadastro. */
+interface VagaDetalhadaDaApi extends VagaDaApi {
+  responsabilidades: string[];
+  requisitos: string[];
+  acessibilidade: string[];
+  beneficios: string[];
+}
+
 function paraVaga(vaga: VagaDaApi): Vaga {
   return {
     id: vaga.IDVAGA,
@@ -38,6 +55,39 @@ function paraVaga(vaga: VagaDaApi): Vaga {
     salarioMaximo: vaga.SALARIOMAX !== null ? Number(vaga.SALARIOMAX) : null,
     dataCadastro: vaga.DTCAD,
     status: vaga.STATUSVAGA
+  };
+}
+
+function paraVagaDetalhada(vaga: VagaDetalhadaDaApi): VagaDetalhada {
+  return {
+    ...paraVaga(vaga),
+    responsabilidades: vaga.responsabilidades,
+    requisitos: vaga.requisitos,
+    acessibilidade: vaga.acessibilidade,
+    beneficios: vaga.beneficios
+  };
+}
+
+/** Formato bruto devolvido pela API: GET /vagas/:id/candidaturas. */
+interface CandidaturaDaApi {
+  IDCANDIDATURA: number;
+  IDPCD: number;
+  NOME: string;
+  EMAIL: string | null;
+  SOBREMIM: string | null;
+  STATUSCANDIDATURA: StatusCandidatura;
+  DTCANDIDATURA: string;
+}
+
+function paraCandidatura(candidatura: CandidaturaDaApi): Candidatura {
+  return {
+    id: candidatura.IDCANDIDATURA,
+    idCandidato: candidatura.IDPCD,
+    nome: candidatura.NOME,
+    email: candidatura.EMAIL,
+    sobreMim: candidatura.SOBREMIM,
+    status: candidatura.STATUSCANDIDATURA,
+    dataCandidatura: candidatura.DTCANDIDATURA
   };
 }
 
@@ -59,6 +109,28 @@ export class VagaService {
     return this.http
       .post<VagaDaApi>(`${URL_BASE_API}/vagas`, { ...dados, idEmpresa })
       .pipe(map(paraVaga));
+  }
+
+  /** Busca a vaga com as listas de itens, para preencher o formulário de edição. */
+  obterPorId(id: number): Observable<VagaDetalhada> {
+    return this.http
+      .get<VagaDetalhadaDaApi>(`${URL_BASE_API}/vagas/${id}`)
+      .pipe(map(paraVagaDetalhada));
+  }
+
+  atualizar(id: number, dados: NovaVaga, idEmpresa: number): Observable<Vaga> {
+    return this.http
+      .put<VagaDaApi>(`${URL_BASE_API}/vagas/${id}`, { ...dados, idEmpresa })
+      .pipe(map(paraVaga));
+  }
+
+  /** Lista os inscritos da vaga, só se ela pertencer à empresa informada. */
+  listarCandidaturas(idVaga: number, idEmpresa: number): Observable<Candidatura[]> {
+    const parametros = new HttpParams().set('idEmpresa', idEmpresa);
+
+    return this.http
+      .get<CandidaturaDaApi[]>(`${URL_BASE_API}/vagas/${idVaga}/candidaturas`, { params: parametros })
+      .pipe(map((candidaturas) => candidaturas.map(paraCandidatura)));
   }
 
   remover(id: number, idEmpresa: number): Observable<void> {

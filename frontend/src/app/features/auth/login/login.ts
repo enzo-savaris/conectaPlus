@@ -2,13 +2,14 @@ import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/cor
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 
+import { BrandPanel } from '../../../layout/brand-panel/brand-panel';
 import { AuthService } from '../../../shared/services/auth.service';
 import { formatarCpfOuCnpj } from '../../../shared/utils/masks';
 import { validadorCpfOuCnpj } from '../../../shared/validators/br-validators';
 
 @Component({
   selector: 'app-login',
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, RouterLink, BrandPanel],
   templateUrl: './login.html',
   changeDetection: ChangeDetectionStrategy.OnPush
 })

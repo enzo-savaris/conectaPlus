@@ -41,14 +41,38 @@
         >
           <div class="flex flex-wrap items-start justify-between gap-3">
             <h2 class="text-base font-semibold text-white sm:text-lg">{{ vaga.titulo }}</h2>
-            <span
-              class="shrink-0 rounded-full border border-brand-400/40 bg-brand-400/10 px-3 py-1 text-xs font-semibold text-brand-300"
+            <button
+              type="button"
+              (click)="aoClicarEditar(vaga)"
+              class="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-white/12 bg-ink-800/60 px-3 py-1.5 text-xs font-semibold text-slate-200 transition hover:border-brand-400/40 hover:bg-ink-700/70 hover:text-brand-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-400"
             >
-              {{ vaga.tipoContratacao }}
-            </span>
+              <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                <path
+                  d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5Z"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+              Editar
+            </button>
           </div>
 
           <div class="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-400">
+            <span class="inline-flex items-center gap-1.5">
+              <svg
+                class="h-3.5 w-3.5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                stroke-width="1.6"
+                aria-hidden="true"
+              >
+                <rect x="3.5" y="7" width="17" height="12" rx="1.5" />
+                <path d="M8 7V5.5A1.5 1.5 0 0 1 9.5 4h5A1.5 1.5 0 0 1 16 5.5V7M3.5 12h17" stroke-linecap="round" />
+              </svg>
+              {{ formatarTipoContratacao(vaga) }}
+            </span>
+
             @if (vaga.area) {
               <span class="inline-flex items-center gap-1.5">
                 <svg

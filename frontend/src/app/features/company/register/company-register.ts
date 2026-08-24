@@ -1,6 +1,6 @@
 import { afterNextRender, ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { formatarCep, formatarCnpj, formatarTelefone } from '../../../shared/utils/masks';
 import {
   validadorCep,
@@ -18,6 +18,7 @@ type CampoComMascara = 'cnpj' | 'telefone' | 'cep';
 })
 export class CompanyRegister {
   private readonly roteador = inject(Router);
+  private readonly rota = inject(ActivatedRoute);
 
   protected readonly estados = [
     'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS', 'MG',
@@ -76,6 +77,12 @@ export class CompanyRegister {
   protected readonly idEmpresa = signal('—');
 
   constructor() {
+    // Vem preenchido quando a pessoa já digitou o CNPJ na tela de escolha de ambiente (/cadastro).
+    const cnpjDaUrl = this.rota.snapshot.queryParamMap.get('cnpj');
+    if (cnpjDaUrl) {
+      this.formulario.controls.cnpj.setValue(formatarCnpj(cnpjDaUrl));
+    }
+
     afterNextRender(() => {
       this.dataCadastro.set(
         new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date())

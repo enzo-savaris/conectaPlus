@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, WritableSignal, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, WritableSignal, computed, inject, signal } from '@angular/core';
 import {
   AbstractControl,
   FormControl,
@@ -7,11 +7,11 @@ import {
   ValidationErrors,
   Validators
 } from '@angular/forms';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 
 import { AuthService } from '../../../shared/services/auth.service';
 import { VagaService } from '../../../shared/services/vaga.service';
-import { ModeloTrabalho, TipoContratacao } from '../../../shared/types/vaga';
+import { ModeloTrabalho, NovaVaga, TipoContratacao } from '../../../shared/types/vaga';
 
 /** Garante que o salário máximo, quando informado, não fique menor que o mínimo. */
 function salarioValido(grupo: AbstractControl): ValidationErrors | null {
@@ -33,8 +33,14 @@ function salarioValido(grupo: AbstractControl): ValidationErrors | null {
 })
 export class VagaRegister {
   private readonly roteador = inject(Router);
+  private readonly rota = inject(ActivatedRoute);
   private readonly vagaService = inject(VagaService);
   private readonly authService = inject(AuthService);
+
+  /** Presente só na rota de edição (`empresa/vagas/:id/editar`). */
+  protected readonly idVagaEditando = signal<number | null>(null);
+  protected readonly modoEdicao = computed(() => this.idVagaEditando() !== null);
+  protected readonly carregandoVaga = signal(false);
 
   protected readonly estados = [
     'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS', 'MG',
@@ -113,10 +119,50 @@ export class VagaRegister {
     lista.update((itens) => itens.filter((_, i) => i !== indice));
   }
 
+  constructor() {
+    const idParam = this.rota.snapshot.paramMap.get('id');
+
+    if (idParam) {
+      const idVaga = Number(idParam);
+      this.idVagaEditando.set(idVaga);
+      this.carregarVagaParaEdicao(idVaga);
+    }
+  }
+
   /** Garantido pelo ambienteGuard('empresa'): só entra aqui quem está logado como empresa. */
   private idEmpresaLogada(): number {
     const sessao = this.authService.sessao();
     return sessao?.ambiente === 'empresa' ? sessao.perfil.id : 0;
+  }
+
+  private carregarVagaParaEdicao(idVaga: number): void {
+    this.carregandoVaga.set(true);
+    this.erroFormulario.set(null);
+
+    this.vagaService.obterPorId(idVaga).subscribe({
+      next: (vaga) => {
+        this.formulario.patchValue({
+          titulo: vaga.titulo,
+          area: vaga.area ?? '',
+          tipoContratacao: vaga.tipoContratacao,
+          cidade: vaga.cidade ?? '',
+          estado: vaga.estado ?? '',
+          modeloTrabalho: vaga.modeloTrabalho,
+          salarioMinimo: vaga.salarioMinimo,
+          salarioMaximo: vaga.salarioMaximo,
+          descricao: vaga.descricao
+        });
+        this.responsabilidades.set(vaga.responsabilidades);
+        this.requisitos.set(vaga.requisitos);
+        this.acessibilidade.set(vaga.acessibilidade);
+        this.beneficios.set(vaga.beneficios);
+        this.carregandoVaga.set(false);
+      },
+      error: () => {
+        this.carregandoVaga.set(false);
+        this.erroFormulario.set('Não foi possível carregar os dados da vaga.');
+      }
+    });
   }
 
   protected aoCancelar(): void {
@@ -134,35 +180,41 @@ export class VagaRegister {
 
     this.enviando.set(true);
     const valores = this.formulario.getRawValue();
+    const dados: NovaVaga = {
+      titulo: valores.titulo,
+      area: valores.area || null,
+      descricao: valores.descricao,
+      cidade: valores.cidade || null,
+      estado: valores.estado || null,
+      modeloTrabalho: valores.modeloTrabalho,
+      tipoContratacao: valores.tipoContratacao,
+      salarioMinimo: valores.salarioMinimo,
+      salarioMaximo: valores.salarioMaximo,
+      responsabilidades: this.responsabilidades(),
+      requisitos: this.requisitos(),
+      acessibilidade: this.acessibilidade(),
+      beneficios: this.beneficios()
+    };
 
-    this.vagaService
-      .cadastrar(
-        {
-          titulo: valores.titulo,
-          area: valores.area || null,
-          descricao: valores.descricao,
-          cidade: valores.cidade || null,
-          estado: valores.estado || null,
-          modeloTrabalho: valores.modeloTrabalho,
-          tipoContratacao: valores.tipoContratacao,
-          salarioMinimo: valores.salarioMinimo,
-          salarioMaximo: valores.salarioMaximo,
-          responsabilidades: this.responsabilidades(),
-          requisitos: this.requisitos(),
-          acessibilidade: this.acessibilidade(),
-          beneficios: this.beneficios()
-        },
-        this.idEmpresaLogada()
-      )
-      .subscribe({
-        next: () => {
-          this.enviando.set(false);
-          this.roteador.navigate(['/vagas']);
-        },
-        error: () => {
-          this.enviando.set(false);
-          this.erroFormulario.set('Não foi possível publicar a vaga. Tente novamente.');
-        }
-      });
+    const idEditando = this.idVagaEditando();
+    const operacao =
+      idEditando !== null
+        ? this.vagaService.atualizar(idEditando, dados, this.idEmpresaLogada())
+        : this.vagaService.cadastrar(dados, this.idEmpresaLogada());
+
+    operacao.subscribe({
+      next: () => {
+        this.enviando.set(false);
+        this.roteador.navigate(['/vagas']);
+      },
+      error: () => {
+        this.enviando.set(false);
+        this.erroFormulario.set(
+          idEditando !== null
+            ? 'Não foi possível salvar as alterações. Tente novamente.'
+            : 'Não foi possível publicar a vaga. Tente novamente.'
+        );
+      }
+    });
   }
 }

@@ -9,6 +9,12 @@ export const routes: Routes = [
     title: 'Entrar | Conecta+',
     loadComponent: () => import('./features/auth/login/login').then((m) => m.Login)
   },
+  {
+    path: 'cadastro',
+    title: 'Criar conta | Conecta+',
+    loadComponent: () =>
+      import('./features/auth/register-choice/register-choice').then((m) => m.RegisterChoice)
+  },
 
   // Telas do sistema: compartilham a sidebar global via layout Shell.
   {
@@ -73,6 +79,22 @@ export const routes: Routes = [
       {
         path: 'empresa/vagas/nova',
         title: 'Cadastrar Vaga | Conecta+',
+        data: { ambiente: 'empresa' },
+        canActivate: [ambienteGuard('empresa')],
+        loadComponent: () =>
+          import('./features/company/vaga-register/vaga-register').then((m) => m.VagaRegister)
+      },
+      {
+        path: 'empresa/vagas/:id',
+        title: 'Detalhes da Vaga | Conecta+',
+        data: { ambiente: 'empresa' },
+        canActivate: [ambienteGuard('empresa')],
+        loadComponent: () =>
+          import('./features/company/vaga-detalhes/vaga-detalhes').then((m) => m.VagaDetalhes)
+      },
+      {
+        path: 'empresa/vagas/:id/editar',
+        title: 'Editar Vaga | Conecta+',
         data: { ambiente: 'empresa' },
         canActivate: [ambienteGuard('empresa')],
         loadComponent: () =>
