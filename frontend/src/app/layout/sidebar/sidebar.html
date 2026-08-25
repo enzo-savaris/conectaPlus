@@ -102,6 +102,24 @@
           <span class="truncate">Candidatos</span>
         }
       </a>
+
+      <a
+        routerLink="/empresa/perfil"
+        routerLinkActive="bg-white/10 text-brand-300"
+        class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-300 transition hover:bg-white/5 hover:text-white"
+        [attr.title]="!aberta() ? 'Perfil da empresa' : null"
+      >
+        <svg class="size-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M2.25 21h19.5M4.5 21V6.75a1.5 1.5 0 0 1 1.5-1.5h3a1.5 1.5 0 0 1 1.5 1.5V21m4.5 0V3.75a1.5 1.5 0 0 1 1.5-1.5h1.5a1.5 1.5 0 0 1 1.5 1.5V21M7.5 9h1.5m-1.5 3.75h1.5m6-6h1.5m-1.5 3.75h1.5m-1.5 3.75h1.5"
+          />
+        </svg>
+        @if (aberta()) {
+          <span class="truncate">Perfil da empresa</span>
+        }
+      </a>
     } @else {
       <a
         routerLink="/perfil"

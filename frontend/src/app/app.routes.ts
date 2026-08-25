@@ -70,6 +70,14 @@ export const routes: Routes = [
         loadComponent: () => import('./features/vagas/vagas').then((m) => m.Vagas)
       },
       {
+        path: 'empresa/perfil',
+        title: 'Perfil da Empresa | Conecta+',
+        data: { ambiente: 'empresa' },
+        canActivate: [ambienteGuard('empresa')],
+        loadComponent: () =>
+          import('./features/company/perfil-empresa/perfil-empresa').then((m) => m.PerfilEmpresa)
+      },
+      {
         path: 'empresa/candidatos',
         title: 'Candidatos | Conecta+',
         data: { ambiente: 'empresa' },

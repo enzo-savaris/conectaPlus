@@ -5,11 +5,15 @@ import { gerarHashSenha } from '../utils/senha.ts';
 import type { DadosEmpresa, DadosEmpresaParciais } from '../utils/validacao.ts';
 
 const COLUNAS = `IDEMPRESA, RAZAO, FANTASIA, CNPJ, EMAIL, TELEFONE, CEP,
-                 NUMERO, COMPLEMENTO, BAIRRO, CIDADE, ESTADO, DTCAD, STATUSEMP`;
+                 NUMERO, COMPLEMENTO, BAIRRO, CIDADE, ESTADO, DTCAD, DTALT, STATUSEMP`;
 
 type ValorSql = string | number | null;
 
-/** Tradução entre os campos da API e as colunas da TBLCDSEMP0. */
+/**
+ * Tradução entre os campos da API e as colunas da TBLCDSEMP0. `status` fica
+ * de fora de propósito: quem decide o status final na atualização é a regra
+ * de revalidação em `atualizar`, não uma atribuição direta genérica.
+ */
 const COLUNA_POR_CAMPO: Record<string, string> = {
   razaoSocial: 'RAZAO',
   nomeFantasia: 'FANTASIA',
@@ -21,8 +25,7 @@ const COLUNA_POR_CAMPO: Record<string, string> = {
   complemento: 'COMPLEMENTO',
   bairro: 'BAIRRO',
   cidade: 'CIDADE',
-  estado: 'ESTADO',
-  status: 'STATUSEMP'
+  estado: 'ESTADO'
 };
 
 async function garantirQueNaoDuplica(
@@ -144,7 +147,7 @@ export async function atualizar(
   dados: DadosEmpresaParciais
 ): Promise<RowDataPacket> {
 
-  await obterPorId(id);
+  const atual = await obterPorId(id);
   await garantirQueNaoDuplica(dados.cnpj, dados.email, id);
 
   const atribuicoes: string[] = [];
@@ -161,6 +164,18 @@ export async function atualizar(
   if (dados.senha !== undefined) {
     atribuicoes.push('SENHA = ?');
     parametros.push(await gerarHashSenha(dados.senha));
+  }
+
+  // Regra de negócio: alterar CNPJ ou razão social invalida a verificação
+  // já feita pelo suporte, então o status volta para PENDENTE — mesmo que o
+  // cliente tenha mandado outro status junto na mesma requisição.
+  const cnpjMudou = dados.cnpj !== undefined && dados.cnpj !== atual['CNPJ'];
+  const razaoSocialMudou = dados.razaoSocial !== undefined && dados.razaoSocial !== atual['RAZAO'];
+  const statusFinal = cnpjMudou || razaoSocialMudou ? 'PENDENTE' : dados.status;
+
+  if (statusFinal !== undefined) {
+    atribuicoes.push('STATUSEMP = ?');
+    parametros.push(statusFinal);
   }
 
   if (atribuicoes.length === 0) {
