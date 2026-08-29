@@ -1,4 +1,242 @@
 <div class="p-8">
-  <h1 class="text-xl font-semibold text-white sm:text-2xl">Curso</h1>
-  <p class="mt-2 text-sm text-slate-400">Em breve: catálogo de cursos.</p>
+  <header>
+    <h1 class="text-xl font-semibold text-white sm:text-2xl">Cursos</h1>
+    <p class="mt-1 text-sm text-slate-400">
+      Cadastre capacitações e relacione-as às vagas no momento da publicação.
+    </p>
+  </header>
+
+  <div class="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+    <!-- ============ FORMULÁRIO ============ -->
+    <section class="rounded-2xl border border-white/10 bg-ink-900/60 p-5 sm:p-6">
+      <h2 class="text-base font-semibold text-white">
+        {{ idCursoEditando() !== null ? 'Editar curso' : 'Novo curso' }}
+      </h2>
+
+      <form class="mt-4" [formGroup]="formulario" (ngSubmit)="aoEnviar()" novalidate>
+        @if (erroFormulario()) {
+          <p
+            class="mb-5 rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200"
+            role="alert"
+          >
+            {{ erroFormulario() }}
+          </p>
+        }
+
+        <div class="flex flex-col gap-4">
+          <div>
+            <label for="titulo" class="field-label">
+              Título <span class="text-brand-300" aria-hidden="true">*</span>
+            </label>
+            <input
+              id="titulo"
+              type="text"
+              formControlName="titulo"
+              placeholder="Ex.: React + TypeScript"
+              class="field-input mt-1.5"
+              [attr.aria-invalid]="temErro('titulo')"
+            />
+            @if (temErro('titulo')) {
+              <p class="field-error" role="alert">O título deve ter ao menos 3 caracteres.</p>
+            }
+          </div>
+
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label for="cargaHoraria" class="field-label">Carga horária</label>
+              <input
+                id="cargaHoraria"
+                type="number"
+                min="1"
+                formControlName="cargaHoraria"
+                placeholder="30"
+                class="field-input mt-1.5"
+              />
+            </div>
+
+            <div>
+              <label for="preco" class="field-label">Preço (R$)</label>
+              <input
+                id="preco"
+                type="number"
+                min="0"
+                step="0.01"
+                formControlName="preco"
+                placeholder="0,00 = gratuito"
+                class="field-input mt-1.5"
+              />
+            </div>
+          </div>
+
+          <div>
+            <span class="field-label">Conteúdo do curso</span>
+
+            <div class="mt-1.5 inline-flex rounded-lg border border-white/12 bg-ink-800/60 p-1">
+              <button
+                type="button"
+                (click)="alternarTipoConteudo('LINK')"
+                class="rounded-md px-4 py-1.5 text-xs font-semibold transition"
+                [class.bg-brand-500]="formulario.controls.tipoConteudo.value === 'LINK'"
+                [class.text-ink-950]="formulario.controls.tipoConteudo.value === 'LINK'"
+                [class.text-slate-300]="formulario.controls.tipoConteudo.value !== 'LINK'"
+              >
+                Link
+              </button>
+              <button
+                type="button"
+                (click)="alternarTipoConteudo('ARQUIVO')"
+                class="rounded-md px-4 py-1.5 text-xs font-semibold transition"
+                [class.bg-brand-500]="formulario.controls.tipoConteudo.value === 'ARQUIVO'"
+                [class.text-ink-950]="formulario.controls.tipoConteudo.value === 'ARQUIVO'"
+                [class.text-slate-300]="formulario.controls.tipoConteudo.value !== 'ARQUIVO'"
+              >
+                Vídeo
+              </button>
+            </div>
+
+            @if (formulario.controls.tipoConteudo.value === 'LINK') {
+              <input
+                type="text"
+                formControlName="linkCurso"
+                placeholder="https://..."
+                class="field-input mt-2"
+                [attr.aria-invalid]="temErroDeLink()"
+              />
+              @if (temErroDeLink()) {
+                <p class="field-error" role="alert">
+                  Informe um link válido, começando com http:// ou https://.
+                </p>
+              }
+            } @else {
+              <input
+                type="file"
+                accept="video/*"
+                (change)="selecionarArquivo($event)"
+                class="field-input mt-2 file:mr-3 file:rounded-md file:border-0 file:bg-brand-500 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-ink-950"
+              />
+              @if (arquivoSelecionado(); as arquivo) {
+                <p class="mt-1.5 text-xs text-slate-400">Selecionado: {{ arquivo.name }}</p>
+              } @else if (arquivoAtualUrl(); as urlAtual) {
+                <p class="mt-1.5 text-xs text-slate-400">
+                  Vídeo atual:
+                  <a
+                    [href]="urlAtual"
+                    target="_blank"
+                    rel="noopener"
+                    class="text-brand-300 underline hover:text-brand-200"
+                  >
+                    abrir/baixar
+                  </a>
+                  — escolha outro arquivo pra substituir.
+                </p>
+              }
+            }
+          </div>
+
+          <div>
+            <label for="descricao" class="field-label">Descrição</label>
+            <textarea
+              id="descricao"
+              formControlName="descricao"
+              rows="3"
+              placeholder="Do que trata o curso"
+              class="field-input mt-1.5 resize-none"
+            ></textarea>
+          </div>
+        </div>
+
+        <div class="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+          @if (idCursoEditando() !== null) {
+            <button
+              type="button"
+              (click)="aoCancelarEdicao()"
+              class="rounded-lg border border-white/12 bg-ink-800/60 px-6 py-2.5 text-sm font-medium text-slate-200 transition hover:border-white/25 hover:bg-ink-700/70"
+            >
+              Cancelar edição
+            </button>
+          }
+
+          <button
+            type="submit"
+            [disabled]="enviando()"
+            class="rounded-lg bg-gradient-to-r from-brand-300 to-brand-600 px-6 py-2.5 text-sm font-semibold text-ink-950 shadow-lg shadow-brand-500/20 transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {{
+              enviando()
+                ? 'Salvando…'
+                : idCursoEditando() !== null
+                  ? 'Salvar alterações'
+                  : '+ Cadastrar curso'
+            }}
+          </button>
+        </div>
+      </form>
+    </section>
+
+    <!-- ============ LISTA DE CURSOS ============ -->
+    <section>
+      @if (erroLista()) {
+        <p
+          class="rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200"
+          role="alert"
+        >
+          {{ erroLista() }}
+        </p>
+      }
+
+      @if (carregando()) {
+        <p class="text-sm text-slate-400">Carregando cursos…</p>
+      } @else if (cursos().length === 0) {
+        <div class="rounded-2xl border border-dashed border-white/15 bg-ink-900/40 p-10 text-center">
+          <p class="text-sm font-medium text-slate-200">Nenhum curso cadastrado ainda.</p>
+          <p class="mt-1 text-xs text-slate-500">Os cursos cadastrados vão aparecer aqui.</p>
+        </div>
+      } @else {
+        <ul class="flex flex-col gap-4">
+          @for (curso of cursos(); track curso.id) {
+            <li class="rounded-2xl border border-white/10 bg-ink-900/60 p-5 transition hover:border-brand-400/40">
+              <div class="flex flex-wrap items-start justify-between gap-3">
+                <h3 class="text-sm font-semibold text-white">{{ curso.titulo }}</h3>
+                <button
+                  type="button"
+                  (click)="aoClicarEditar(curso)"
+                  class="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-white/12 bg-ink-800/60 px-3 py-1 text-xs font-semibold text-slate-200 transition hover:border-brand-400/40 hover:bg-ink-700/70 hover:text-brand-200"
+                >
+                  Editar
+                </button>
+              </div>
+
+              <p class="mt-1 text-xs text-slate-400">
+                {{ formatarCargaHoraria(curso) }} • {{ formatarPreco(curso) }}
+              </p>
+
+              @if (curso.tipoConteudo === 'LINK' && curso.linkCurso) {
+                <a
+                  [href]="curso.linkCurso"
+                  target="_blank"
+                  rel="noopener"
+                  class="mt-2 inline-block text-xs text-brand-300 underline hover:text-brand-200"
+                >
+                  Abrir link do curso
+                </a>
+              } @else if (curso.arquivoCursoUrl) {
+                <a
+                  [href]="curso.arquivoCursoUrl"
+                  target="_blank"
+                  rel="noopener"
+                  class="mt-2 inline-block text-xs text-brand-300 underline hover:text-brand-200"
+                >
+                  Abrir/baixar vídeo
+                </a>
+              }
+
+              @if (curso.descricao) {
+                <p class="mt-2 text-sm text-slate-300">{{ curso.descricao }}</p>
+              }
+            </li>
+          }
+        </ul>
+      }
+    </section>
+  </div>
 </div>

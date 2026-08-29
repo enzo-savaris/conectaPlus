@@ -44,8 +44,10 @@ export const routes: Routes = [
         loadComponent: () => import('./features/home/home').then((m) => m.Home)
       },
       {
-        path: 'curso',
-        title: 'Curso | Conecta+',
+        path: 'cursos',
+        title: 'Cursos | Conecta+',
+        data: { ambiente: 'empresa' },
+        canActivate: [ambienteGuard('empresa')],
         loadComponent: () => import('./features/curso/curso').then((m) => m.Curso)
       },
       {
