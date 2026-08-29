@@ -20,3 +20,17 @@ export async function listar(): Promise<RowDataPacket[]> {
 
   return usuarios;
 }
+
+/** Lista as vagas em que o candidato já se candidatou, com o título e o status de cada uma. */
+export async function listarCandidaturas(idPcd: number): Promise<RowDataPacket[]> {
+  const [linhas] = await pool.query<RowDataPacket[]>(
+    `SELECT c.IDCANDIDATURA, c.IDVAGA, c.STATUSCANDIDATURA, c.DTCAD AS DTCANDIDATURA, v.TITULO
+     FROM TBLCDSCAND0 c
+     INNER JOIN TBLCDSVAG0 v ON v.IDVAGA = c.IDVAGA
+     WHERE c.IDPCD = ?
+     ORDER BY c.DTCAD DESC`,
+    [idPcd]
+  );
+
+  return linhas;
+}

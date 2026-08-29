@@ -36,12 +36,17 @@ export const cadastrarVaga = async (requisicao: Request, resposta: Response): Pr
   }
 };
 
-/** GET /vagas — lista as vagas. Com ?idEmpresa=, traz só as daquela empresa. */
+/**
+ * GET /vagas — lista as vagas. Com ?idEmpresa=, traz só as daquela empresa
+ * (tela de gestão). Com ?status=, filtra pelo status (a busca aberta ao
+ * candidato PCD usa ?status=ATIVA, pra não mostrar vagas encerradas).
+ */
 export const listarVagas = async (requisicao: Request, resposta: Response): Promise<void> => {
   try {
     const idEmpresaBruto = requisicao.query['idEmpresa'];
     const idEmpresa = idEmpresaBruto !== undefined ? validarId(idEmpresaBruto) : undefined;
-    const vagas = await vagaService.listar(idEmpresa);
+    const status = typeof requisicao.query['status'] === 'string' ? requisicao.query['status'] : undefined;
+    const vagas = await vagaService.listar(idEmpresa, status);
 
     resposta.json(vagas);
   } catch (erro) {
@@ -89,6 +94,20 @@ export const listarCandidaturasDaVaga = async (
     resposta.json(candidaturas);
   } catch (erro) {
     responderErro(resposta, erro, 'Erro ao buscar inscritos da vaga');
+  }
+};
+
+/** POST /vagas/:id/candidaturas — candidata o PCD informado em `idPcd` à vaga. */
+export const candidatarNaVaga = async (requisicao: Request, resposta: Response): Promise<void> => {
+  try {
+    const idVaga = validarId(requisicao.params['id']);
+    const corpo = requisicao.body as Record<string, unknown>;
+    const idPcd = validarId(corpo['idPcd']);
+    const candidatura = await vagaService.candidatar(idVaga, idPcd);
+
+    resposta.status(201).json(candidatura);
+  } catch (erro) {
+    responderErro(resposta, erro, 'Erro ao candidatar-se à vaga');
   }
 };
 

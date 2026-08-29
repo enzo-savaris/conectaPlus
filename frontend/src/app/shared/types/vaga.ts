@@ -42,6 +42,14 @@ export interface Candidatura {
   dataCandidatura: string;
 }
 
+/** Candidatura do próprio candidato logado, como exibida na tela de vagas disponíveis. */
+export interface MinhaCandidatura {
+  idVaga: number;
+  titulo: string;
+  status: StatusCandidatura;
+  dataCandidatura: string;
+}
+
 /** Dados enviados ao cadastrar uma vaga nova. */
 export interface NovaVaga {
   titulo: string;

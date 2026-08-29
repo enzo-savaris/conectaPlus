@@ -5,6 +5,7 @@ import { Observable, map } from 'rxjs';
 import { URL_BASE_API } from '../config/api';
 import {
   Candidatura,
+  MinhaCandidatura,
   ModeloTrabalho,
   NovaVaga,
   StatusCandidatura,
@@ -91,14 +92,41 @@ function paraCandidatura(candidatura: CandidaturaDaApi): Candidatura {
   };
 }
 
+/** Formato bruto devolvido pela API: GET /usuarios/:id/candidaturas. */
+interface MinhaCandidaturaDaApi {
+  IDCANDIDATURA: number;
+  IDVAGA: number;
+  TITULO: string;
+  STATUSCANDIDATURA: StatusCandidatura;
+  DTCANDIDATURA: string;
+}
+
+function paraMinhaCandidatura(candidatura: MinhaCandidaturaDaApi): MinhaCandidatura {
+  return {
+    idVaga: candidatura.IDVAGA,
+    titulo: candidatura.TITULO,
+    status: candidatura.STATUSCANDIDATURA,
+    dataCandidatura: candidatura.DTCANDIDATURA
+  };
+}
+
 @Injectable({ providedIn: 'root' })
 export class VagaService {
   private readonly http = inject(HttpClient);
 
-  /** Sem `idEmpresa`, lista as vagas de todas as empresas. */
-  listar(idEmpresa?: number): Observable<Vaga[]> {
-    const parametros =
-      idEmpresa !== undefined ? new HttpParams().set('idEmpresa', idEmpresa) : undefined;
+  /**
+   * Sem `idEmpresa`, lista as vagas de todas as empresas. `status` é usado
+   * pela busca aberta ao candidato PCD (`status: 'ATIVA'`), pra não mostrar
+   * vagas encerradas ou inativas.
+   */
+  listar(idEmpresa?: number, status?: StatusVaga): Observable<Vaga[]> {
+    let parametros = new HttpParams();
+    if (idEmpresa !== undefined) {
+      parametros = parametros.set('idEmpresa', idEmpresa);
+    }
+    if (status !== undefined) {
+      parametros = parametros.set('status', status);
+    }
 
     return this.http
       .get<VagaDaApi[]>(`${URL_BASE_API}/vagas`, { params: parametros })
@@ -136,5 +164,19 @@ export class VagaService {
   remover(id: number, idEmpresa: number): Observable<void> {
     const parametros = new HttpParams().set('idEmpresa', idEmpresa);
     return this.http.delete<void>(`${URL_BASE_API}/vagas/${id}`, { params: parametros });
+  }
+
+  /** Candidata o PCD logado (`idPcd`) à vaga. O backend recusa uma segunda candidatura à mesma vaga. */
+  candidatar(idVaga: number, idPcd: number): Observable<void> {
+    return this.http
+      .post<unknown>(`${URL_BASE_API}/vagas/${idVaga}/candidaturas`, { idPcd })
+      .pipe(map(() => undefined));
+  }
+
+  /** Lista as vagas em que o candidato logado já se candidatou, para marcar "Já candidatado" na lista. */
+  listarMinhasCandidaturas(idPcd: number): Observable<MinhaCandidatura[]> {
+    return this.http
+      .get<MinhaCandidaturaDaApi[]>(`${URL_BASE_API}/usuarios/${idPcd}/candidaturas`)
+      .pipe(map((candidaturas) => candidaturas.map(paraMinhaCandidatura)));
   }
 }

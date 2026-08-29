@@ -59,6 +59,15 @@ export const routes: Routes = [
         canActivate: [ambienteGuard('usuario')],
         loadComponent: () => import('./features/painel/painel').then((m) => m.Painel)
       },
+      {
+        path: 'vagas-disponiveis',
+        title: 'Vagas Disponíveis | Conecta+',
+        canActivate: [ambienteGuard('usuario')],
+        loadComponent: () =>
+          import('./features/candidato/vagas-disponiveis/vagas-disponiveis').then(
+            (m) => m.VagasDisponiveis
+          )
+      },
 
       // Ambiente da empresa: rotas marcadas com data.ambiente para o menu
       // lateral saber trocar "Perfil" (usuário) por "Candidatos" (empresa).

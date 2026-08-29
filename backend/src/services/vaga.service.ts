@@ -1,6 +1,6 @@
 import type { PoolConnection, ResultSetHeader, RowDataPacket } from 'mysql2/promise';
 import pool from '../config/dataBase.ts';
-import { erroNaoEncontrado } from '../utils/erro-app.ts';
+import { erroDeConflito, erroNaoEncontrado } from '../utils/erro-app.ts';
 import type { DadosVaga } from '../utils/validacao-vaga.ts';
 
 const COLUNAS = `IDVAGA, IDEMPRESA, TITULO, AREA, DESCRICAO, CIDADE, ESTADO,
@@ -22,19 +22,28 @@ type ChaveDeItens = keyof typeof TABELAS_DE_ITENS;
  *
  * Quando `idEmpresa` é informado, traz só as vagas daquela empresa — é o
  * caso da tela de gestão de vagas, que não deve mostrar vagas de outras
- * empresas. Sem o filtro, lista todas (uso futuro: busca aberta ao candidato).
+ * empresas. `status` é usado pela busca aberta ao candidato PCD, que só deve
+ * ver vagas ATIVA (nunca as encerradas ou inativas de outra empresa).
  */
-export async function listar(idEmpresa?: number): Promise<RowDataPacket[]> {
+export async function listar(idEmpresa?: number, status?: string): Promise<RowDataPacket[]> {
+  const condicoes: string[] = [];
+  const parametros: (number | string)[] = [];
+
   if (idEmpresa !== undefined) {
-    const [linhas] = await pool.query<RowDataPacket[]>(
-      `SELECT ${COLUNAS} FROM TBLCDSVAG0 WHERE IDEMPRESA = ? ORDER BY DTCAD DESC`,
-      [idEmpresa]
-    );
-    return linhas;
+    condicoes.push('IDEMPRESA = ?');
+    parametros.push(idEmpresa);
   }
 
+  if (status !== undefined) {
+    condicoes.push('STATUSVAGA = ?');
+    parametros.push(status);
+  }
+
+  const filtro = condicoes.length > 0 ? `WHERE ${condicoes.join(' AND ')}` : '';
+
   const [linhas] = await pool.query<RowDataPacket[]>(
-    `SELECT ${COLUNAS} FROM TBLCDSVAG0 ORDER BY DTCAD DESC`
+    `SELECT ${COLUNAS} FROM TBLCDSVAG0 ${filtro} ORDER BY DTCAD DESC`,
+    parametros
   );
 
   return linhas;
@@ -244,6 +253,41 @@ export async function listarCandidaturas(
   );
 
   return linhas;
+}
+
+/**
+ * Candidata o PCD à vaga. Só aceita vagas ATIVA (não dá pra se candidatar a
+ * uma vaga encerrada ou inativa) e bloqueia uma segunda candidatura à mesma
+ * vaga — a unicidade também é garantida no banco (UQ_CANDIDATURA), mas o
+ * check aqui devolve uma mensagem amigável em vez do erro cru do MySQL.
+ */
+export async function candidatar(idVaga: number, idPcd: number): Promise<RowDataPacket> {
+  const vaga = await buscarPorId(idVaga);
+
+  if (vaga === null || vaga['STATUSVAGA'] !== 'ATIVA') {
+    throw erroNaoEncontrado('Vaga não encontrada.');
+  }
+
+  const [existentes] = await pool.query<RowDataPacket[]>(
+    'SELECT IDCANDIDATURA FROM TBLCDSCAND0 WHERE IDVAGA = ? AND IDPCD = ?',
+    [idVaga, idPcd]
+  );
+
+  if (existentes.length > 0) {
+    throw erroDeConflito('Você já se candidatou a esta vaga.');
+  }
+
+  const [resultado] = await pool.execute<ResultSetHeader>(
+    'INSERT INTO TBLCDSCAND0 (IDVAGA, IDPCD) VALUES (?, ?)',
+    [idVaga, idPcd]
+  );
+
+  const [linhas] = await pool.query<RowDataPacket[]>(
+    'SELECT IDCANDIDATURA, IDVAGA, IDPCD, STATUSCANDIDATURA, DTCAD FROM TBLCDSCAND0 WHERE IDCANDIDATURA = ?',
+    [resultado.insertId]
+  );
+
+  return linhas[0]!;
 }
 
 /**
