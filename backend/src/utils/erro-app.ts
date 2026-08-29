@@ -37,3 +37,16 @@ export function erroDeConflito(mensagem: string, erros?: Record<string, string>)
 export function erroDeAutenticacao(): ErroApp {
   return new ErroApp(401, 'CPF/CNPJ ou senha incorretos.');
 }
+
+/**
+ * 403 — a senha confere, mas a empresa ainda está PENDENTE de confirmação.
+ * `erros.situacao` é lido pelo frontend para redirecionar à tela de
+ * "Aguardando Confirmação" em vez de mostrar um erro genérico de login.
+ */
+export function erroEmpresaPendente(): ErroApp {
+  return new ErroApp(
+    403,
+    'Cadastro em análise. Aguarde a confirmação para acessar a plataforma.',
+    { situacao: 'PENDENTE' }
+  );
+}

@@ -52,6 +52,7 @@ async function garantirQueNaoDuplica(
 
   let sql = `SELECT CNPJ, EMAIL FROM TBLCDSEMP0 WHERE (${condicoes.join(' OR ')})`;
 
+
   if (idIgnorado !== undefined) {
     sql += ' AND IDEMPRESA <> ?';
     parametros.push(idIgnorado);

@@ -3,7 +3,7 @@ import { Injectable, inject } from '@angular/core';
 import { Observable, map } from 'rxjs';
 
 import { URL_BASE_API } from '../config/api';
-import { AtualizarEmpresa, Empresa, StatusEmpresa } from '../types/empresa';
+import { AtualizarEmpresa, CadastrarEmpresa, Empresa, StatusEmpresa } from '../types/empresa';
 
 /** Formato bruto devolvido pela API: colunas da TBLCDSEMP0. */
 interface EmpresaDaApi {
@@ -50,6 +50,12 @@ export class EmpresaService {
 
   obterPorId(id: number): Observable<Empresa> {
     return this.http.get<EmpresaDaApi>(`${URL_BASE_API}/empresas/${id}`).pipe(map(paraEmpresa));
+  }
+
+  cadastrar(dados: CadastrarEmpresa): Observable<Empresa> {
+    return this.http
+      .post<EmpresaDaApi>(`${URL_BASE_API}/empresas`, dados)
+      .pipe(map(paraEmpresa));
   }
 
   atualizar(id: number, dados: AtualizarEmpresa): Observable<Empresa> {

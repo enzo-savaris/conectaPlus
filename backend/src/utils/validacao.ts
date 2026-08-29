@@ -248,9 +248,11 @@ export function validarEmpresa(corpo: unknown, parcial: boolean): DadosEmpresaPa
   }
 
   if (precisaValidar('status')) {
-    // No cadastro, sem status informado, a empresa nasce ATIVA.
-    if (!parcial && entrada['status'] === undefined) {
-      dados.status = 'ATIVA';
+    if (!parcial) {
+      // No cadastro, a empresa sempre nasce PENDENTE — quem confirma que ela
+      // existe é a análise manual, não o próprio formulário de cadastro. Por
+      // isso o status enviado no corpo é ignorado nessa hora.
+      dados.status = 'PENDENTE';
     } else {
       const valor = converterStatus(entrada['status']);
       if (valor === null) {

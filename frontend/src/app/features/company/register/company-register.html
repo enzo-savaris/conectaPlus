@@ -271,7 +271,7 @@
       <fieldset class="mb-8">
         <legend class="section-legend">Configuração de Acesso</legend>
 
-        <div class="grid grid-cols-1 gap-x-5 gap-y-4 sm:grid-cols-2">
+        <div class="grid grid-cols-1 gap-x-5 gap-y-4">
           <!-- Senha de Acesso -->
           <div>
             <label for="senha" class="field-label">
@@ -322,15 +322,6 @@
             } @else {
               <p id="senha-hint" class="mt-1.5 text-xs text-slate-500">Mínimo de 8 caracteres.</p>
             }
-          </div>
-
-          <!-- Status da Empresa -->
-          <div>
-            <label for="status" class="field-label">Status da Empresa</label>
-            <select id="status" formControlName="status" class="field-input mt-1.5">
-              <option value="ativo">Ativo</option>
-              <option value="inativo">Inativo</option>
-            </select>
           </div>
         </div>
       </fieldset>

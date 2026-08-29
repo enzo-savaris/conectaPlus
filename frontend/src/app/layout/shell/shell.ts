@@ -30,12 +30,12 @@ export class Shell {
   // navegação atual) em vez de ActivatedRoute.firstChild, cujo `.snapshot` só
   // fica disponível depois que o outlet do filho realmente o ativa.
   //
-  // Rotas como /empresa/cadastro marcam data.ambiente explicitamente porque
-  // são acessíveis sem sessão (é por onde uma empresa nova se registra), então
-  // esse dado tem prioridade. Rotas compartilhadas entre os dois ambientes
-  // (/curso, /perfil, /teste) não marcam nada — nesses casos o ambiente vem
-  // da sessão logada, não de um padrão fixo, senão uma empresa logada que
-  // navega para /curso "perderia" o menu da empresa.
+  // Toda rota dentro do Shell já exige sessão, então data.ambiente aqui é só
+  // para o menu lateral trocar "Perfil" (usuário) por "Candidatos" (empresa).
+  // Rotas compartilhadas entre os dois ambientes (/curso, /perfil, /teste)
+  // não marcam nada — nesses casos o ambiente vem da sessão logada, não de
+  // um padrão fixo, senão uma empresa logada que navega para /curso
+  // "perderia" o menu da empresa.
   private descobrirAmbiente(): Ambiente {
     let rota = this.roteador.routerState.snapshot.root;
     while (rota.firstChild) {

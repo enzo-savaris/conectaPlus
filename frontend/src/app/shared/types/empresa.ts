@@ -34,3 +34,22 @@ export interface AtualizarEmpresa {
   estado: string | null;
   senha?: string;
 }
+
+/**
+ * Campos do formulário público de cadastro de empresa. Não inclui `status`:
+ * o backend sempre cria a empresa como PENDENTE, aguardando confirmação.
+ */
+export interface CadastrarEmpresa {
+  razaoSocial: string;
+  nomeFantasia: string | null;
+  cnpj: string;
+  email: string | null;
+  telefone: string | null;
+  cep: string | null;
+  numero: string | null;
+  complemento: string | null;
+  bairro: string | null;
+  cidade: string | null;
+  estado: string | null;
+  senha: string;
+}

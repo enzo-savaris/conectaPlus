@@ -1,0 +1,87 @@
+<main class="relative flex min-h-dvh items-center justify-center bg-ink-950 px-4 py-8 sm:px-6">
+  <!-- Brilho decorativo de fundo -->
+  <div aria-hidden="true" class="pointer-events-none absolute inset-0 overflow-hidden">
+    <div
+      class="absolute -top-40 left-1/2 h-80 w-80 -translate-x-1/2 rounded-full bg-brand-500/15 blur-3xl"
+    ></div>
+  </div>
+
+  <section
+    class="relative w-full max-w-md rounded-3xl border border-white/10 bg-ink-900/80 p-6 text-center shadow-2xl shadow-black/40 backdrop-blur-sm sm:p-8"
+    aria-labelledby="aguardando-confirmacao-title"
+  >
+    <div
+      class="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full border border-brand-400/40 bg-brand-500/10 text-brand-300"
+      aria-hidden="true"
+    >
+      <svg class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6">
+        <circle cx="12" cy="12" r="9" />
+        <path d="M12 7v5l3.5 2" stroke-linecap="round" stroke-linejoin="round" />
+      </svg>
+    </div>
+
+    <h1 id="aguardando-confirmacao-title" class="text-xl font-bold text-white sm:text-2xl">
+      Aguardando Confirmação
+    </h1>
+    <p class="mt-1.5 text-sm font-semibold text-brand-300">
+      Sua empresa foi cadastrada com sucesso!
+    </p>
+
+    <p class="mt-4 text-sm leading-relaxed text-slate-400">
+      Estamos validando as informações da sua empresa. Assim que tudo estiver confirmado, você
+      receberá um e-mail com a aprovação e poderá acessar a plataforma.
+    </p>
+
+    <!-- Progresso: Cadastro (feito) → Em análise (atual) → Aprovado (pendente) -->
+    <ol class="mt-8 flex items-center justify-center" aria-label="Progresso da confirmação">
+      <li class="flex flex-col items-center gap-2">
+        <span
+          class="flex h-9 w-9 items-center justify-center rounded-full border-2 border-brand-400 bg-brand-500/15 text-brand-300"
+          aria-hidden="true"
+        >
+          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
+            <path d="m5 12 4.5 4.5L19 7" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </span>
+        <span class="text-[11px] font-medium text-slate-300">Cadastro</span>
+      </li>
+
+      <li aria-hidden="true" class="mb-5 h-0.5 w-10 bg-brand-400/60 sm:w-16"></li>
+
+      <li class="flex flex-col items-center gap-2">
+        <span
+          class="flex h-9 w-9 items-center justify-center rounded-full border-2 border-brand-400 bg-brand-500/15 text-brand-300"
+          aria-hidden="true"
+        >
+          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+            <circle cx="12" cy="12" r="9" />
+            <path d="M12 7.5v4.5l3 1.8" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </span>
+        <span class="text-[11px] font-medium text-brand-300">Em análise</span>
+      </li>
+
+      <li aria-hidden="true" class="mb-5 h-0.5 w-10 bg-white/10 sm:w-16"></li>
+
+      <li class="flex flex-col items-center gap-2">
+        <span
+          class="flex h-9 w-9 items-center justify-center rounded-full border-2 border-white/15 text-slate-500"
+          aria-hidden="true"
+        >
+          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
+            <path d="m5 12 4.5 4.5L19 7" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </span>
+        <span class="text-[11px] font-medium text-slate-500">Aprovado</span>
+      </li>
+    </ol>
+
+    <button
+      type="button"
+      (click)="aoVoltar()"
+      class="mt-8 w-full rounded-lg bg-gradient-to-r from-brand-300 to-brand-600 px-6 py-2.5 text-sm font-semibold text-ink-950 shadow-lg shadow-brand-500/20 transition hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-300"
+    >
+      Voltar para o início
+    </button>
+  </section>
+</main>

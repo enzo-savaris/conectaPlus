@@ -1,6 +1,6 @@
 import type { RowDataPacket } from 'mysql2';
 import pool from '../config/dataBase.ts';
-import { erroDeAutenticacao } from '../utils/erro-app.ts';
+import { erroDeAutenticacao, erroEmpresaPendente } from '../utils/erro-app.ts';
 import { senhaConfere } from '../utils/senha.ts';
 
 export interface PerfilUsuario {
@@ -56,6 +56,10 @@ async function autenticarEmpresa(cnpj: string, senha: string): Promise<Sessao> {
   const empresa = linhas[0];
   if (!empresa || !(await senhaConfere(senha, empresa['SENHA'] as string))) {
     throw erroDeAutenticacao();
+  }
+
+  if (empresa['STATUSEMP'] === 'PENDENTE') {
+    throw erroEmpresaPendente();
   }
 
   return {

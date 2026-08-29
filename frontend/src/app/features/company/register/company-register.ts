@@ -1,6 +1,8 @@
 import { afterNextRender, ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
+import { EmpresaService } from '../../../shared/services/empresa.service';
 import { formatarCep, formatarCnpj, formatarTelefone } from '../../../shared/utils/masks';
 import {
   validadorCep,
@@ -19,6 +21,7 @@ type CampoComMascara = 'cnpj' | 'telefone' | 'cep';
 export class CompanyRegister {
   private readonly roteador = inject(Router);
   private readonly rota = inject(ActivatedRoute);
+  private readonly empresaService = inject(EmpresaService);
 
   protected readonly estados = [
     'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS', 'MG',
@@ -60,8 +63,7 @@ export class CompanyRegister {
     senha: new FormControl('', {
       nonNullable: true,
       validators: [Validators.required, Validators.minLength(8)]
-    }),
-    status: new FormControl<'ativo' | 'inativo'>('ativo', { nonNullable: true })
+    })
   });
 
   protected readonly senhaVisivel = signal(false);
@@ -116,10 +118,10 @@ export class CompanyRegister {
   }
 
   protected aoCancelar(): void {
-    this.roteador.navigate(['/teste']);
+    this.roteador.navigate(['/login']);
   }
 
-  protected aoEnviar(): void {  
+  protected aoEnviar(): void {
     this.erroFormulario.set(null);
 
     if (this.formulario.invalid) {
@@ -129,10 +131,36 @@ export class CompanyRegister {
     }
 
     this.enviando.set(true);
+    const valores = this.formulario.getRawValue();
 
-    // TODO: substituir pela chamada real do serviço de empresas.
-    console.log('cadastro de empresa', this.formulario.getRawValue());
-
-    this.enviando.set(false);
+    this.empresaService
+      .cadastrar({
+        razaoSocial: valores.razaoSocial,
+        nomeFantasia: valores.nomeFantasia || null,
+        cnpj: valores.cnpj,
+        email: valores.email,
+        telefone: valores.telefone || null,
+        cep: valores.cep,
+        numero: valores.numero,
+        complemento: valores.complemento || null,
+        bairro: valores.bairro || null,
+        cidade: valores.cidade || null,
+        estado: valores.estado || null,
+        senha: valores.senha
+      })
+      .subscribe({
+        next: () => {
+          this.enviando.set(false);
+          this.roteador.navigate(['/empresa/aguardando-confirmacao']);
+        },
+        error: (erro: HttpErrorResponse) => {
+          this.enviando.set(false);
+          this.erroFormulario.set(
+            erro.status === 409
+              ? (erro.error?.mensagem ?? 'CNPJ ou e-mail já cadastrado.')
+              : 'Não foi possível concluir o cadastro. Tente novamente.'
+          );
+        }
+      });
   }
 }

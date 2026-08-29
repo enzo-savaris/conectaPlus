@@ -16,6 +16,23 @@ export const routes: Routes = [
       import('./features/auth/register-choice/register-choice').then((m) => m.RegisterChoice)
   },
 
+  // Fora do Shell de propósito: quem cadastra uma empresa ainda não tem
+  // sessão, então não faz sentido mostrar a sidebar nessas telas.
+  {
+    path: 'empresa/cadastro',
+    title: 'Cadastro de Empresa | Conecta+',
+    loadComponent: () =>
+      import('./features/company/register/company-register').then((m) => m.CompanyRegister)
+  },
+  {
+    path: 'empresa/aguardando-confirmacao',
+    title: 'Aguardando Confirmação | Conecta+',
+    loadComponent: () =>
+      import('./features/company/aguardando-confirmacao/aguardando-confirmacao').then(
+        (m) => m.AguardandoConfirmacao
+      )
+  },
+
   // Telas do sistema: compartilham a sidebar global via layout Shell.
   {
     path: '',
@@ -45,15 +62,8 @@ export const routes: Routes = [
 
       // Ambiente da empresa: rotas marcadas com data.ambiente para o menu
       // lateral saber trocar "Perfil" (usuário) por "Candidatos" (empresa).
-      // Todas, exceto o cadastro (é por onde uma empresa nova se registra),
-      // exigem estar logado como empresa — o guard manda pro /login quem não estiver.
-      {
-        path: 'empresa/cadastro',
-        title: 'Cadastro de Empresa | Conecta+',
-        data: { ambiente: 'empresa' },
-        loadComponent: () =>
-          import('./features/company/register/company-register').then((m) => m.CompanyRegister)
-      },
+      // Todas exigem estar logado como empresa — o guard manda pro /login
+      // quem não estiver (o cadastro em si fica fora do Shell, acima).
       {
         path: 'empresa/painel',
         title: 'Painel da empresa | Conecta+',

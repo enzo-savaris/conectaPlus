@@ -1,3 +1,4 @@
+import { HttpErrorResponse } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
@@ -69,8 +70,14 @@ export class Login {
         const destino = sessao.ambiente === 'empresa' ? '/empresa/painel' : '/painel';
         this.roteador.navigate([destino]);
       },
-      error: (erro: { status?: number }) => {
+      error: (erro: HttpErrorResponse) => {
         this.enviando.set(false);
+
+        if (erro.status === 403 && erro.error?.erros?.situacao === 'PENDENTE') {
+          this.roteador.navigate(['/empresa/aguardando-confirmacao']);
+          return;
+        }
+
         this.erroFormulario.set(
           erro.status === 401
             ? 'CPF/CNPJ ou senha incorretos.'
