@@ -100,18 +100,64 @@ async function listarItens(chave: ChaveDeItens, idVaga: number): Promise<string[
   return linhas.map((linha) => linha['DESCRICAO'] as string);
 }
 
+/** Cursos que a empresa recomenda para a vaga, com os dados usados no card da página da vaga. */
+async function listarCursosRecomendados(idVaga: number): Promise<RowDataPacket[]> {
+  const [linhas] = await pool.query<RowDataPacket[]>(
+    `SELECT c.IDCURSO, c.TITULO, c.CARGAHORARIA, c.PRECO, c.TIPOCONTEUDO, c.LINKCURSO, c.ARQUIVOCURSO
+     FROM TBLCDSVAGCURSO0 vc
+     INNER JOIN TBLCDSCURSO0 c ON c.IDCURSO = vc.IDCURSO
+     WHERE vc.IDVAGA = ?
+     ORDER BY c.TITULO`,
+    [idVaga]
+  );
+
+  return linhas;
+}
+
+/**
+ * Regrava a lista de cursos recomendados da vaga. Só aceita ids de cursos da
+ * própria empresa — do contrário, uma empresa poderia recomendar o curso de
+ * outra só adivinhando o id.
+ */
+async function definirCursosRecomendados(
+  conexao: PoolConnection,
+  idVaga: number,
+  idEmpresa: number,
+  idsCursos: number[]
+): Promise<void> {
+  await conexao.query('DELETE FROM TBLCDSVAGCURSO0 WHERE IDVAGA = ?', [idVaga]);
+
+  if (idsCursos.length === 0) {
+    return;
+  }
+
+  const [linhas] = await conexao.query<RowDataPacket[]>(
+    `SELECT IDCURSO FROM TBLCDSCURSO0 WHERE IDEMPRESA = ? AND IDCURSO IN (${idsCursos.map(() => '?').join(',')})`,
+    [idEmpresa, ...idsCursos]
+  );
+
+  const idsValidos = linhas.map((linha) => linha['IDCURSO'] as number);
+  if (idsValidos.length === 0) {
+    return;
+  }
+
+  const valores = idsValidos.map((idCurso) => [idVaga, idCurso]);
+  await conexao.query('INSERT INTO TBLCDSVAGCURSO0 (IDVAGA, IDCURSO) VALUES ?', [valores]);
+}
+
 /** Vaga com as listas de itens do cadastro, usada para preencher a tela de edição. */
 export async function obterDetalhado(id: number): Promise<Record<string, unknown>> {
   const vaga = await obterPorId(id);
 
-  const [responsabilidades, requisitos, acessibilidade, beneficios] = await Promise.all([
+  const [responsabilidades, requisitos, acessibilidade, beneficios, cursosRecomendados] = await Promise.all([
     listarItens('responsabilidades', id),
     listarItens('requisitos', id),
     listarItens('acessibilidade', id),
-    listarItens('beneficios', id)
+    listarItens('beneficios', id),
+    listarCursosRecomendados(id)
   ]);
 
-  return { ...vaga, responsabilidades, requisitos, acessibilidade, beneficios };
+  return { ...vaga, responsabilidades, requisitos, acessibilidade, beneficios, cursosRecomendados };
 }
 
 export async function cadastrar(dados: DadosVaga, idEmpresa: number): Promise<RowDataPacket> {
@@ -145,6 +191,7 @@ export async function cadastrar(dados: DadosVaga, idEmpresa: number): Promise<Ro
     await inserirItens(conexao, 'requisitos', idVaga, dados.requisitos);
     await inserirItens(conexao, 'acessibilidade', idVaga, dados.acessibilidade);
     await inserirItens(conexao, 'beneficios', idVaga, dados.beneficios);
+    await definirCursosRecomendados(conexao, idVaga, idEmpresa, dados.cursosRecomendados);
 
     await conexao.commit();
 
@@ -214,6 +261,7 @@ export async function atualizar(
     await inserirItens(conexao, 'requisitos', id, dados.requisitos);
     await inserirItens(conexao, 'acessibilidade', id, dados.acessibilidade);
     await inserirItens(conexao, 'beneficios', id, dados.beneficios);
+    await definirCursosRecomendados(conexao, id, idEmpresa, dados.cursosRecomendados);
 
     await conexao.commit();
 

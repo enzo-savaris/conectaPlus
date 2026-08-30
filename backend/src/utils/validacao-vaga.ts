@@ -28,6 +28,8 @@ export interface DadosVaga {
   requisitos: string[];
   acessibilidade: string[];
   beneficios: string[];
+  /** Ids de cursos recomendados; o service confere que pertencem à mesma empresa antes de gravar. */
+  cursosRecomendados: number[];
 }
 
 function texto(valor: unknown): string {
@@ -46,6 +48,17 @@ function listaDeTextos(valor: unknown): string[] {
   }
 
   return valor.map((item) => texto(item)).filter((item) => item.length > 0);
+}
+
+/** Ids de curso recomendados; valores inválidos (não inteiros positivos) são descartados. */
+function listaDeIds(valor: unknown): number[] {
+  if (!Array.isArray(valor)) {
+    return [];
+  }
+
+  return valor
+    .map((item) => Number(item))
+    .filter((id) => Number.isInteger(id) && id > 0);
 }
 
 /** Devolve o valor numérico, `null` quando não informado, e registra erro quando inválido. */
@@ -144,6 +157,7 @@ export function validarVaga(corpo: unknown): DadosVaga {
     responsabilidades: listaDeTextos(entrada['responsabilidades']),
     requisitos: listaDeTextos(entrada['requisitos']),
     acessibilidade: listaDeTextos(entrada['acessibilidade']),
-    beneficios: listaDeTextos(entrada['beneficios'])
+    beneficios: listaDeTextos(entrada['beneficios']),
+    cursosRecomendados: listaDeIds(entrada['cursosRecomendados'])
   };
 }

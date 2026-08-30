@@ -1,3 +1,5 @@
+import { TipoConteudoCurso } from './curso';
+
 export type ModeloTrabalho = 'PRESENCIAL' | 'HIBRIDO' | 'REMOTO';
 
 export type TipoContratacao = 'CLT' | 'PJ' | 'ESTAGIO' | 'TEMPORARIO' | 'FREELANCER';
@@ -21,12 +23,24 @@ export interface Vaga {
   status: StatusVaga;
 }
 
+/** Curso recomendado por uma vaga, como mostrado no card "Cursos recomendados" da página da vaga. */
+export interface CursoRecomendado {
+  id: number;
+  titulo: string;
+  cargaHoraria: number | null;
+  preco: number | null;
+  tipoConteudo: TipoConteudoCurso;
+  linkCurso: string | null;
+  arquivoCursoUrl: string | null;
+}
+
 /** Vaga com as listas de itens do cadastro, usada para preencher a tela de edição. */
 export interface VagaDetalhada extends Vaga {
   responsabilidades: string[];
   requisitos: string[];
   acessibilidade: string[];
   beneficios: string[];
+  cursosRecomendados: CursoRecomendado[];
 }
 
 export type StatusCandidatura = 'PENDENTE' | 'EM_ANALISE' | 'APROVADO' | 'REPROVADO';
@@ -65,4 +79,5 @@ export interface NovaVaga {
   requisitos: string[];
   acessibilidade: string[];
   beneficios: string[];
+  cursosRecomendados: number[];
 }

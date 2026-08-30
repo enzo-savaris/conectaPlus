@@ -10,8 +10,11 @@ import {
 import { ActivatedRoute, Router } from '@angular/router';
 
 import { AuthService } from '../../../shared/services/auth.service';
+import { CursoService } from '../../../shared/services/curso.service';
 import { VagaService } from '../../../shared/services/vaga.service';
+import { Curso } from '../../../shared/types/curso';
 import { ModeloTrabalho, NovaVaga, TipoContratacao } from '../../../shared/types/vaga';
+import { formatarCargaHorariaCurso, formatarPrecoCurso } from '../../../shared/utils/curso-format';
 
 /** Garante que o salário máximo, quando informado, não fique menor que o mínimo. */
 function salarioValido(grupo: AbstractControl): ValidationErrors | null {
@@ -35,6 +38,7 @@ export class VagaRegister {
   private readonly roteador = inject(Router);
   private readonly rota = inject(ActivatedRoute);
   private readonly vagaService = inject(VagaService);
+  private readonly cursoService = inject(CursoService);
   private readonly authService = inject(AuthService);
 
   /** Presente só na rota de edição (`empresa/vagas/:id/editar`). */
@@ -87,6 +91,9 @@ export class VagaRegister {
   protected readonly acessibilidade = signal<string[]>([]);
   protected readonly beneficios = signal<string[]>([]);
 
+  protected readonly cursosDaEmpresa = signal<Curso[]>([]);
+  protected readonly cursosSelecionados = signal<ReadonlySet<number>>(new Set());
+
   protected readonly enviando = signal(false);
   protected readonly erroFormulario = signal<string | null>(null);
 
@@ -120,6 +127,8 @@ export class VagaRegister {
   }
 
   constructor() {
+    this.cursoService.listar(this.idEmpresaLogada()).subscribe((cursos) => this.cursosDaEmpresa.set(cursos));
+
     const idParam = this.rota.snapshot.paramMap.get('id');
 
     if (idParam) {
@@ -133,6 +142,30 @@ export class VagaRegister {
   private idEmpresaLogada(): number {
     const sessao = this.authService.sessao();
     return sessao?.ambiente === 'empresa' ? sessao.perfil.id : 0;
+  }
+
+  protected formatarCargaHorariaCurso(curso: Curso): string {
+    return formatarCargaHorariaCurso(curso.cargaHoraria);
+  }
+
+  protected formatarPrecoCurso(curso: Curso): string {
+    return formatarPrecoCurso(curso.preco);
+  }
+
+  protected cursoEstaSelecionado(idCurso: number): boolean {
+    return this.cursosSelecionados().has(idCurso);
+  }
+
+  protected alternarCursoRecomendado(idCurso: number): void {
+    this.cursosSelecionados.update((atual) => {
+      const novo = new Set(atual);
+      if (novo.has(idCurso)) {
+        novo.delete(idCurso);
+      } else {
+        novo.add(idCurso);
+      }
+      return novo;
+    });
   }
 
   private carregarVagaParaEdicao(idVaga: number): void {
@@ -156,6 +189,7 @@ export class VagaRegister {
         this.requisitos.set(vaga.requisitos);
         this.acessibilidade.set(vaga.acessibilidade);
         this.beneficios.set(vaga.beneficios);
+        this.cursosSelecionados.set(new Set(vaga.cursosRecomendados.map((curso) => curso.id)));
         this.carregandoVaga.set(false);
       },
       error: () => {
@@ -193,7 +227,8 @@ export class VagaRegister {
       responsabilidades: this.responsabilidades(),
       requisitos: this.requisitos(),
       acessibilidade: this.acessibilidade(),
-      beneficios: this.beneficios()
+      beneficios: this.beneficios(),
+      cursosRecomendados: Array.from(this.cursosSelecionados())
     };
 
     const idEditando = this.idVagaEditando();

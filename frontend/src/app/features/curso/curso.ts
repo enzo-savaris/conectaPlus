@@ -12,6 +12,7 @@ import {
 import { AuthService } from '../../shared/services/auth.service';
 import { CursoService } from '../../shared/services/curso.service';
 import { Curso as CursoModelo, NovoCurso, TipoConteudoCurso } from '../../shared/types/curso';
+import { formatarCargaHorariaCurso, formatarPrecoCurso } from '../../shared/utils/curso-format';
 
 const REGEX_URL = /^https?:\/\/.+/i;
 
@@ -206,14 +207,10 @@ export class Curso {
   }
 
   protected formatarCargaHoraria(curso: CursoModelo): string {
-    return curso.cargaHoraria !== null ? `${curso.cargaHoraria} horas` : 'Carga horária não informada';
+    return formatarCargaHorariaCurso(curso.cargaHoraria);
   }
 
   protected formatarPreco(curso: CursoModelo): string {
-    if (curso.preco === null || curso.preco === 0) {
-      return 'Gratuito';
-    }
-
-    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(curso.preco);
+    return formatarPrecoCurso(curso.preco);
   }
 }

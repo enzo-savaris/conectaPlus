@@ -3,8 +3,10 @@ import { Injectable, inject } from '@angular/core';
 import { Observable, map } from 'rxjs';
 
 import { URL_BASE_API } from '../config/api';
+import { TipoConteudoCurso } from '../types/curso';
 import {
   Candidatura,
+  CursoRecomendado,
   MinhaCandidatura,
   ModeloTrabalho,
   NovaVaga,
@@ -33,12 +35,36 @@ interface VagaDaApi {
   STATUSVAGA: StatusVaga;
 }
 
+/** Formato bruto de um curso recomendado, devolvido dentro de GET /vagas/:id. */
+interface CursoRecomendadoDaApi {
+  IDCURSO: number;
+  TITULO: string;
+  CARGAHORARIA: number | null;
+  PRECO: string | null;
+  TIPOCONTEUDO: TipoConteudoCurso;
+  LINKCURSO: string | null;
+  ARQUIVOCURSO: string | null;
+}
+
+function paraCursoRecomendado(curso: CursoRecomendadoDaApi): CursoRecomendado {
+  return {
+    id: curso.IDCURSO,
+    titulo: curso.TITULO,
+    cargaHoraria: curso.CARGAHORARIA,
+    preco: curso.PRECO !== null ? Number(curso.PRECO) : null,
+    tipoConteudo: curso.TIPOCONTEUDO,
+    linkCurso: curso.LINKCURSO,
+    arquivoCursoUrl: curso.ARQUIVOCURSO ? `${URL_BASE_API}/uploads/cursos/${curso.ARQUIVOCURSO}` : null
+  };
+}
+
 /** GET /vagas/:id devolve, além das colunas da vaga, as listas de itens do cadastro. */
 interface VagaDetalhadaDaApi extends VagaDaApi {
   responsabilidades: string[];
   requisitos: string[];
   acessibilidade: string[];
   beneficios: string[];
+  cursosRecomendados: CursoRecomendadoDaApi[];
 }
 
 function paraVaga(vaga: VagaDaApi): Vaga {
@@ -65,7 +91,8 @@ function paraVagaDetalhada(vaga: VagaDetalhadaDaApi): VagaDetalhada {
     responsabilidades: vaga.responsabilidades,
     requisitos: vaga.requisitos,
     acessibilidade: vaga.acessibilidade,
-    beneficios: vaga.beneficios
+    beneficios: vaga.beneficios,
+    cursosRecomendados: vaga.cursosRecomendados.map(paraCursoRecomendado)
   };
 }
 

@@ -4,7 +4,8 @@ import { forkJoin } from 'rxjs';
 
 import { AuthService } from '../../../shared/services/auth.service';
 import { VagaService } from '../../../shared/services/vaga.service';
-import { Candidatura, VagaDetalhada } from '../../../shared/types/vaga';
+import { Candidatura, CursoRecomendado, VagaDetalhada } from '../../../shared/types/vaga';
+import { formatarCargaHorariaCurso, formatarPrecoCurso } from '../../../shared/utils/curso-format';
 import {
   formatarLocalizacaoVaga,
   formatarSalarioVaga,
@@ -88,6 +89,18 @@ export class VagaDetalhes {
       default:
         return 'Novo';
     }
+  }
+
+  protected formatarCargaHorariaCurso(curso: CursoRecomendado): string {
+    return formatarCargaHorariaCurso(curso.cargaHoraria);
+  }
+
+  protected formatarPrecoCurso(curso: CursoRecomendado): string {
+    return formatarPrecoCurso(curso.preco);
+  }
+
+  protected linkDoCurso(curso: CursoRecomendado): string | null {
+    return curso.tipoConteudo === 'LINK' ? curso.linkCurso : curso.arquivoCursoUrl;
   }
 
   protected corStatusCandidatura(status: Candidatura['status']): string {
