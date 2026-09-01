@@ -7,6 +7,7 @@ import multer from 'multer';
 import { PASTA_UPLOADS_CURSOS } from './config/upload.ts';
 import { testarConexao } from './config/dataBase.ts';
 import rotasAuth from './routes/auth.routes.ts';
+import rotasCidade from './routes/cidade.routes.ts';
 import rotasCurso from './routes/curso.routes.ts';
 import rotasEmpresa from './routes/empresa.routes.ts';
 import rotasUsuario from './routes/usuario.routes.ts';
@@ -25,6 +26,7 @@ app.get('/', (_requisicao: Request, resposta: Response) => {
 });
 
 app.use('/auth', rotasAuth);
+app.use('/cidades', rotasCidade);
 app.use('/cursos', rotasCurso);
 app.use('/empresas', rotasEmpresa);
 app.use('/usuarios', rotasUsuario);

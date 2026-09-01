@@ -24,6 +24,7 @@ interface VagaDaApi {
   TITULO: string;
   AREA: string | null;
   DESCRICAO: string;
+  IDCIDADE: number | null;
   CIDADE: string | null;
   ESTADO: string | null;
   MODELOTRABALHO: ModeloTrabalho;
@@ -74,6 +75,7 @@ function paraVaga(vaga: VagaDaApi): Vaga {
     titulo: vaga.TITULO,
     area: vaga.AREA,
     descricao: vaga.DESCRICAO,
+    idCidade: vaga.IDCIDADE,
     cidade: vaga.CIDADE,
     estado: vaga.ESTADO,
     modeloTrabalho: vaga.MODELOTRABALHO,

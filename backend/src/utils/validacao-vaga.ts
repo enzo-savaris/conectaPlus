@@ -1,4 +1,3 @@
-import { ESTADOS } from './validacao.ts';
 import { erroDeValidacao } from './erro-app.ts';
 
 /**
@@ -18,8 +17,8 @@ export interface DadosVaga {
   titulo: string;
   area: string | null;
   descricao: string;
-  cidade: string | null;
-  estado: string | null;
+  /** Escolhida no combobox de cidades (ligado à TBLCDSCID0); `null` quando não informada. */
+  idCidade: number | null;
   modeloTrabalho: ModeloTrabalho;
   tipoContratacao: TipoContratacao;
   salarioMinimo: number | null;
@@ -110,11 +109,14 @@ export function validarVaga(corpo: unknown): DadosVaga {
     erros['descricao'] = 'Descreva a vaga com ao menos 10 caracteres.';
   }
 
-  const cidade = textoOuNulo(entrada['cidade']);
-
-  const estado = textoOuNulo(entrada['estado'])?.toUpperCase() ?? null;
-  if (estado !== null && !ESTADOS.includes(estado)) {
-    erros['estado'] = 'Selecione uma UF válida.';
+  let idCidade: number | null = null;
+  if (entrada['idCidade'] !== undefined && entrada['idCidade'] !== null && entrada['idCidade'] !== '') {
+    const numero = Number(entrada['idCidade']);
+    if (!Number.isInteger(numero) || numero <= 0) {
+      erros['idCidade'] = 'Cidade inválida. Busque e selecione uma cidade da lista.';
+    } else {
+      idCidade = numero;
+    }
   }
 
   const modeloTrabalho = texto(entrada['modeloTrabalho']).toUpperCase();
@@ -148,8 +150,7 @@ export function validarVaga(corpo: unknown): DadosVaga {
     titulo,
     area,
     descricao,
-    cidade,
-    estado,
+    idCidade,
     modeloTrabalho: modeloTrabalho as ModeloTrabalho,
     tipoContratacao: tipoContratacao as TipoContratacao,
     salarioMinimo,

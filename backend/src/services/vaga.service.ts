@@ -1,11 +1,19 @@
 import type { PoolConnection, ResultSetHeader, RowDataPacket } from 'mysql2/promise';
 import pool from '../config/dataBase.ts';
+import * as cidadeService from './cidade.service.ts';
 import { erroDeConflito, erroNaoEncontrado } from '../utils/erro-app.ts';
 import type { DadosVaga } from '../utils/validacao-vaga.ts';
 
-const COLUNAS = `IDVAGA, IDEMPRESA, TITULO, AREA, DESCRICAO, CIDADE, ESTADO,
-                 MODELOTRABALHO, TIPOCONTRATACAO, SALARIOMIN, SALARIOMAX,
-                 DTCAD, STATUSVAGA`;
+/**
+ * A vaga guarda só o IDCIDADE; aqui juntamos com TBLCDSCID0 pra devolver
+ * também o nome/UF prontos (CIDADE, ESTADO), no mesmo formato que a API
+ * sempre devolveu, sem precisar mexer em quem consome esse retorno.
+ */
+const COLUNAS = `v.IDVAGA, v.IDEMPRESA, v.TITULO, v.AREA, v.DESCRICAO, v.IDCIDADE,
+                 ci.NOME AS CIDADE, ci.ESTADO AS ESTADO,
+                 v.MODELOTRABALHO, v.TIPOCONTRATACAO, v.SALARIOMIN, v.SALARIOMAX,
+                 v.DTCAD, v.STATUSVAGA`;
+const TABELA_COM_CIDADE = 'TBLCDSVAG0 v LEFT JOIN TBLCDSCID0 ci ON ci.IDCIDADE = v.IDCIDADE';
 
 /** Tabelas filhas que guardam as listas de itens do cadastro, uma linha por item. */
 const TABELAS_DE_ITENS = {
@@ -30,19 +38,19 @@ export async function listar(idEmpresa?: number, status?: string): Promise<RowDa
   const parametros: (number | string)[] = [];
 
   if (idEmpresa !== undefined) {
-    condicoes.push('IDEMPRESA = ?');
+    condicoes.push('v.IDEMPRESA = ?');
     parametros.push(idEmpresa);
   }
 
   if (status !== undefined) {
-    condicoes.push('STATUSVAGA = ?');
+    condicoes.push('v.STATUSVAGA = ?');
     parametros.push(status);
   }
 
   const filtro = condicoes.length > 0 ? `WHERE ${condicoes.join(' AND ')}` : '';
 
   const [linhas] = await pool.query<RowDataPacket[]>(
-    `SELECT ${COLUNAS} FROM TBLCDSVAG0 ${filtro} ORDER BY DTCAD DESC`,
+    `SELECT ${COLUNAS} FROM ${TABELA_COM_CIDADE} ${filtro} ORDER BY v.DTCAD DESC`,
     parametros
   );
 
@@ -51,7 +59,7 @@ export async function listar(idEmpresa?: number, status?: string): Promise<RowDa
 
 export async function buscarPorId(id: number): Promise<RowDataPacket | null> {
   const [linhas] = await pool.query<RowDataPacket[]>(
-    `SELECT ${COLUNAS} FROM TBLCDSVAG0 WHERE IDVAGA = ?`,
+    `SELECT ${COLUNAS} FROM ${TABELA_COM_CIDADE} WHERE v.IDVAGA = ?`,
     [id]
   );
 
@@ -166,18 +174,21 @@ export async function cadastrar(dados: DadosVaga, idEmpresa: number): Promise<Ro
   try {
     await conexao.beginTransaction();
 
+    if (dados.idCidade !== null) {
+      await cidadeService.confirmarExiste(conexao, dados.idCidade);
+    }
+
     const [resultado] = await conexao.execute<ResultSetHeader>(
       `INSERT INTO TBLCDSVAG0
-        (IDEMPRESA, TITULO, AREA, DESCRICAO, CIDADE, ESTADO,
+        (IDEMPRESA, TITULO, AREA, DESCRICAO, IDCIDADE,
          MODELOTRABALHO, TIPOCONTRATACAO, SALARIOMIN, SALARIOMAX)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         idEmpresa,
         dados.titulo,
         dados.area,
         dados.descricao,
-        dados.cidade,
-        dados.estado,
+        dados.idCidade,
         dados.modeloTrabalho,
         dados.tipoContratacao,
         dados.salarioMinimo,
@@ -233,17 +244,20 @@ export async function atualizar(
       throw erroNaoEncontrado('Vaga não encontrada.');
     }
 
+    if (dados.idCidade !== null) {
+      await cidadeService.confirmarExiste(conexao, dados.idCidade);
+    }
+
     await conexao.execute(
       `UPDATE TBLCDSVAG0 SET
-        TITULO = ?, AREA = ?, DESCRICAO = ?, CIDADE = ?, ESTADO = ?,
+        TITULO = ?, AREA = ?, DESCRICAO = ?, IDCIDADE = ?,
         MODELOTRABALHO = ?, TIPOCONTRATACAO = ?, SALARIOMIN = ?, SALARIOMAX = ?
        WHERE IDVAGA = ?`,
       [
         dados.titulo,
         dados.area,
         dados.descricao,
-        dados.cidade,
-        dados.estado,
+        dados.idCidade,
         dados.modeloTrabalho,
         dados.tipoContratacao,
         dados.salarioMinimo,

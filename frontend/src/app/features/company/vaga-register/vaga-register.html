@@ -57,23 +57,6 @@
               </div>
 
               <div>
-                <label for="area" class="field-label">
-                  Empresa <span class="text-brand-300" aria-hidden="true">*</span>
-                </label>
-                <input
-                  id="area"
-                  type="text"
-                  formControlName="area"
-                  placeholder="Ex: Tech Startup"
-                  class="field-input mt-1.5"
-                  [attr.aria-invalid]="temErro('area')"
-                />
-                @if (temErro('area')) {
-                  <p class="field-error" role="alert">Informe o nome da empresa.</p>
-                }
-              </div>
-
-              <div>
                 <label for="tipoContratacao" class="field-label">Tipo de contrato</label>
                 <select id="tipoContratacao" formControlName="tipoContratacao" class="field-input mt-1.5">
                   @for (tipo of tiposContratacao; track tipo.valor) {
@@ -83,25 +66,61 @@
               </div>
 
               <div>
+                <label for="cep" class="field-label">CEP</label>
+                <input
+                  id="cep"
+                  type="text"
+                  formControlName="cep"
+                  (input)="aplicarMascaraCep($event)"
+                  autocomplete="postal-code"
+                  inputmode="numeric"
+                  placeholder="00000-000"
+                  class="field-input mt-1.5"
+                />
+                <p class="mt-1 text-xs text-slate-500">Preenche a cidade automaticamente.</p>
+              </div>
+
+              <div class="relative sm:col-span-2">
                 <label for="cidade" class="field-label">Cidade</label>
                 <input
                   id="cidade"
                   type="text"
-                  formControlName="cidade"
-                  autocomplete="address-level2"
-                  placeholder="Digite a cidade"
+                  autocomplete="off"
+                  [value]="termoBuscaCidade()"
+                  (input)="aoDigitarCidade($event)"
+                  (focus)="aoFocarCampoCidade()"
+                  (blur)="aoDesfocarCampoCidade()"
+                  placeholder="Digite pra buscar uma cidade cadastrada"
                   class="field-input mt-1.5"
                 />
-              </div>
 
-              <div>
-                <label for="estado" class="field-label">Estado (UF)</label>
-                <select id="estado" formControlName="estado" class="field-input mt-1.5">
-                  <option value="">Selecione o estado</option>
-                  @for (uf of estados; track uf) {
-                    <option [value]="uf">{{ uf }}</option>
-                  }
-                </select>
+                @if (buscandoCidade()) {
+                  <p class="mt-1.5 text-xs text-slate-500">Buscando…</p>
+                } @else if (erroCep()) {
+                  <p class="field-error">{{ erroCep() }}</p>
+                } @else if (cidadeSelecionada()) {
+                  <p class="mt-1.5 text-xs text-emerald-300">
+                    Cidade selecionada: {{ cidadeSelecionada()!.nome }} - {{ cidadeSelecionada()!.estado }}
+                  </p>
+                }
+
+                @if (mostrarResultadosCidade() && resultadosCidade().length > 0) {
+                  <ul
+                    class="absolute z-10 mt-1 max-h-56 w-full overflow-y-auto rounded-lg border border-white/12 bg-ink-800 shadow-xl"
+                  >
+                    @for (cidade of resultadosCidade(); track cidade.id) {
+                      <li>
+                        <button
+                          type="button"
+                          (mousedown)="selecionarCidade(cidade)"
+                          class="flex w-full items-center justify-between px-3 py-2 text-left text-sm text-slate-200 transition hover:bg-white/10"
+                        >
+                          {{ cidade.nome }} <span class="text-slate-400">{{ cidade.estado }}</span>
+                        </button>
+                      </li>
+                    }
+                  </ul>
+                }
               </div>
 
               <div class="sm:col-span-2">

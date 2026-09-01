@@ -8,13 +8,17 @@ import {
   Validators
 } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
+import { Subject, debounceTime, of, switchMap } from 'rxjs';
 
 import { AuthService } from '../../../shared/services/auth.service';
+import { CidadeService } from '../../../shared/services/cidade.service';
 import { CursoService } from '../../../shared/services/curso.service';
 import { VagaService } from '../../../shared/services/vaga.service';
+import { Cidade } from '../../../shared/types/cidade';
 import { Curso } from '../../../shared/types/curso';
 import { ModeloTrabalho, NovaVaga, TipoContratacao } from '../../../shared/types/vaga';
 import { formatarCargaHorariaCurso, formatarPrecoCurso } from '../../../shared/utils/curso-format';
+import { apenasDigitos, formatarCep } from '../../../shared/utils/masks';
 
 /** Garante que o salário máximo, quando informado, não fique menor que o mínimo. */
 function salarioValido(grupo: AbstractControl): ValidationErrors | null {
@@ -39,17 +43,13 @@ export class VagaRegister {
   private readonly rota = inject(ActivatedRoute);
   private readonly vagaService = inject(VagaService);
   private readonly cursoService = inject(CursoService);
+  private readonly cidadeService = inject(CidadeService);
   private readonly authService = inject(AuthService);
 
   /** Presente só na rota de edição (`empresa/vagas/:id/editar`). */
   protected readonly idVagaEditando = signal<number | null>(null);
   protected readonly modoEdicao = computed(() => this.idVagaEditando() !== null);
   protected readonly carregandoVaga = signal(false);
-
-  protected readonly estados = [
-    'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS', 'MG',
-    'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN', 'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO'
-  ];
 
   protected readonly tiposContratacao: { valor: TipoContratacao; rotulo: string }[] = [
     { valor: 'CLT', rotulo: 'CLT' },
@@ -71,10 +71,8 @@ export class VagaRegister {
         nonNullable: true,
         validators: [Validators.required, Validators.minLength(3)]
       }),
-      area: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
       tipoContratacao: new FormControl<TipoContratacao>('CLT', { nonNullable: true }),
-      cidade: new FormControl('', { nonNullable: true }),
-      estado: new FormControl('', { nonNullable: true }),
+      cep: new FormControl('', { nonNullable: true }),
       modeloTrabalho: new FormControl<ModeloTrabalho>('HIBRIDO', { nonNullable: true }),
       salarioMinimo: new FormControl<number | null>(null),
       salarioMaximo: new FormControl<number | null>(null),
@@ -93,6 +91,15 @@ export class VagaRegister {
 
   protected readonly cursosDaEmpresa = signal<Curso[]>([]);
   protected readonly cursosSelecionados = signal<ReadonlySet<number>>(new Set());
+
+  /** Combobox de cidade: busca por nome (typeahead) ou preenchida automaticamente pelo CEP. */
+  protected readonly termoBuscaCidade = signal('');
+  protected readonly resultadosCidade = signal<Cidade[]>([]);
+  protected readonly mostrarResultadosCidade = signal(false);
+  protected readonly buscandoCidade = signal(false);
+  protected readonly cidadeSelecionada = signal<Cidade | null>(null);
+  protected readonly erroCep = signal<string | null>(null);
+  private readonly buscaCidadeSubject = new Subject<string>();
 
   protected readonly enviando = signal(false);
   protected readonly erroFormulario = signal<string | null>(null);
@@ -128,6 +135,16 @@ export class VagaRegister {
 
   constructor() {
     this.cursoService.listar(this.idEmpresaLogada()).subscribe((cursos) => this.cursosDaEmpresa.set(cursos));
+
+    this.buscaCidadeSubject
+      .pipe(
+        debounceTime(300),
+        switchMap((termo) => (termo.length >= 2 ? this.cidadeService.buscar(termo) : of([])))
+      )
+      .subscribe((cidades) => {
+        this.resultadosCidade.set(cidades);
+        this.buscandoCidade.set(false);
+      });
 
     const idParam = this.rota.snapshot.paramMap.get('id');
 
@@ -168,6 +185,70 @@ export class VagaRegister {
     });
   }
 
+  /** Aplica a máscara do CEP e, com os 8 dígitos completos, já busca a cidade automaticamente. */
+  protected aplicarMascaraCep(evento: Event): void {
+    const entrada = evento.target as HTMLInputElement;
+    const mascarado = formatarCep(entrada.value);
+
+    entrada.value = mascarado;
+    this.formulario.controls.cep.setValue(mascarado, { emitEvent: false });
+
+    const digitos = apenasDigitos(mascarado);
+    if (digitos.length === 8) {
+      this.buscarCidadePorCep(digitos);
+    }
+  }
+
+  private buscarCidadePorCep(cep: string): void {
+    this.erroCep.set(null);
+    this.buscandoCidade.set(true);
+
+    this.cidadeService.buscarPorCep(cep).subscribe({
+      next: (cidade) => {
+        this.buscandoCidade.set(false);
+        this.selecionarCidade(cidade);
+      },
+      error: () => {
+        this.buscandoCidade.set(false);
+        this.erroCep.set('CEP não encontrado.');
+      }
+    });
+  }
+
+  /** Digitar no campo de cidade dispara a busca (com debounce) e desfaz a seleção anterior. */
+  protected aoDigitarCidade(evento: Event): void {
+    const termo = (evento.target as HTMLInputElement).value;
+    this.termoBuscaCidade.set(termo);
+    this.cidadeSelecionada.set(null);
+    this.mostrarResultadosCidade.set(true);
+
+    if (termo.trim().length >= 2) {
+      this.buscandoCidade.set(true);
+      this.buscaCidadeSubject.next(termo.trim());
+    } else {
+      this.resultadosCidade.set([]);
+      this.buscandoCidade.set(false);
+    }
+  }
+
+  protected aoFocarCampoCidade(): void {
+    if (this.resultadosCidade().length > 0) {
+      this.mostrarResultadosCidade.set(true);
+    }
+  }
+
+  /** Pequeno atraso pra deixar o clique num item da lista acontecer antes de escondê-la. */
+  protected aoDesfocarCampoCidade(): void {
+    setTimeout(() => this.mostrarResultadosCidade.set(false), 150);
+  }
+
+  protected selecionarCidade(cidade: Cidade): void {
+    this.cidadeSelecionada.set(cidade);
+    this.termoBuscaCidade.set(`${cidade.nome} - ${cidade.estado}`);
+    this.mostrarResultadosCidade.set(false);
+    this.resultadosCidade.set([]);
+  }
+
   private carregarVagaParaEdicao(idVaga: number): void {
     this.carregandoVaga.set(true);
     this.erroFormulario.set(null);
@@ -176,15 +257,17 @@ export class VagaRegister {
       next: (vaga) => {
         this.formulario.patchValue({
           titulo: vaga.titulo,
-          area: vaga.area ?? '',
           tipoContratacao: vaga.tipoContratacao,
-          cidade: vaga.cidade ?? '',
-          estado: vaga.estado ?? '',
           modeloTrabalho: vaga.modeloTrabalho,
           salarioMinimo: vaga.salarioMinimo,
           salarioMaximo: vaga.salarioMaximo,
           descricao: vaga.descricao
         });
+
+        if (vaga.idCidade !== null && vaga.cidade !== null && vaga.estado !== null) {
+          this.selecionarCidade({ id: vaga.idCidade, nome: vaga.cidade, estado: vaga.estado });
+        }
+
         this.responsabilidades.set(vaga.responsabilidades);
         this.requisitos.set(vaga.requisitos);
         this.acessibilidade.set(vaga.acessibilidade);
@@ -216,10 +299,9 @@ export class VagaRegister {
     const valores = this.formulario.getRawValue();
     const dados: NovaVaga = {
       titulo: valores.titulo,
-      area: valores.area || null,
+      area: null,
       descricao: valores.descricao,
-      cidade: valores.cidade || null,
-      estado: valores.estado || null,
+      idCidade: this.cidadeSelecionada()?.id ?? null,
       modeloTrabalho: valores.modeloTrabalho,
       tipoContratacao: valores.tipoContratacao,
       salarioMinimo: valores.salarioMinimo,

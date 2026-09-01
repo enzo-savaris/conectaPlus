@@ -13,6 +13,8 @@ export interface Vaga {
   titulo: string;
   area: string | null;
   descricao: string;
+  /** Escolhida no combobox de cidades no cadastro; `null` em vagas sem cidade informada. */
+  idCidade: number | null;
   cidade: string | null;
   estado: string | null;
   modeloTrabalho: ModeloTrabalho;
@@ -69,8 +71,7 @@ export interface NovaVaga {
   titulo: string;
   area: string | null;
   descricao: string;
-  cidade: string | null;
-  estado: string | null;
+  idCidade: number | null;
   modeloTrabalho: ModeloTrabalho;
   tipoContratacao: TipoContratacao;
   salarioMinimo: number | null;
