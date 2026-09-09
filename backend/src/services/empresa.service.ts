@@ -227,6 +227,27 @@ export async function obterResumoPainel(idEmpresa: number): Promise<ResumoPainel
   };
 }
 
+/**
+ * Lista, sem repetir, os candidatos PCD que já se candidataram a alguma
+ * vaga da empresa — não importa a qual vaga, é a mesma pessoa que pode
+ * aparecer inscrita em várias.
+ */
+export async function listarCandidatosRelacionados(idEmpresa: number): Promise<RowDataPacket[]> {
+  await obterPorId(idEmpresa);
+
+  const [linhas] = await pool.query<RowDataPacket[]>(
+    `SELECT DISTINCT u.IDPCD, u.NOME, u.EMAIL, u.TELEFONE, u.SOBREMIM, u.TIPODEF, u.CIDADE, u.ESTADO
+     FROM TBLCDSCAND0 c
+     INNER JOIN TBLCDSVAG0 v ON v.IDVAGA = c.IDVAGA
+     INNER JOIN TBLCDSUSR0 u ON u.IDPCD = c.IDPCD
+     WHERE v.IDEMPRESA = ?
+     ORDER BY u.NOME`,
+    [idEmpresa]
+  );
+
+  return linhas;
+}
+
 /** Remove a empresa. Lança 404 se o id não existir. */
 export async function remover(id: number): Promise<void> {
   const [resultado] = await pool.execute<ResultSetHeader>(

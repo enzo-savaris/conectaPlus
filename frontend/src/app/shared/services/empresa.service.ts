@@ -3,6 +3,7 @@ import { Injectable, inject } from '@angular/core';
 import { Observable, map } from 'rxjs';
 
 import { URL_BASE_API } from '../config/api';
+import { CandidatoRelacionado, TipoDeficiencia } from '../types/candidato';
 import { AtualizarEmpresa, CadastrarEmpresa, Empresa, StatusEmpresa } from '../types/empresa';
 
 /** Formato bruto devolvido pela API: colunas da TBLCDSEMP0. */
@@ -22,6 +23,31 @@ interface EmpresaDaApi {
   DTCAD: string;
   DTALT: string | null;
   STATUSEMP: StatusEmpresa;
+}
+
+/** Formato bruto devolvido pela API: GET /empresas/:id/candidatos. */
+interface CandidatoDaApi {
+  IDPCD: number;
+  NOME: string;
+  EMAIL: string | null;
+  TELEFONE: string | null;
+  SOBREMIM: string | null;
+  TIPODEF: TipoDeficiencia;
+  CIDADE: string | null;
+  ESTADO: string | null;
+}
+
+function paraCandidato(candidato: CandidatoDaApi): CandidatoRelacionado {
+  return {
+    id: candidato.IDPCD,
+    nome: candidato.NOME,
+    email: candidato.EMAIL,
+    telefone: candidato.TELEFONE,
+    sobreMim: candidato.SOBREMIM,
+    tipoDeficiencia: candidato.TIPODEF,
+    cidade: candidato.CIDADE,
+    estado: candidato.ESTADO
+  };
 }
 
 function paraEmpresa(empresa: EmpresaDaApi): Empresa {
@@ -62,5 +88,12 @@ export class EmpresaService {
     return this.http
       .put<EmpresaDaApi>(`${URL_BASE_API}/empresas/${id}`, dados)
       .pipe(map(paraEmpresa));
+  }
+
+  /** Candidatos PCD já inscritos em alguma vaga da empresa, sem repetir, não importa em qual. */
+  listarCandidatos(idEmpresa: number): Observable<CandidatoRelacionado[]> {
+    return this.http
+      .get<CandidatoDaApi[]>(`${URL_BASE_API}/empresas/${idEmpresa}/candidatos`)
+      .pipe(map((candidatos) => candidatos.map(paraCandidato)));
   }
 }

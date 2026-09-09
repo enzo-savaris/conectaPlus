@@ -97,6 +97,21 @@ export const obterPainelEmpresa = async (
   }
 };
 
+/** GET /empresas/:id/candidatos — candidatos PCD que já se candidataram a alguma vaga da empresa. */
+export const listarCandidatosDaEmpresa = async (
+  requisicao: Request,
+  resposta: Response
+): Promise<void> => {
+  try {
+    const id = validarId(requisicao.params['id']);
+    const candidatos = await empresaService.listarCandidatosRelacionados(id);
+
+    resposta.json(candidatos);
+  } catch (erro) {
+    responderErro(resposta, erro, 'Erro ao buscar candidatos da empresa');
+  }
+};
+
 /** DELETE /empresas/:id — remove a empresa. */
 export const removerEmpresa = async (
   requisicao: Request,
