@@ -219,6 +219,17 @@ export class PerfilEmpresa {
         this.modoEdicao.set(false);
         this.salvando.set(false);
         this.sucesso.set('Perfil atualizado com sucesso.');
+
+        // Mantém a sessão em dia: se o status mudou (ex.: CNPJ/razão social
+        // editados voltam a empresa pra PENDENTE), o resto do app precisa
+        // saber disso sem esperar um novo login.
+        this.authService.atualizarPerfilEmpresa({
+          razaoSocial: empresa.razaoSocial,
+          nomeFantasia: empresa.nomeFantasia,
+          email: empresa.email,
+          cnpj: empresa.cnpj,
+          status: empresa.status
+        });
       },
       error: () => {
         this.salvando.set(false);

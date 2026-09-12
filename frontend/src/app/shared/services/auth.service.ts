@@ -3,7 +3,7 @@ import { Injectable, computed, inject, signal } from '@angular/core';
 import { Observable, tap } from 'rxjs';
 
 import { URL_BASE_API } from '../config/api';
-import { Sessao } from '../types/sessao';
+import { PerfilEmpresa, Sessao } from '../types/sessao';
 
 const CHAVE_ARMAZENAMENTO = 'conecta+:sessao';
 
@@ -40,6 +40,25 @@ export class AuthService {
   sair(): void {
     this.sessaoSignal.set(null);
     this.limparSessaoSalva();
+  }
+
+  /**
+   * Atualiza os dados da empresa guardados na sessão (ex.: status, depois de
+   * editar o perfil). Sem isso, o front continuaria achando a empresa ATIVA
+   * — ou vice-versa — até o próximo login, mesmo já sabendo do valor novo.
+   */
+  atualizarPerfilEmpresa(dados: Partial<PerfilEmpresa>): void {
+    const atual = this.sessaoSignal();
+    if (!atual || atual.ambiente !== 'empresa') {
+      return;
+    }
+
+    const atualizada: Sessao = { ambiente: 'empresa', perfil: { ...atual.perfil, ...dados } };
+    this.sessaoSignal.set(atualizada);
+
+    if (typeof localStorage !== 'undefined' && localStorage.getItem(CHAVE_ARMAZENAMENTO)) {
+      this.salvarSessao(atualizada);
+    }
   }
 
   private lerSessaoSalva(): Sessao | null {

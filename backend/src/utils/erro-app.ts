@@ -50,3 +50,18 @@ export function erroEmpresaPendente(): ErroApp {
     { situacao: 'PENDENTE' }
   );
 }
+
+/**
+ * 403 — a empresa está logada, mas não está ATIVA (PENDENTE de uma nova
+ * aprovação após editar CNPJ/razão social, ou INATIVA). Enquanto isso, ela só
+ * pode visualizar as vagas e cursos já cadastrados, não criar ou editar.
+ * `erros.situacao` é lido pelo frontend para adaptar a tela (esconder ou
+ * desabilitar os botões de cadastro).
+ */
+export function erroEmpresaNaoAtiva(): ErroApp {
+  return new ErroApp(
+    403,
+    'Seu cadastro está em análise ou inativo. Você pode visualizar as vagas e cursos já cadastrados, mas não cadastrar ou editar novos até a aprovação.',
+    { situacao: 'NAO_ATIVA' }
+  );
+}

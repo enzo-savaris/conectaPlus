@@ -1,6 +1,6 @@
 import type { ResultSetHeader, RowDataPacket } from 'mysql2';
 import pool from '../config/dataBase.ts';
-import { erroDeConflito, erroNaoEncontrado } from '../utils/erro-app.ts';
+import { erroDeConflito, erroEmpresaNaoAtiva, erroNaoEncontrado } from '../utils/erro-app.ts';
 import { gerarHashSenha } from '../utils/senha.ts';
 import type { DadosEmpresa, DadosEmpresaParciais } from '../utils/validacao.ts';
 
@@ -28,30 +28,17 @@ const COLUNA_POR_CAMPO: Record<string, string> = {
   estado: 'ESTADO'
 };
 
-async function garantirQueNaoDuplica(
-  cnpj: string | undefined,
-  email: string | null | undefined,
-  idIgnorado?: number
-): Promise<void> {
-  if (!cnpj && !email) {
+/**
+ * Só o CNPJ precisa ser único: o mesmo e-mail pode se repetir em empresas
+ * distintas (ex.: mesmo contador/RH cuidando de mais de uma empresa).
+ */
+async function garantirQueNaoDuplica(cnpj: string | undefined, idIgnorado?: number): Promise<void> {
+  if (!cnpj) {
     return;
   }
 
-  const condicoes: string[] = [];
-  const parametros: ValorSql[] = [];
-
-  if (cnpj) {
-    condicoes.push('CNPJ = ?');
-    parametros.push(cnpj);
-  }
-
-  if (email) {
-    condicoes.push('EMAIL = ?');
-    parametros.push(email);
-  }
-
-  let sql = `SELECT CNPJ, EMAIL FROM TBLCDSEMP0 WHERE (${condicoes.join(' OR ')})`;
-
+  const parametros: ValorSql[] = [cnpj];
+  let sql = 'SELECT CNPJ FROM TBLCDSEMP0 WHERE CNPJ = ?';
 
   if (idIgnorado !== undefined) {
     sql += ' AND IDEMPRESA <> ?';
@@ -59,19 +46,24 @@ async function garantirQueNaoDuplica(
   }
 
   const [linhas] = await pool.query<RowDataPacket[]>(sql, parametros);
-  const erros: Record<string, string> = {};
 
-  for (const linha of linhas) {
-    if (cnpj && linha['CNPJ'] === cnpj) {
-      erros['cnpj'] = 'Já existe uma empresa cadastrada com este CNPJ.';
-    }
-    if (email && linha['EMAIL'] === email) {
-      erros['email'] = 'Já existe uma empresa cadastrada com este e-mail.';
-    }
+  if (linhas.length > 0) {
+    throw erroDeConflito('Empresa já cadastrada.', { cnpj: 'Já existe uma empresa cadastrada com este CNPJ.' });
   }
+}
 
-  if (Object.keys(erros).length > 0) {
-    throw erroDeConflito('Empresa já cadastrada.', erros);
+/**
+ * Bloqueia o cadastro/edição de vaga ou curso enquanto a empresa não estiver
+ * ATIVA — seja porque ainda não passou pela aprovação inicial (PENDENTE), seja
+ * porque editou CNPJ/razão social e voltou a precisar de uma nova aprovação,
+ * seja porque foi desativada (INATIVA). Enquanto isso, ela só pode visualizar
+ * o que já tem cadastrado.
+ */
+export async function garantirEmpresaAtiva(idEmpresa: number): Promise<void> {
+  const empresa = await obterPorId(idEmpresa);
+
+  if (empresa['STATUSEMP'] !== 'ATIVA') {
+    throw erroEmpresaNaoAtiva();
   }
 }
 
@@ -114,7 +106,7 @@ export async function listar(busca?: string): Promise<RowDataPacket[]> {
 }
 
 export async function cadastrar(dados: DadosEmpresa): Promise<RowDataPacket> {
-  await garantirQueNaoDuplica(dados.cnpj, dados.email);
+  await garantirQueNaoDuplica(dados.cnpj);
 
   const senhaHash = await gerarHashSenha(dados.senha);
 
@@ -149,7 +141,7 @@ export async function atualizar(
 ): Promise<RowDataPacket> {
 
   const atual = await obterPorId(id);
-  await garantirQueNaoDuplica(dados.cnpj, dados.email, id);
+  await garantirQueNaoDuplica(dados.cnpj, id);
 
   const atribuicoes: string[] = [];
   const parametros: ValorSql[] = [];

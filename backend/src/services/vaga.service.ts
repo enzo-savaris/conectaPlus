@@ -1,6 +1,7 @@
 import type { PoolConnection, ResultSetHeader, RowDataPacket } from 'mysql2/promise';
 import pool from '../config/dataBase.ts';
 import * as cidadeService from './cidade.service.ts';
+import { garantirEmpresaAtiva } from './empresa.service.ts';
 import { erroDeConflito, erroNaoEncontrado } from '../utils/erro-app.ts';
 import type { DadosVaga } from '../utils/validacao-vaga.ts';
 
@@ -169,6 +170,8 @@ export async function obterDetalhado(id: number): Promise<Record<string, unknown
 }
 
 export async function cadastrar(dados: DadosVaga, idEmpresa: number): Promise<RowDataPacket> {
+  await garantirEmpresaAtiva(idEmpresa);
+
   const conexao = await pool.getConnection();
 
   try {
@@ -230,6 +233,8 @@ export async function atualizar(
   dados: DadosVaga,
   idEmpresa: number
 ): Promise<RowDataPacket> {
+  await garantirEmpresaAtiva(idEmpresa);
+
   const conexao = await pool.getConnection();
 
   try {
@@ -358,6 +363,8 @@ export async function candidatar(idVaga: number, idPcd: number): Promise<RowData
  * qual dos dois casos é, pra não revelar dados de vagas de outra empresa.
  */
 export async function remover(id: number, idEmpresa: number): Promise<void> {
+  await garantirEmpresaAtiva(idEmpresa);
+
   const [resultado] = await pool.execute<ResultSetHeader>(
     'DELETE FROM TBLCDSVAG0 WHERE IDVAGA = ? AND IDEMPRESA = ?',
     [id, idEmpresa]

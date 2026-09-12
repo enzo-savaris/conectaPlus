@@ -133,7 +133,23 @@ export class VagaRegister {
     lista.update((itens) => itens.filter((_, i) => i !== indice));
   }
 
+  /**
+   * Só empresa ATIVA pode cadastrar/editar vagas; PENDENTE (ex.: depois de
+   * mudar CNPJ/razão social) ou INATIVA só pode visualizar as já cadastradas.
+   */
+  protected readonly empresaAtiva = computed(() => {
+    const sessao = this.authService.sessao();
+    return sessao?.ambiente !== 'empresa' || sessao.perfil.status === 'ATIVA';
+  });
+
   constructor() {
+    if (!this.empresaAtiva()) {
+      // Empresa PENDENTE/INATIVA não deve cair aqui nem digitando a URL direto:
+      // sem isso, o botão fica escondido na lista, mas a rota continuaria acessível.
+      this.roteador.navigate(['/empresa/vagas']);
+      return;
+    }
+
     this.cursoService.listar(this.idEmpresaLogada()).subscribe((cursos) => this.cursosDaEmpresa.set(cursos));
 
     this.buscaCidadeSubject

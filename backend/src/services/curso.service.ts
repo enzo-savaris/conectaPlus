@@ -3,6 +3,7 @@ import path from 'node:path';
 import type { ResultSetHeader, RowDataPacket } from 'mysql2';
 import { PASTA_UPLOADS_CURSOS } from '../config/upload.ts';
 import pool from '../config/dataBase.ts';
+import { garantirEmpresaAtiva } from './empresa.service.ts';
 import { erroDeValidacao, erroNaoEncontrado } from '../utils/erro-app.ts';
 import type { DadosCurso } from '../utils/validacao-curso.ts';
 
@@ -66,6 +67,13 @@ export async function cadastrar(
   idEmpresa: number,
   nomeArquivo: string | null
 ): Promise<RowDataPacket> {
+  try {
+    await garantirEmpresaAtiva(idEmpresa);
+  } catch (erro) {
+    await removerArquivo(nomeArquivo);
+    throw erro;
+  }
+
   if (dados.tipoConteudo === 'ARQUIVO' && !nomeArquivo) {
     await removerArquivo(nomeArquivo);
     throw erroDeValidacao({ arquivo: 'Anexe um vídeo ou escolha cadastrar com um link.' });
@@ -102,6 +110,13 @@ export async function atualizar(
   idEmpresa: number,
   nomeArquivoNovo: string | null
 ): Promise<RowDataPacket> {
+  try {
+    await garantirEmpresaAtiva(idEmpresa);
+  } catch (erro) {
+    await removerArquivo(nomeArquivoNovo);
+    throw erro;
+  }
+
   const [linhas] = await pool.query<RowDataPacket[]>(
     'SELECT ARQUIVOCURSO FROM TBLCDSCURSO0 WHERE IDCURSO = ? AND IDEMPRESA = ?',
     [id, idEmpresa]

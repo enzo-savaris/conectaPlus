@@ -1,5 +1,5 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import {
   AbstractControl,
   FormControl,
@@ -44,6 +44,15 @@ export class Curso {
   protected readonly enviando = signal(false);
   protected readonly erroLista = signal<string | null>(null);
   protected readonly erroFormulario = signal<string | null>(null);
+
+  /**
+   * Só empresa ATIVA pode cadastrar/editar cursos; PENDENTE (ex.: depois de
+   * mudar CNPJ/razão social) ou INATIVA só pode visualizar os já cadastrados.
+   */
+  protected readonly empresaAtiva = computed(() => {
+    const sessao = this.authService.sessao();
+    return sessao?.ambiente !== 'empresa' || sessao.perfil.status === 'ATIVA';
+  });
 
   /** Presente só durante a edição de um curso já cadastrado. */
   protected readonly idCursoEditando = signal<number | null>(null);

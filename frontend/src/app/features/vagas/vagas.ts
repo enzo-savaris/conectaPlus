@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 
 import { AuthService } from '../../shared/services/auth.service';
@@ -25,6 +25,15 @@ export class Vagas {
   protected readonly carregando = signal(true);
   protected readonly erro = signal<string | null>(null);
   protected readonly excluindoId = signal<number | null>(null);
+
+  /**
+   * Só empresa ATIVA pode cadastrar/editar vagas; PENDENTE (ex.: depois de
+   * mudar CNPJ/razão social) ou INATIVA só pode visualizar as já cadastradas.
+   */
+  protected readonly empresaAtiva = computed(() => {
+    const sessao = this.authService.sessao();
+    return sessao?.ambiente !== 'empresa' || sessao.perfil.status === 'ATIVA';
+  });
 
   constructor() {
     this.carregarVagas();
