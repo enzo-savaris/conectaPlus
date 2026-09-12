@@ -7,9 +7,12 @@ import {
   ValidationErrors,
   Validators
 } from '@angular/forms';
+import { Subject, debounceTime, of, switchMap } from 'rxjs';
 
 import { AuthService } from '../../../shared/services/auth.service';
+import { CidadeService } from '../../../shared/services/cidade.service';
 import { EmpresaService } from '../../../shared/services/empresa.service';
+import { Cidade } from '../../../shared/types/cidade';
 import { AtualizarEmpresa, Empresa } from '../../../shared/types/empresa';
 import { formatarCep, formatarCnpj, formatarTelefone } from '../../../shared/utils/masks';
 import { validadorCep, validadorCnpj, validadorTelefone } from '../../../shared/validators/br-validators';
@@ -38,6 +41,7 @@ function senhasConferem(grupo: AbstractControl): ValidationErrors | null {
 export class PerfilEmpresa {
   private readonly empresaService = inject(EmpresaService);
   private readonly authService = inject(AuthService);
+  private readonly cidadeService = inject(CidadeService);
 
   protected readonly estados = [
     'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS', 'MG',
@@ -51,6 +55,17 @@ export class PerfilEmpresa {
   protected readonly senhaVisivel = signal(false);
   protected readonly erro = signal<string | null>(null);
   protected readonly sucesso = signal<string | null>(null);
+
+  /**
+   * Combobox de cidade: busca por nome (typeahead) nas cidades já cadastradas
+   * e, ao selecionar uma, preenche o Estado (UF) automaticamente. O CEP não
+   * preenche mais a cidade sozinho — cidade/estado da empresa são texto
+   * livre, então quem resolve a UF é a cidade escolhida, não o CEP.
+   */
+  protected readonly resultadosCidade = signal<Cidade[]>([]);
+  protected readonly mostrarResultadosCidade = signal(false);
+  protected readonly buscandoCidade = signal(false);
+  private readonly buscaCidadeSubject = new Subject<string>();
 
   protected readonly formulario = new FormGroup(
     {
@@ -94,6 +109,16 @@ export class PerfilEmpresa {
   constructor() {
     this.formulario.disable();
     this.carregarEmpresa();
+
+    this.buscaCidadeSubject
+      .pipe(
+        debounceTime(300),
+        switchMap((termo) => (termo.length >= 2 ? this.cidadeService.buscar(termo) : of([])))
+      )
+      .subscribe((cidades) => {
+        this.resultadosCidade.set(cidades);
+        this.buscandoCidade.set(false);
+      });
   }
 
   /** Garantido pelo ambienteGuard('empresa'): só entra aqui quem está logado como empresa. */
@@ -136,6 +161,8 @@ export class PerfilEmpresa {
       confirmarSenha: ''
     });
     this.formulario.disable();
+    this.mostrarResultadosCidade.set(false);
+    this.resultadosCidade.set([]);
   }
 
   protected temErro(campo: keyof typeof this.formulario.controls): boolean {
@@ -163,6 +190,40 @@ export class PerfilEmpresa {
 
     entrada.value = mascarado;
     this.formulario.controls[campo].setValue(mascarado, { emitEvent: false });
+  }
+
+  /** Digitar no campo de cidade dispara a busca (com debounce) nas cidades já cadastradas. */
+  protected aoDigitarCidade(evento: Event): void {
+    const termo = (evento.target as HTMLInputElement).value;
+    this.formulario.controls.cidade.setValue(termo, { emitEvent: false });
+    this.mostrarResultadosCidade.set(true);
+
+    if (termo.trim().length >= 2) {
+      this.buscandoCidade.set(true);
+      this.buscaCidadeSubject.next(termo.trim());
+    } else {
+      this.resultadosCidade.set([]);
+      this.buscandoCidade.set(false);
+    }
+  }
+
+  protected aoFocarCampoCidade(): void {
+    if (this.resultadosCidade().length > 0) {
+      this.mostrarResultadosCidade.set(true);
+    }
+  }
+
+  /** Pequeno atraso pra deixar o clique num item da lista acontecer antes de escondê-la. */
+  protected aoDesfocarCampoCidade(): void {
+    setTimeout(() => this.mostrarResultadosCidade.set(false), 150);
+  }
+
+  /** Preenche cidade e, a partir dela, o Estado (UF) automaticamente. */
+  protected selecionarCidade(cidade: Cidade): void {
+    this.formulario.controls.cidade.setValue(cidade.nome);
+    this.formulario.controls.estado.setValue(cidade.estado);
+    this.mostrarResultadosCidade.set(false);
+    this.resultadosCidade.set([]);
   }
 
   protected aoClicarEditar(): void {

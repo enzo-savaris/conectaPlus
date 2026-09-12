@@ -2,7 +2,10 @@ import { afterNextRender, ChangeDetectionStrategy, Component, inject, signal } f
 import { HttpErrorResponse } from '@angular/common/http';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
+import { Subject, debounceTime, of, switchMap } from 'rxjs';
+import { CidadeService } from '../../../shared/services/cidade.service';
 import { EmpresaService } from '../../../shared/services/empresa.service';
+import { Cidade } from '../../../shared/types/cidade';
 import { formatarCep, formatarCnpj, formatarTelefone } from '../../../shared/utils/masks';
 import {
   validadorCep,
@@ -22,6 +25,7 @@ export class CompanyRegister {
   private readonly roteador = inject(Router);
   private readonly rota = inject(ActivatedRoute);
   private readonly empresaService = inject(EmpresaService);
+  private readonly cidadeService = inject(CidadeService);
 
   protected readonly estados = [
     'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS', 'MG',
@@ -71,6 +75,17 @@ export class CompanyRegister {
   protected readonly erroFormulario = signal<string | null>(null);
 
   /**
+   * Combobox de cidade: busca por nome (typeahead) nas cidades já cadastradas
+   * e, ao selecionar uma, preenche o Estado (UF) automaticamente. O CEP não
+   * preenche mais a cidade sozinho — cidade/estado da empresa são texto
+   * livre, então quem resolve a UF é a cidade escolhida, não o CEP.
+   */
+  protected readonly resultadosCidade = signal<Cidade[]>([]);
+  protected readonly mostrarResultadosCidade = signal(false);
+  protected readonly buscandoCidade = signal(false);
+  private readonly buscaCidadeSubject = new Subject<string>();
+
+  /**
    * Campos de sistema. Ficam vazios na renderização do servidor e só são
    * preenchidos no navegador — senão a data gerada no SSR divergiria da
    * gerada no cliente e quebraria a hidratação.
@@ -92,6 +107,16 @@ export class CompanyRegister {
       // Provisório: o ID definitivo é gerado pelo backend ao salvar.
       this.idEmpresa.set(`ID - ${Math.floor(1_000_000 + Math.random() * 9_000_000)}`);
     });
+
+    this.buscaCidadeSubject
+      .pipe(
+        debounceTime(300),
+        switchMap((termo) => (termo.length >= 2 ? this.cidadeService.buscar(termo) : of([])))
+      )
+      .subscribe((cidades) => {
+        this.resultadosCidade.set(cidades);
+        this.buscandoCidade.set(false);
+      });
   }
 
   protected alternarVisibilidadeSenha(): void {
@@ -115,6 +140,40 @@ export class CompanyRegister {
 
     entrada.value = mascarado;
     this.formulario.controls[campo].setValue(mascarado, { emitEvent: false });
+  }
+
+  /** Digitar no campo de cidade dispara a busca (com debounce) nas cidades já cadastradas. */
+  protected aoDigitarCidade(evento: Event): void {
+    const termo = (evento.target as HTMLInputElement).value;
+    this.formulario.controls.cidade.setValue(termo, { emitEvent: false });
+    this.mostrarResultadosCidade.set(true);
+
+    if (termo.trim().length >= 2) {
+      this.buscandoCidade.set(true);
+      this.buscaCidadeSubject.next(termo.trim());
+    } else {
+      this.resultadosCidade.set([]);
+      this.buscandoCidade.set(false);
+    }
+  }
+
+  protected aoFocarCampoCidade(): void {
+    if (this.resultadosCidade().length > 0) {
+      this.mostrarResultadosCidade.set(true);
+    }
+  }
+
+  /** Pequeno atraso pra deixar o clique num item da lista acontecer antes de escondê-la. */
+  protected aoDesfocarCampoCidade(): void {
+    setTimeout(() => this.mostrarResultadosCidade.set(false), 150);
+  }
+
+  /** Preenche cidade e, a partir dela, o Estado (UF) automaticamente. */
+  protected selecionarCidade(cidade: Cidade): void {
+    this.formulario.controls.cidade.setValue(cidade.nome);
+    this.formulario.controls.estado.setValue(cidade.estado);
+    this.mostrarResultadosCidade.set(false);
+    this.resultadosCidade.set([]);
   }
 
   protected aoCancelar(): void {

@@ -164,9 +164,43 @@
             <input id="bairro" type="text" formControlName="bairro" class="field-input mt-1.5" />
           </div>
 
-          <div>
+          <div class="relative">
             <label for="cidade" class="field-label">Cidade</label>
-            <input id="cidade" type="text" formControlName="cidade" class="field-input mt-1.5" />
+            <input
+              id="cidade"
+              type="text"
+              formControlName="cidade"
+              autocomplete="off"
+              (input)="aoDigitarCidade($event)"
+              (focus)="aoFocarCampoCidade()"
+              (blur)="aoDesfocarCampoCidade()"
+              class="field-input mt-1.5"
+            />
+            <p class="mt-1 text-xs text-slate-500">
+              @if (buscandoCidade()) {
+                Buscando…
+              } @else {
+                Selecione uma cidade cadastrada pra preencher o estado automaticamente.
+              }
+            </p>
+
+            @if (mostrarResultadosCidade() && resultadosCidade().length > 0) {
+              <ul
+                class="absolute z-10 mt-1 max-h-56 w-full overflow-y-auto rounded-lg border border-white/12 bg-ink-800 shadow-xl"
+              >
+                @for (cidade of resultadosCidade(); track cidade.id) {
+                  <li>
+                    <button
+                      type="button"
+                      (mousedown)="selecionarCidade(cidade)"
+                      class="flex w-full items-center justify-between px-3 py-2 text-left text-sm text-slate-200 transition hover:bg-white/10"
+                    >
+                      {{ cidade.nome }} <span class="text-slate-400">{{ cidade.estado }}</span>
+                    </button>
+                  </li>
+                }
+              </ul>
+            }
           </div>
 
           <div>

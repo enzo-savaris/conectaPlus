@@ -65,21 +65,6 @@
                 </select>
               </div>
 
-              <div>
-                <label for="cep" class="field-label">CEP</label>
-                <input
-                  id="cep"
-                  type="text"
-                  formControlName="cep"
-                  (input)="aplicarMascaraCep($event)"
-                  autocomplete="postal-code"
-                  inputmode="numeric"
-                  placeholder="00000-000"
-                  class="field-input mt-1.5"
-                />
-                <p class="mt-1 text-xs text-slate-500">Preenche a cidade automaticamente.</p>
-              </div>
-
               <div class="relative sm:col-span-2">
                 <label for="cidade" class="field-label">Cidade</label>
                 <input
@@ -96,8 +81,6 @@
 
                 @if (buscandoCidade()) {
                   <p class="mt-1.5 text-xs text-slate-500">Buscando…</p>
-                } @else if (erroCep()) {
-                  <p class="field-error">{{ erroCep() }}</p>
                 } @else if (cidadeSelecionada()) {
                   <p class="mt-1.5 text-xs text-emerald-300">
                     Cidade selecionada: {{ cidadeSelecionada()!.nome }} - {{ cidadeSelecionada()!.estado }}

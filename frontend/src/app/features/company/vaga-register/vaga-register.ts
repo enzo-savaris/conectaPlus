@@ -18,7 +18,6 @@ import { Cidade } from '../../../shared/types/cidade';
 import { Curso } from '../../../shared/types/curso';
 import { ModeloTrabalho, NovaVaga, TipoContratacao } from '../../../shared/types/vaga';
 import { formatarCargaHorariaCurso, formatarPrecoCurso } from '../../../shared/utils/curso-format';
-import { apenasDigitos, formatarCep } from '../../../shared/utils/masks';
 
 /** Garante que o salário máximo, quando informado, não fique menor que o mínimo. */
 function salarioValido(grupo: AbstractControl): ValidationErrors | null {
@@ -72,7 +71,6 @@ export class VagaRegister {
         validators: [Validators.required, Validators.minLength(3)]
       }),
       tipoContratacao: new FormControl<TipoContratacao>('CLT', { nonNullable: true }),
-      cep: new FormControl('', { nonNullable: true }),
       modeloTrabalho: new FormControl<ModeloTrabalho>('HIBRIDO', { nonNullable: true }),
       salarioMinimo: new FormControl<number | null>(null),
       salarioMaximo: new FormControl<number | null>(null),
@@ -92,13 +90,12 @@ export class VagaRegister {
   protected readonly cursosDaEmpresa = signal<Curso[]>([]);
   protected readonly cursosSelecionados = signal<ReadonlySet<number>>(new Set());
 
-  /** Combobox de cidade: busca por nome (typeahead) ou preenchida automaticamente pelo CEP. */
+  /** Combobox de cidade: busca por nome (typeahead) nas cidades já cadastradas. */
   protected readonly termoBuscaCidade = signal('');
   protected readonly resultadosCidade = signal<Cidade[]>([]);
   protected readonly mostrarResultadosCidade = signal(false);
   protected readonly buscandoCidade = signal(false);
   protected readonly cidadeSelecionada = signal<Cidade | null>(null);
-  protected readonly erroCep = signal<string | null>(null);
   private readonly buscaCidadeSubject = new Subject<string>();
 
   protected readonly enviando = signal(false);
@@ -198,36 +195,6 @@ export class VagaRegister {
         novo.add(idCurso);
       }
       return novo;
-    });
-  }
-
-  /** Aplica a máscara do CEP e, com os 8 dígitos completos, já busca a cidade automaticamente. */
-  protected aplicarMascaraCep(evento: Event): void {
-    const entrada = evento.target as HTMLInputElement;
-    const mascarado = formatarCep(entrada.value);
-
-    entrada.value = mascarado;
-    this.formulario.controls.cep.setValue(mascarado, { emitEvent: false });
-
-    const digitos = apenasDigitos(mascarado);
-    if (digitos.length === 8) {
-      this.buscarCidadePorCep(digitos);
-    }
-  }
-
-  private buscarCidadePorCep(cep: string): void {
-    this.erroCep.set(null);
-    this.buscandoCidade.set(true);
-
-    this.cidadeService.buscarPorCep(cep).subscribe({
-      next: (cidade) => {
-        this.buscandoCidade.set(false);
-        this.selecionarCidade(cidade);
-      },
-      error: () => {
-        this.buscandoCidade.set(false);
-        this.erroCep.set('CEP não encontrado.');
-      }
     });
   }
 

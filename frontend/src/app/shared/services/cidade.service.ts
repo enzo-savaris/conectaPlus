@@ -20,17 +20,15 @@ function paraCidade(cidade: CidadeDaApi): Cidade {
 export class CidadeService {
   private readonly http = inject(HttpClient);
 
-  /** Busca cidades já cadastradas pelo nome, para o combobox do cadastro de vaga. */
+  /**
+   * Busca cidades já cadastradas pelo nome, para o combobox de cidade usado
+   * no cadastro de vaga e no cadastro/perfil da empresa.
+   */
   buscar(termo: string): Observable<Cidade[]> {
     const parametros = new HttpParams().set('busca', termo);
 
     return this.http
       .get<CidadeDaApi[]>(`${URL_BASE_API}/cidades`, { params: parametros })
       .pipe(map((cidades) => cidades.map(paraCidade)));
-  }
-
-  /** Resolve a cidade do CEP informado (via ViaCEP), cadastrando-a se ainda não existir. */
-  buscarPorCep(cep: string): Observable<Cidade> {
-    return this.http.get<CidadeDaApi>(`${URL_BASE_API}/cidades/cep/${cep}`).pipe(map(paraCidade));
   }
 }
