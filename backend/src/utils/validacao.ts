@@ -67,19 +67,23 @@ export const ESTADOS = [
 
 export type StatusEmpresa = 'ATIVA' | 'INATIVA' | 'PENDENTE';
 
-/** Empresa já validada e pronta para gravar na TBLCDSEMP0. */
+/**
+ * Empresa já validada e pronta para gravar na TBLCDSEMP0. Só `telefone` e
+ * `complemento` são realmente opcionais — o resto compõe a identificação e o
+ * endereço mínimos pra empresa aparecer corretamente na plataforma.
+ */
 export interface DadosEmpresa {
   razaoSocial: string;
-  nomeFantasia: string | null;
+  nomeFantasia: string;
   cnpj: string;
-  email: string | null;
+  email: string;
   telefone: string | null;
-  cep: string | null;
-  numero: string | null;
+  cep: string;
+  numero: string;
   complemento: string | null;
-  bairro: string | null;
-  cidade: string | null;
-  estado: string | null;
+  bairro: string;
+  cidade: string;
+  estado: string;
   senha: string;
   status: StatusEmpresa;
 }
@@ -169,11 +173,13 @@ export function validarEmpresa(corpo: unknown, parcial: boolean): DadosEmpresaPa
     }
   }
 
-  // ---------- Campos opcionais ----------
+  // ---------- Identificação e endereço: obrigatórios, menos telefone e complemento ----------
 
   if (precisaValidar('nomeFantasia')) {
     const valor = textoOuNulo(entrada['nomeFantasia']);
-    if (valor !== null && valor.length > 150) {
+    if (valor === null) {
+      erros['nomeFantasia'] = 'Informe o nome fantasia.';
+    } else if (valor.length > 150) {
       erros['nomeFantasia'] = 'O nome fantasia deve ter no máximo 150 caracteres.';
     } else {
       dados.nomeFantasia = valor;
@@ -182,7 +188,9 @@ export function validarEmpresa(corpo: unknown, parcial: boolean): DadosEmpresaPa
 
   if (precisaValidar('email')) {
     const valor = textoOuNulo(entrada['email'])?.toLowerCase() ?? null;
-    if (valor !== null && !emailValido(valor)) {
+    if (valor === null) {
+      erros['email'] = 'Informe o e-mail corporativo.';
+    } else if (!emailValido(valor)) {
       erros['email'] = 'Informe um e-mail válido.';
     } else {
       dados.email = valor;
@@ -206,7 +214,7 @@ export function validarEmpresa(corpo: unknown, parcial: boolean): DadosEmpresaPa
   if (precisaValidar('cep')) {
     const bruto = textoOuNulo(entrada['cep']);
     if (bruto === null) {
-      dados.cep = null;
+      erros['cep'] = 'Informe o CEP.';
     } else {
       const digitos = apenasDigitos(bruto);
       if (digitos.length !== 8) {
@@ -219,7 +227,9 @@ export function validarEmpresa(corpo: unknown, parcial: boolean): DadosEmpresaPa
 
   if (precisaValidar('numero')) {
     const valor = textoOuNulo(entrada['numero']);
-    if (valor !== null && valor.length > 10) {
+    if (valor === null) {
+      erros['numero'] = 'Informe o número.';
+    } else if (valor.length > 10) {
       erros['numero'] = 'O número deve ter no máximo 10 caracteres.';
     } else {
       dados.numero = valor;
@@ -231,16 +241,28 @@ export function validarEmpresa(corpo: unknown, parcial: boolean): DadosEmpresaPa
   }
 
   if (precisaValidar('bairro')) {
-    dados.bairro = textoOuNulo(entrada['bairro']);
+    const valor = textoOuNulo(entrada['bairro']);
+    if (valor === null) {
+      erros['bairro'] = 'Informe o bairro.';
+    } else {
+      dados.bairro = valor;
+    }
   }
 
   if (precisaValidar('cidade')) {
-    dados.cidade = textoOuNulo(entrada['cidade']);
+    const valor = textoOuNulo(entrada['cidade']);
+    if (valor === null) {
+      erros['cidade'] = 'Informe a cidade.';
+    } else {
+      dados.cidade = valor;
+    }
   }
 
   if (precisaValidar('estado')) {
     const valor = textoOuNulo(entrada['estado'])?.toUpperCase() ?? null;
-    if (valor !== null && !ESTADOS.includes(valor)) {
+    if (valor === null) {
+      erros['estado'] = 'Selecione a UF.';
+    } else if (!ESTADOS.includes(valor)) {
       erros['estado'] = 'Selecione uma UF válida.';
     } else {
       dados.estado = valor;

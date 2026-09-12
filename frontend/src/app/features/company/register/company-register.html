@@ -226,19 +226,28 @@
 
           <!-- Bairro -->
           <div>
-            <label for="bairro" class="field-label">Bairro</label>
+            <label for="bairro" class="field-label">
+              Bairro <span class="text-brand-300" aria-hidden="true">*</span>
+            </label>
             <input
               id="bairro"
               type="text"
               formControlName="bairro"
               placeholder="Digite o bairro"
               class="field-input mt-1.5"
+              [attr.aria-invalid]="temErro('bairro')"
+              [attr.aria-describedby]="temErro('bairro') ? 'bairro-error' : null"
             />
+            @if (temErro('bairro')) {
+              <p id="bairro-error" class="field-error" role="alert">Informe o bairro.</p>
+            }
           </div>
 
           <!-- Cidade -->
           <div class="relative">
-            <label for="cidade" class="field-label">Cidade</label>
+            <label for="cidade" class="field-label">
+              Cidade <span class="text-brand-300" aria-hidden="true">*</span>
+            </label>
             <input
               id="cidade"
               type="text"
@@ -249,14 +258,20 @@
               (blur)="aoDesfocarCampoCidade()"
               placeholder="Digite a cidade"
               class="field-input mt-1.5"
+              [attr.aria-invalid]="temErro('cidade')"
+              [attr.aria-describedby]="temErro('cidade') ? 'cidade-error' : null"
             />
-            <p class="mt-1 text-xs text-slate-500">
-              @if (buscandoCidade()) {
-                Buscando…
-              } @else {
-                Selecione uma cidade cadastrada pra preencher o estado automaticamente.
-              }
-            </p>
+            @if (temErro('cidade')) {
+              <p id="cidade-error" class="field-error" role="alert">Informe a cidade.</p>
+            } @else {
+              <p class="mt-1 text-xs text-slate-500">
+                @if (buscandoCidade()) {
+                  Buscando…
+                } @else {
+                  Selecione uma cidade cadastrada pra preencher o estado automaticamente.
+                }
+              </p>
+            }
 
             @if (mostrarResultadosCidade() && resultadosCidade().length > 0) {
               <ul
@@ -279,18 +294,25 @@
 
           <!-- Estado (UF) -->
           <div class="sm:col-span-2">
-            <label for="estado" class="field-label">Estado (UF)</label>
+            <label for="estado" class="field-label">
+              Estado (UF) <span class="text-brand-300" aria-hidden="true">*</span>
+            </label>
             <select
               id="estado"
               formControlName="estado"
               autocomplete="address-level1"
               class="field-input mt-1.5"
+              [attr.aria-invalid]="temErro('estado')"
+              [attr.aria-describedby]="temErro('estado') ? 'estado-error' : null"
             >
               <option value="">Selecione o estado</option>
               @for (uf of estados; track uf) {
                 <option [value]="uf">{{ uf }}</option>
               }
             </select>
+            @if (temErro('estado')) {
+              <p id="estado-error" class="field-error" role="alert">Selecione a UF.</p>
+            }
           </div>
         </div>
       </fieldset>

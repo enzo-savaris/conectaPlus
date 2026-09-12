@@ -127,7 +127,9 @@
           </div>
 
           <div>
-            <label for="cep" class="field-label">CEP</label>
+            <label for="cep" class="field-label">
+              CEP <span class="text-brand-300" aria-hidden="true">*</span>
+            </label>
             <input
               id="cep"
               type="text"
@@ -138,7 +140,13 @@
               [attr.aria-invalid]="temErro('cep')"
             />
             @if (temErro('cep')) {
-              <p class="field-error" role="alert">O CEP deve ter 8 dígitos.</p>
+              <p class="field-error" role="alert">
+                @if (formulario.controls.cep.hasError('required')) {
+                  Informe o CEP.
+                } @else {
+                  O CEP deve ter 8 dígitos.
+                }
+              </p>
             }
           </div>
         </div>
@@ -150,8 +158,13 @@
 
         <div class="grid grid-cols-1 gap-x-5 gap-y-4 sm:grid-cols-2">
           <div>
-            <label for="numero" class="field-label">Número</label>
-            <input id="numero" type="text" formControlName="numero" class="field-input mt-1.5" />
+            <label for="numero" class="field-label">
+              Número <span class="text-brand-300" aria-hidden="true">*</span>
+            </label>
+            <input id="numero" type="text" formControlName="numero" class="field-input mt-1.5" [attr.aria-invalid]="temErro('numero')" />
+            @if (temErro('numero')) {
+              <p class="field-error" role="alert">Informe o número.</p>
+            }
           </div>
 
           <div>
@@ -160,12 +173,19 @@
           </div>
 
           <div>
-            <label for="bairro" class="field-label">Bairro</label>
-            <input id="bairro" type="text" formControlName="bairro" class="field-input mt-1.5" />
+            <label for="bairro" class="field-label">
+              Bairro <span class="text-brand-300" aria-hidden="true">*</span>
+            </label>
+            <input id="bairro" type="text" formControlName="bairro" class="field-input mt-1.5" [attr.aria-invalid]="temErro('bairro')" />
+            @if (temErro('bairro')) {
+              <p class="field-error" role="alert">Informe o bairro.</p>
+            }
           </div>
 
           <div class="relative">
-            <label for="cidade" class="field-label">Cidade</label>
+            <label for="cidade" class="field-label">
+              Cidade <span class="text-brand-300" aria-hidden="true">*</span>
+            </label>
             <input
               id="cidade"
               type="text"
@@ -175,14 +195,19 @@
               (focus)="aoFocarCampoCidade()"
               (blur)="aoDesfocarCampoCidade()"
               class="field-input mt-1.5"
+              [attr.aria-invalid]="temErro('cidade')"
             />
-            <p class="mt-1 text-xs text-slate-500">
-              @if (buscandoCidade()) {
-                Buscando…
-              } @else {
-                Selecione uma cidade cadastrada pra preencher o estado automaticamente.
-              }
-            </p>
+            @if (temErro('cidade')) {
+              <p class="field-error" role="alert">Informe a cidade.</p>
+            } @else {
+              <p class="mt-1 text-xs text-slate-500">
+                @if (buscandoCidade()) {
+                  Buscando…
+                } @else {
+                  Selecione uma cidade cadastrada pra preencher o estado automaticamente.
+                }
+              </p>
+            }
 
             @if (mostrarResultadosCidade() && resultadosCidade().length > 0) {
               <ul
@@ -204,13 +229,23 @@
           </div>
 
           <div>
-            <label for="estado" class="field-label">Estado (UF)</label>
-            <select id="estado" formControlName="estado" class="field-input mt-1.5">
+            <label for="estado" class="field-label">
+              Estado (UF) <span class="text-brand-300" aria-hidden="true">*</span>
+            </label>
+            <select
+              id="estado"
+              formControlName="estado"
+              class="field-input mt-1.5"
+              [attr.aria-invalid]="temErro('estado')"
+            >
               <option value="">Selecione o estado</option>
               @for (uf of estados; track uf) {
                 <option [value]="uf">{{ uf }}</option>
               }
             </select>
+            @if (temErro('estado')) {
+              <p class="field-error" role="alert">Selecione a UF.</p>
+            }
           </div>
         </div>
       </fieldset>

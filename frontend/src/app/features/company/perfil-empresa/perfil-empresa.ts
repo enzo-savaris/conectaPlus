@@ -80,12 +80,12 @@ export class PerfilEmpresa {
       cnpj: new FormControl('', { nonNullable: true, validators: [Validators.required, validadorCnpj()] }),
       email: new FormControl('', { nonNullable: true, validators: [Validators.required, Validators.email] }),
       telefone: new FormControl('', { nonNullable: true, validators: [validadorTelefone()] }),
-      cep: new FormControl('', { nonNullable: true, validators: [validadorCep()] }),
-      numero: new FormControl('', { nonNullable: true }),
+      cep: new FormControl('', { nonNullable: true, validators: [Validators.required, validadorCep()] }),
+      numero: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
       complemento: new FormControl('', { nonNullable: true }),
-      bairro: new FormControl('', { nonNullable: true }),
-      cidade: new FormControl('', { nonNullable: true }),
-      estado: new FormControl('', { nonNullable: true }),
+      bairro: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
+      cidade: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
+      estado: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
       novaSenha: new FormControl('', {
         nonNullable: true,
         validators: [Validators.minLength(8)]

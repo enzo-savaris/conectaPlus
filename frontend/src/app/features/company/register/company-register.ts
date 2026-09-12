@@ -59,9 +59,9 @@ export class CompanyRegister {
     // Endereço
     numero: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
     complemento: new FormControl('', { nonNullable: true }),
-    bairro: new FormControl('', { nonNullable: true }),
-    cidade: new FormControl('', { nonNullable: true }),
-    estado: new FormControl('', { nonNullable: true }),
+    bairro: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
+    cidade: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
+    estado: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
 
     // Configuração de acesso
     senha: new FormControl('', {
