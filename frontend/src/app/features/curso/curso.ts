@@ -1,5 +1,5 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core';
 import {
   AbstractControl,
   FormControl,
@@ -77,6 +77,17 @@ export class Curso {
 
   constructor() {
     this.carregarCursos();
+
+    // Mantém o formulário em sincronia com o status da empresa: se ela deixar
+    // de estar ATIVA (ex.: editou CNPJ/razão social) enquanto a tela já está
+    // aberta, os campos ficam cinza/desabilitados na hora, sem precisar de F5.
+    effect(() => {
+      if (this.empresaAtiva()) {
+        this.formulario.enable({ emitEvent: false });
+      } else {
+        this.formulario.disable({ emitEvent: false });
+      }
+    });
   }
 
   /** Garantido pelo ambienteGuard('empresa'): só entra aqui quem está logado como empresa. */

@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
 
@@ -29,6 +29,15 @@ export class PainelEmpresa {
   protected readonly vagasRecentes = signal<Vaga[]>([]);
   protected readonly carregando = signal(true);
   protected readonly erro = signal<string | null>(null);
+
+  /**
+   * Só empresa ATIVA pode cadastrar vagas; PENDENTE (ex.: depois de mudar
+   * CNPJ/razão social) ou INATIVA só pode visualizar as já cadastradas.
+   */
+  protected readonly empresaAtiva = computed(() => {
+    const sessao = this.authService.sessao();
+    return sessao?.ambiente !== 'empresa' || sessao.perfil.status === 'ATIVA';
+  });
 
   constructor() {
     this.carregarPainel();
