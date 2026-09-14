@@ -3,7 +3,20 @@ import { Routes } from '@angular/router';
 import { ambienteGuard } from './shared/guards/ambiente.guard';
 
 export const routes: Routes = [
-  { path: '', pathMatch: 'full', redirectTo: 'login' },
+  // Landing page pública: qualquer visitante vê as vagas abertas sem precisar
+  // se cadastrar. Fora do Shell de propósito — quem chega aqui ainda não tem
+  // sessão, então não faz sentido mostrar a sidebar.
+  {
+    path: '',
+    pathMatch: 'full',
+    title: 'Conecta+',
+    loadComponent: () => import('./features/landing/landing').then((m) => m.Landing)
+  },
+  {
+    path: 'vaga/:id',
+    title: 'Vaga | Conecta+',
+    loadComponent: () => import('./features/vaga-publica/vaga-publica').then((m) => m.VagaPublica)
+  },
   {
     path: 'login',
     title: 'Entrar | Conecta+',

@@ -21,6 +21,7 @@ import {
 interface VagaDaApi {
   IDVAGA: number;
   IDEMPRESA: number;
+  NOMEEMPRESA: string;
   TITULO: string;
   AREA: string | null;
   DESCRICAO: string;
@@ -72,6 +73,7 @@ function paraVaga(vaga: VagaDaApi): Vaga {
   return {
     id: vaga.IDVAGA,
     idEmpresa: vaga.IDEMPRESA,
+    nomeEmpresa: vaga.NOMEEMPRESA,
     titulo: vaga.TITULO,
     area: vaga.AREA,
     descricao: vaga.DESCRICAO,

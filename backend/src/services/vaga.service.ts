@@ -6,15 +6,19 @@ import { erroDeConflito, erroNaoEncontrado } from '../utils/erro-app.ts';
 import type { DadosVaga } from '../utils/validacao-vaga.ts';
 
 /**
- * A vaga guarda só o IDCIDADE; aqui juntamos com TBLCDSCID0 pra devolver
- * também o nome/UF prontos (CIDADE, ESTADO), no mesmo formato que a API
- * sempre devolveu, sem precisar mexer em quem consome esse retorno.
+ * A vaga guarda só o IDCIDADE e o IDEMPRESA; aqui juntamos com TBLCDSCID0 e
+ * TBLCDSEMP0 pra devolver também o nome/UF (CIDADE, ESTADO) e o nome da
+ * empresa (NOMEEMPRESA) já prontos, no mesmo formato que a API sempre
+ * devolveu, sem precisar mexer em quem consome esse retorno.
  */
 const COLUNAS = `v.IDVAGA, v.IDEMPRESA, v.TITULO, v.AREA, v.DESCRICAO, v.IDCIDADE,
                  ci.NOME AS CIDADE, ci.ESTADO AS ESTADO,
+                 COALESCE(emp.FANTASIA, emp.RAZAO) AS NOMEEMPRESA,
                  v.MODELOTRABALHO, v.TIPOCONTRATACAO, v.SALARIOMIN, v.SALARIOMAX,
                  v.DTCAD, v.STATUSVAGA`;
-const TABELA_COM_CIDADE = 'TBLCDSVAG0 v LEFT JOIN TBLCDSCID0 ci ON ci.IDCIDADE = v.IDCIDADE';
+const TABELA_COM_CIDADE = `TBLCDSVAG0 v
+  LEFT JOIN TBLCDSCID0 ci ON ci.IDCIDADE = v.IDCIDADE
+  LEFT JOIN TBLCDSEMP0 emp ON emp.IDEMPRESA = v.IDEMPRESA`;
 
 /** Tabelas filhas que guardam as listas de itens do cadastro, uma linha por item. */
 const TABELAS_DE_ITENS = {

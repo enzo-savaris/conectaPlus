@@ -10,6 +10,7 @@ export type StatusVaga = 'ATIVA' | 'INATIVA' | 'ENCERRADA';
 export interface Vaga {
   id: number;
   idEmpresa: number;
+  nomeEmpresa: string;
   titulo: string;
   area: string | null;
   descricao: string;
