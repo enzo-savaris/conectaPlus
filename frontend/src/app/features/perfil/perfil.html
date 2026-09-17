@@ -1,4 +1,513 @@
 <div class="p-8">
-  <h1 class="text-xl font-semibold text-white sm:text-2xl">Perfil</h1>
-  <p class="mt-2 text-sm text-slate-400">Em breve: dados do perfil.</p>
+  <header>
+    <h1 class="text-xl font-semibold text-white sm:text-2xl">Perfil</h1>
+    <p class="mt-1 text-sm text-slate-400">Seus dados, seu currículo e como a empresa vai te encontrar.</p>
+  </header>
+
+  @if (erro()) {
+    <p class="mt-6 rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200" role="alert">
+      {{ erro() }}
+    </p>
+  }
+
+  @if (sucesso()) {
+    <p class="mt-6 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200" role="status">
+      {{ sucesso() }}
+    </p>
+  }
+
+  @if (carregando()) {
+    <p class="mt-8 text-sm text-slate-400">Carregando perfil…</p>
+  } @else if (perfil(); as p) {
+    <form class="mt-6 max-w-3xl" [formGroup]="formulario" (ngSubmit)="aoSalvar()" novalidate>
+      <!-- ============ DADOS PESSOAIS ============ -->
+      <fieldset class="mb-8">
+        <legend class="section-legend">Dados pessoais</legend>
+
+        <div class="mb-5 flex items-center gap-4">
+          <label
+            for="avatar"
+            class="group relative flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-dashed border-white/20 bg-ink-800/60"
+            [class.cursor-pointer]="modoEdicao()"
+            [class.hover:border-brand-400/50]="modoEdicao()"
+          >
+            @if (avatarPreviewUrl(); as preview) {
+              <img [src]="preview" alt="Pré-visualização da foto de perfil" class="size-full object-cover" />
+            } @else if (p.avatarUrl; as url) {
+              <img [src]="url" alt="Foto de perfil" class="size-full object-cover" />
+            } @else {
+              <svg class="size-7 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                <circle cx="12" cy="8" r="3.2" />
+                <path d="M5 20c0-3.3 3.1-6 7-6s7 2.7 7 6" stroke-linecap="round" />
+              </svg>
+            }
+            @if (modoEdicao()) {
+              <input id="avatar" type="file" accept="image/*" (change)="selecionarAvatar($event)" class="sr-only" />
+            }
+          </label>
+          <div>
+            <p class="text-sm font-semibold text-white">{{ p.nome }}</p>
+            @if (modoEdicao()) {
+              <label for="avatar" class="mt-1 inline-block cursor-pointer text-xs font-medium text-brand-300 hover:text-brand-200">
+                Trocar foto
+              </label>
+            }
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 gap-x-5 gap-y-4 sm:grid-cols-2">
+          <div>
+            <label for="nome" class="field-label">
+              Nome completo <span class="text-brand-300" aria-hidden="true">*</span>
+            </label>
+            <input id="nome" type="text" formControlName="nome" class="field-input mt-1.5" [attr.aria-invalid]="temErro('nome')" />
+            @if (temErro('nome')) {
+              <p class="field-error" role="alert">Informe seu nome completo.</p>
+            }
+          </div>
+
+          <div>
+            <label for="tituloProfissional" class="field-label">Título profissional</label>
+            <input
+              id="tituloProfissional"
+              type="text"
+              formControlName="tituloProfissional"
+              placeholder="Ex.: Desenvolvedora Fullstack Júnior"
+              class="field-input mt-1.5"
+            />
+          </div>
+
+          <div>
+            <label for="email" class="field-label">
+              E-mail <span class="text-brand-300" aria-hidden="true">*</span>
+            </label>
+            <input id="email" type="email" formControlName="email" class="field-input mt-1.5" [attr.aria-invalid]="temErro('email')" />
+            @if (temErro('email')) {
+              <p class="field-error" role="alert">Informe um e-mail válido.</p>
+            }
+          </div>
+
+          <div>
+            <label for="telefone" class="field-label">
+              Telefone <span class="text-brand-300" aria-hidden="true">*</span>
+            </label>
+            <input
+              id="telefone"
+              type="tel"
+              formControlName="telefone"
+              (input)="aplicarMascaraTelefone($event)"
+              placeholder="(00) 00000-0000"
+              class="field-input mt-1.5"
+              [attr.aria-invalid]="temErro('telefone')"
+            />
+            @if (temErro('telefone')) {
+              <p class="field-error" role="alert">Informe um telefone válido com DDD.</p>
+            }
+          </div>
+
+          <div class="relative">
+            <label for="cidade" class="field-label">Cidade</label>
+            <input
+              id="cidade"
+              type="text"
+              formControlName="cidade"
+              autocomplete="off"
+              (input)="aoDigitarCidade($event)"
+              (focus)="aoFocarCampoCidade()"
+              (blur)="aoDesfocarCampoCidade()"
+              class="field-input mt-1.5"
+            />
+            @if (buscandoCidade()) {
+              <p class="mt-1 text-xs text-slate-500">Buscando…</p>
+            }
+            @if (mostrarResultadosCidade() && resultadosCidade().length > 0) {
+              <ul class="absolute z-10 mt-1 max-h-56 w-full overflow-y-auto rounded-lg border border-white/12 bg-ink-800 shadow-xl">
+                @for (cidade of resultadosCidade(); track cidade.id) {
+                  <li>
+                    <button
+                      type="button"
+                      (mousedown)="selecionarCidade(cidade)"
+                      class="flex w-full items-center justify-between px-3 py-2 text-left text-sm text-slate-200 transition hover:bg-white/10"
+                    >
+                      {{ cidade.nome }} <span class="text-slate-400">{{ cidade.estado }}</span>
+                    </button>
+                  </li>
+                }
+              </ul>
+            }
+          </div>
+
+          <div>
+            <label for="estado" class="field-label">Estado (UF)</label>
+            <input id="estado" type="text" formControlName="estado" maxlength="2" class="field-input mt-1.5 uppercase" />
+          </div>
+        </div>
+      </fieldset>
+
+      <!-- ============ SOBRE VOCÊ E ACESSIBILIDADE ============ -->
+      <fieldset class="mb-8">
+        <legend class="section-legend">Sobre você e acessibilidade</legend>
+
+        <div>
+          <label for="sobreMim" class="field-label">Sobre você</label>
+          <textarea
+            id="sobreMim"
+            formControlName="sobreMim"
+            rows="3"
+            placeholder="Um resumo rápido sobre sua trajetória e o que você procura"
+            class="field-input mt-1.5 resize-none"
+          ></textarea>
+        </div>
+
+        <div class="mt-4">
+          <span class="field-label">Tipo de deficiência</span>
+          <div class="mt-1.5 flex flex-wrap gap-2">
+            @for (tipo of tiposDeficiencia; track tipo.valor) {
+              <button
+                type="button"
+                (click)="selecionarTipoDeficiencia(tipo.valor)"
+                [disabled]="!modoEdicao()"
+                [attr.aria-pressed]="tipoDeficienciaSelecionado() === tipo.valor"
+                class="rounded-full border px-4 py-1.5 text-sm font-medium transition hover:border-white/25 disabled:cursor-not-allowed disabled:hover:border-white/12"
+                [class.border-brand-400]="tipoDeficienciaSelecionado() === tipo.valor"
+                [class.bg-brand-400/15]="tipoDeficienciaSelecionado() === tipo.valor"
+                [class.text-brand-200]="tipoDeficienciaSelecionado() === tipo.valor"
+                [class.border-white/12]="tipoDeficienciaSelecionado() !== tipo.valor"
+                [class.text-slate-300]="tipoDeficienciaSelecionado() !== tipo.valor"
+              >
+                {{ tipo.rotulo }}
+              </button>
+            }
+          </div>
+        </div>
+
+        <div class="mt-4">
+          <span class="field-label">Recursos que você usa no dia a dia</span>
+          <div class="mt-1.5 flex flex-wrap gap-2">
+            @for (recurso of recursosDisponiveis; track recurso) {
+              <button
+                type="button"
+                (click)="alternarRecurso(recurso)"
+                [disabled]="!modoEdicao()"
+                [attr.aria-pressed]="recursoSelecionado(recurso)"
+                class="rounded-full border px-4 py-1.5 text-sm font-medium transition hover:border-white/25 disabled:cursor-not-allowed disabled:hover:border-white/12"
+                [class.border-brand-400]="recursoSelecionado(recurso)"
+                [class.bg-brand-400/15]="recursoSelecionado(recurso)"
+                [class.text-brand-200]="recursoSelecionado(recurso)"
+                [class.border-white/12]="!recursoSelecionado(recurso)"
+                [class.text-slate-300]="!recursoSelecionado(recurso)"
+              >
+                {{ recurso }}
+              </button>
+            }
+          </div>
+        </div>
+
+        <div class="mt-4">
+          <label for="interesse" class="field-label">Áreas de interesse</label>
+          @if (modoEdicao()) {
+            <div class="mt-1.5 flex gap-2">
+              <input
+                #interesseInput
+                id="interesse"
+                type="text"
+                placeholder="Ex.: Tecnologia e Design"
+                (keydown.enter)="$event.preventDefault(); adicionarInteresse(interesseInput)"
+                class="field-input"
+              />
+              <button
+                type="button"
+                (click)="adicionarInteresse(interesseInput)"
+                class="shrink-0 rounded-lg border border-white/12 bg-ink-800/60 px-4 py-2.5 text-sm font-medium text-slate-200 transition hover:border-white/25 hover:bg-ink-700/70"
+              >
+                + Adicionar
+              </button>
+            </div>
+          }
+          @if (interesses().length > 0) {
+            <ul class="mt-3 flex flex-wrap gap-2">
+              @for (item of interesses(); track $index) {
+                <li class="inline-flex items-center gap-1.5 rounded-full border border-white/12 bg-ink-800/60 py-1 pr-2 pl-3 text-xs font-medium text-slate-200">
+                  {{ item }}
+                  @if (modoEdicao()) {
+                    <button type="button" (click)="removerInteresse($index)" class="rounded-full p-0.5 text-slate-500 hover:text-rose-300" [attr.aria-label]="'Remover ' + item">
+                      <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <path d="m6 6 12 12M18 6 6 18" stroke-linecap="round" />
+                      </svg>
+                    </button>
+                  }
+                </li>
+              }
+            </ul>
+          } @else if (!modoEdicao()) {
+            <p class="mt-1.5 text-xs text-slate-500">Nenhuma área de interesse informada.</p>
+          }
+        </div>
+      </fieldset>
+
+      <!-- ============ CURRÍCULO ============ -->
+      <fieldset class="mb-8">
+        <legend class="section-legend">Currículo</legend>
+
+        <div class="mb-4 inline-flex rounded-lg border border-white/12 bg-ink-800/60 p-1">
+          <button
+            type="button"
+            (click)="alternarTipoCurriculo('PLATAFORMA')"
+            [disabled]="!modoEdicao()"
+            class="rounded-md px-4 py-1.5 text-xs font-semibold transition disabled:cursor-not-allowed"
+            [class.bg-brand-500]="tipoCurriculo() === 'PLATAFORMA'"
+            [class.text-ink-950]="tipoCurriculo() === 'PLATAFORMA'"
+            [class.text-slate-300]="tipoCurriculo() !== 'PLATAFORMA'"
+          >
+            Montar pela plataforma
+          </button>
+          <button
+            type="button"
+            (click)="alternarTipoCurriculo('PDF')"
+            [disabled]="!modoEdicao()"
+            class="rounded-md px-4 py-1.5 text-xs font-semibold transition disabled:cursor-not-allowed"
+            [class.bg-brand-500]="tipoCurriculo() === 'PDF'"
+            [class.text-ink-950]="tipoCurriculo() === 'PDF'"
+            [class.text-slate-300]="tipoCurriculo() !== 'PDF'"
+          >
+            Enviar PDF
+          </button>
+        </div>
+
+        @if (tipoCurriculo() === 'PDF') {
+          @if (modoEdicao()) {
+            <input type="file" accept="application/pdf" (change)="selecionarCurriculoPdf($event)" class="field-input file:mr-3 file:rounded-md file:border-0 file:bg-brand-500 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-ink-950" />
+          }
+          @if (curriculoPdfSelecionado(); as arquivo) {
+            <p class="mt-1.5 text-xs text-slate-400">Selecionado: {{ arquivo.name }}</p>
+          } @else if (p.curriculoPdfUrl; as url) {
+            <p class="mt-1.5 text-xs text-slate-400">
+              Currículo atual:
+              <a [href]="url" target="_blank" rel="noopener" class="text-brand-300 underline hover:text-brand-200">abrir PDF</a>
+            </p>
+          } @else if (!modoEdicao()) {
+            <p class="mt-1.5 text-xs text-slate-500">Nenhum currículo em PDF enviado ainda.</p>
+          }
+        } @else {
+          <!-- Habilidades -->
+          <div>
+            <label for="habilidade" class="field-label">Habilidades</label>
+            @if (modoEdicao()) {
+              <div class="mt-1.5 flex gap-2">
+                <input
+                  #habilidadeInput
+                  id="habilidade"
+                  type="text"
+                  placeholder="Ex.: React"
+                  (keydown.enter)="$event.preventDefault(); adicionarHabilidade(habilidadeInput)"
+                  class="field-input"
+                />
+                <button
+                  type="button"
+                  (click)="adicionarHabilidade(habilidadeInput)"
+                  class="shrink-0 rounded-lg border border-white/12 bg-ink-800/60 px-4 py-2.5 text-sm font-medium text-slate-200 transition hover:border-white/25 hover:bg-ink-700/70"
+                >
+                  + Adicionar
+                </button>
+              </div>
+            }
+            @if (habilidades().length > 0) {
+              <ul class="mt-3 flex flex-wrap gap-2">
+                @for (item of habilidades(); track $index) {
+                  <li class="inline-flex items-center gap-1.5 rounded-full border border-brand-400/30 bg-brand-400/10 py-1 pr-2 pl-3 text-xs font-medium text-brand-200">
+                    {{ item }}
+                    @if (modoEdicao()) {
+                      <button type="button" (click)="removerHabilidade($index)" class="rounded-full p-0.5 text-brand-300/70 hover:text-rose-300" [attr.aria-label]="'Remover ' + item">
+                        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                          <path d="m6 6 12 12M18 6 6 18" stroke-linecap="round" />
+                        </svg>
+                      </button>
+                    }
+                  </li>
+                }
+              </ul>
+            } @else if (!modoEdicao()) {
+              <p class="mt-1.5 text-xs text-slate-500">Nenhuma habilidade informada.</p>
+            }
+          </div>
+
+          <!-- Experiência -->
+          <div class="mt-6">
+            <span class="field-label">Experiência profissional</span>
+
+            @if (experienciasEmEdicao().length > 0) {
+              <ul class="mt-2 flex flex-col gap-2">
+                @for (exp of experienciasEmEdicao(); track $index) {
+                  <li class="rounded-lg border border-white/10 bg-ink-800/40 p-3">
+                    <div class="flex items-start justify-between gap-3">
+                      <div class="min-w-0">
+                        <p class="text-sm font-semibold text-white">{{ exp.cargo }}</p>
+                        <p class="text-xs text-slate-400">{{ exp.empresa }} @if (exp.periodo) { · {{ exp.periodo }} }</p>
+                        @if (exp.descricao) {
+                          <p class="mt-1 text-xs text-slate-300">{{ exp.descricao }}</p>
+                        }
+                      </div>
+                      @if (modoEdicao()) {
+                        <button type="button" (click)="removerExperiencia($index)" class="shrink-0 text-slate-500 transition hover:text-rose-300" aria-label="Remover experiência">
+                          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                            <path d="M4 7h16M9.5 7V5a1.5 1.5 0 0 1 1.5-1.5h2A1.5 1.5 0 0 1 14.5 5v2M6.5 7l.8 12.1a2 2 0 0 0 2 1.9h5.4a2 2 0 0 0 2-1.9L17.5 7" stroke-linecap="round" stroke-linejoin="round" />
+                          </svg>
+                        </button>
+                      }
+                    </div>
+                  </li>
+                }
+              </ul>
+            } @else if (!modoEdicao()) {
+              <p class="mt-1.5 text-xs text-slate-500">Nenhuma experiência informada.</p>
+            }
+
+            @if (modoEdicao()) {
+              <div class="mt-3 grid grid-cols-1 gap-2 rounded-lg border border-dashed border-white/15 p-3 sm:grid-cols-2">
+                <input #expCargo type="text" placeholder="Cargo" class="field-input" />
+                <input #expEmpresa type="text" placeholder="Empresa" class="field-input" />
+                <input #expPeriodo type="text" placeholder="Período (ex.: 2023 - 2026)" class="field-input sm:col-span-2" />
+                <textarea #expDescricao rows="2" placeholder="Descrição (opcional)" class="field-input resize-none sm:col-span-2"></textarea>
+                <button
+                  type="button"
+                  (click)="adicionarExperiencia(expCargo, expEmpresa, expPeriodo, expDescricao)"
+                  class="rounded-lg border border-white/12 bg-ink-800/60 px-4 py-2.5 text-xs font-semibold text-slate-200 transition hover:border-white/25 hover:bg-ink-700/70 sm:col-span-2"
+                >
+                  + Adicionar experiência
+                </button>
+              </div>
+            }
+          </div>
+
+          <!-- Formação -->
+          <div class="mt-6">
+            <span class="field-label">Formação</span>
+
+            @if (formacoesEmEdicao().length > 0) {
+              <ul class="mt-2 flex flex-col gap-2">
+                @for (form of formacoesEmEdicao(); track $index) {
+                  <li class="rounded-lg border border-white/10 bg-ink-800/40 p-3">
+                    <div class="flex items-start justify-between gap-3">
+                      <div class="min-w-0">
+                        <p class="text-sm font-semibold text-white">{{ form.curso }}</p>
+                        <p class="text-xs text-slate-400">{{ form.instituicao }} @if (form.periodo) { · {{ form.periodo }} }</p>
+                      </div>
+                      @if (modoEdicao()) {
+                        <button type="button" (click)="removerFormacao($index)" class="shrink-0 text-slate-500 transition hover:text-rose-300" aria-label="Remover formação">
+                          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                            <path d="M4 7h16M9.5 7V5a1.5 1.5 0 0 1 1.5-1.5h2A1.5 1.5 0 0 1 14.5 5v2M6.5 7l.8 12.1a2 2 0 0 0 2 1.9h5.4a2 2 0 0 0 2-1.9L17.5 7" stroke-linecap="round" stroke-linejoin="round" />
+                          </svg>
+                        </button>
+                      }
+                    </div>
+                  </li>
+                }
+              </ul>
+            } @else if (!modoEdicao()) {
+              <p class="mt-1.5 text-xs text-slate-500">Nenhuma formação informada.</p>
+            }
+
+            @if (modoEdicao()) {
+              <div class="mt-3 grid grid-cols-1 gap-2 rounded-lg border border-dashed border-white/15 p-3 sm:grid-cols-2">
+                <input #formCurso type="text" placeholder="Curso" class="field-input" />
+                <input #formInstituicao type="text" placeholder="Instituição" class="field-input" />
+                <input #formPeriodo type="text" placeholder="Período (ex.: 2019 - 2023)" class="field-input sm:col-span-2" />
+                <button
+                  type="button"
+                  (click)="adicionarFormacao(formCurso, formInstituicao, formPeriodo)"
+                  class="rounded-lg border border-white/12 bg-ink-800/60 px-4 py-2.5 text-xs font-semibold text-slate-200 transition hover:border-white/25 hover:bg-ink-700/70 sm:col-span-2"
+                >
+                  + Adicionar formação
+                </button>
+              </div>
+            }
+          </div>
+        }
+      </fieldset>
+
+      @if (modoEdicao()) {
+        <!-- ============ SEGURANÇA ============ -->
+        <fieldset class="mb-8">
+          <legend class="section-legend">Segurança</legend>
+
+          <div class="grid grid-cols-1 gap-x-5 gap-y-4 sm:grid-cols-2">
+            <div>
+              <label for="novaSenha" class="field-label">Nova senha</label>
+              <div class="relative mt-1.5">
+                <input
+                  id="novaSenha"
+                  [type]="senhaVisivel() ? 'text' : 'password'"
+                  formControlName="novaSenha"
+                  placeholder="Deixe em branco para manter"
+                  class="field-input pr-11"
+                  [attr.aria-invalid]="temErro('novaSenha')"
+                />
+                <button
+                  type="button"
+                  (click)="alternarVisibilidadeSenha()"
+                  class="absolute inset-y-0 right-0 flex items-center rounded-lg px-3 text-slate-400 transition hover:text-brand-300"
+                  [attr.aria-label]="senhaVisivel() ? 'Ocultar senha' : 'Mostrar senha'"
+                >
+                  <svg class="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+                    <path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z" />
+                    <circle cx="12" cy="12" r="3" />
+                    @if (!senhaVisivel()) {
+                      <path d="m4 20 16-16" stroke-linecap="round" />
+                    }
+                  </svg>
+                </button>
+              </div>
+              @if (temErro('novaSenha')) {
+                <p class="field-error" role="alert">A nova senha deve ter ao menos 8 caracteres.</p>
+              }
+            </div>
+
+            <div>
+              <label for="confirmarSenha" class="field-label">Confirmar nova senha</label>
+              <input
+                id="confirmarSenha"
+                [type]="senhaVisivel() ? 'text' : 'password'"
+                formControlName="confirmarSenha"
+                placeholder="Repita a nova senha"
+                class="field-input mt-1.5"
+                [attr.aria-invalid]="temErroDeSenha()"
+              />
+              @if (temErroDeSenha()) {
+                <p class="field-error" role="alert">As senhas digitadas não conferem.</p>
+              }
+            </div>
+          </div>
+        </fieldset>
+      }
+
+      <!-- Ações -->
+      <div class="flex flex-wrap gap-3">
+        @if (modoEdicao()) {
+          <button
+            type="submit"
+            [disabled]="salvando()"
+            class="rounded-full bg-gradient-to-r from-brand-300 to-brand-600 px-6 py-2.5 text-sm font-semibold text-ink-950 shadow-lg shadow-brand-500/20 transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {{ salvando() ? 'Salvando…' : 'Salvar alterações' }}
+          </button>
+          <button
+            type="button"
+            (click)="aoCancelar()"
+            [disabled]="salvando()"
+            class="rounded-lg border border-white/12 bg-ink-800/60 px-6 py-2.5 text-sm font-medium text-slate-200 transition hover:border-white/25 hover:bg-ink-700/70"
+          >
+            Cancelar
+          </button>
+        } @else {
+          <button
+            type="button"
+            (click)="aoClicarEditar()"
+            class="rounded-full bg-gradient-to-r from-brand-300 to-brand-600 px-6 py-2.5 text-sm font-semibold text-ink-950 shadow-lg shadow-brand-500/20 transition hover:brightness-110"
+          >
+            Editar Perfil
+          </button>
+        }
+      </div>
+    </form>
+  }
 </div>

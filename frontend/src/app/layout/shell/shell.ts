@@ -32,7 +32,7 @@ export class Shell {
   //
   // Toda rota dentro do Shell já exige sessão, então data.ambiente aqui é só
   // para o menu lateral trocar "Perfil" (usuário) por "Candidatos" (empresa).
-  // Rotas compartilhadas entre os dois ambientes (/curso, /perfil, /teste)
+  // Rotas compartilhadas entre os dois ambientes (/curso, /perfil)
   // não marcam nada — nesses casos o ambiente vem da sessão logada, não de
   // um padrão fixo, senão uma empresa logada que navega para /curso
   // "perderia" o menu da empresa.

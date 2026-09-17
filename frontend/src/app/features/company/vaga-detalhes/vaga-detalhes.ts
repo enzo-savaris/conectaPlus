@@ -66,6 +66,10 @@ export class VagaDetalhes {
     this.roteador.navigate(['/vagas']);
   }
 
+  protected aoClicarCandidato(candidatura: Candidatura): void {
+    this.roteador.navigate(['/empresa/candidatos', candidatura.idCandidato]);
+  }
+
   protected formatarLocalizacao(vaga: VagaDetalhada): string {
     return formatarLocalizacaoVaga(vaga);
   }

@@ -1,8 +1,10 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { Router } from '@angular/router';
 
 import { AuthService } from '../../shared/services/auth.service';
 import { EmpresaService } from '../../shared/services/empresa.service';
-import { CandidatoRelacionado, TipoDeficiencia } from '../../shared/types/candidato';
+import { CandidatoRelacionado } from '../../shared/types/candidato';
+import { formatarTipoDeficiencia } from '../../shared/utils/candidato-format';
 
 /**
  * Tela de candidatos: todos os PCDs já inscritos em alguma vaga da empresa
@@ -16,6 +18,7 @@ import { CandidatoRelacionado, TipoDeficiencia } from '../../shared/types/candid
 export class Candidatos {
   private readonly empresaService = inject(EmpresaService);
   private readonly authService = inject(AuthService);
+  private readonly roteador = inject(Router);
 
   protected readonly candidatos = signal<CandidatoRelacionado[]>([]);
   protected readonly carregando = signal(true);
@@ -52,20 +55,11 @@ export class Candidatos {
     return partes.length > 0 ? partes.join(' - ') : null;
   }
 
-  protected formatarTipoDeficiencia(tipo: TipoDeficiencia): string {
-    switch (tipo) {
-      case 'FISICA':
-        return 'Deficiência física';
-      case 'AUDITIVA':
-        return 'Deficiência auditiva';
-      case 'VISUAL':
-        return 'Deficiência visual';
-      case 'INTELECTUAL':
-        return 'Deficiência intelectual';
-      case 'MULTIPLA':
-        return 'Deficiência múltipla';
-      default:
-        return 'Outra deficiência';
-    }
+  protected formatarTipoDeficiencia(tipo: CandidatoRelacionado['tipoDeficiencia']): string {
+    return formatarTipoDeficiencia(tipo);
+  }
+
+  protected aoClicarCandidato(candidato: CandidatoRelacionado): void {
+    this.roteador.navigate(['/empresa/candidatos', candidato.id]);
   }
 }

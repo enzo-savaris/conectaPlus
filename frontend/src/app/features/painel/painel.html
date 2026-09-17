@@ -1,49 +1,161 @@
 <div class="p-8">
-  @if (perfil(); as p) {
-    <div class="max-w-2xl">
-      <div
-        class="flex w-fit items-center gap-2 rounded-full border border-brand-400/30 bg-brand-400/10 px-4 py-1.5 text-xs font-semibold text-brand-300"
+  <header class="flex flex-wrap items-start justify-between gap-4">
+    <div>
+      <h1 class="text-xl font-semibold text-white sm:text-2xl">Olá, {{ primeiroNome() }}</h1>
+      <p class="mt-1 text-sm text-slate-400">Confira as vagas e novidades de hoje.</p>
+    </div>
+
+    <div class="relative w-full sm:w-72">
+      <svg
+        class="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-slate-500"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+        stroke-width="2"
+        aria-hidden="true"
       >
-        <svg
-          class="h-3.5 w-3.5"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          stroke-width="2"
-          aria-hidden="true"
+        <circle cx="11" cy="11" r="7" />
+        <path d="m21 21-4.35-4.35" stroke-linecap="round" />
+      </svg>
+      <input
+        type="text"
+        [value]="termoBusca()"
+        (input)="aoDigitarBusca($event)"
+        placeholder="Buscar por cargo, empresa, skill..."
+        aria-label="Buscar por cargo, empresa ou skill"
+        class="field-input pl-9"
+      />
+    </div>
+  </header>
+
+  @if (erro()) {
+    <p
+      class="mt-6 rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200"
+      role="alert"
+    >
+      {{ erro() }}
+    </p>
+  }
+
+  <div class="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-[2fr_1fr] lg:items-start">
+    <!-- ============ VAGAS EM DESTAQUE ============ -->
+    <section>
+      <div class="flex items-center justify-between">
+        <h2 class="text-sm font-semibold text-white">Vagas em destaque</h2>
+        <a
+          routerLink="/vagas-disponiveis"
+          class="text-xs font-semibold text-brand-300 transition hover:text-brand-200"
         >
-          <path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round" />
-        </svg>
-        Login realizado com sucesso
+          Ver todas
+        </a>
       </div>
 
-      <h1 class="mt-4 text-2xl font-bold text-white sm:text-3xl">Olá, {{ p.nome }}!</h1>
-      <p class="mt-2 text-sm text-slate-400">
-        Esta é uma tela de teste temporária, só para confirmar que o login como candidato PCD (CPF)
-        funciona de ponta a ponta com o backend. O painel completo do candidato — vagas recomendadas,
-        candidaturas, etc. — ainda será desenvolvido.
-      </p>
+      @if (carregando()) {
+        <p class="mt-4 text-sm text-slate-400">Carregando vagas…</p>
+      } @else if (vagasFiltradas().length === 0) {
+        <div class="mt-4 rounded-2xl border border-dashed border-white/15 bg-ink-900/40 p-10 text-center">
+          <p class="text-sm font-medium text-slate-200">
+            @if (vagasDestaque().length === 0) {
+              Nenhuma vaga aberta no momento.
+            } @else {
+              Nenhuma vaga encontrada para essa busca.
+            }
+          </p>
+          <p class="mt-1 text-xs text-slate-500">Novas oportunidades aparecem aqui assim que forem publicadas.</p>
+        </div>
+      } @else {
+        <ul class="mt-4 flex flex-col gap-4">
+          @for (vaga of vagasFiltradas(); track vaga.id) {
+            <li class="rounded-2xl border border-white/10 bg-ink-900/60 p-5 transition hover:border-brand-400/40">
+              <div class="flex flex-wrap items-start justify-between gap-3">
+                <h3 class="text-base font-semibold text-white">{{ vaga.titulo }}</h3>
+                <span
+                  class="inline-flex shrink-0 items-center rounded-full border border-brand-400/40 bg-brand-400/10 px-3 py-1 text-xs font-semibold text-brand-300"
+                >
+                  {{ formatarTipoContratacao(vaga) }}
+                </span>
+              </div>
 
-      <dl
-        class="mt-8 grid grid-cols-1 gap-6 rounded-3xl border border-white/10 bg-ink-900/80 p-6 shadow-2xl shadow-black/40 backdrop-blur-sm sm:grid-cols-2"
-      >
-        <div>
-          <dt class="text-xs font-medium tracking-wide text-slate-500 uppercase">Nome</dt>
-          <dd class="mt-1 text-sm text-white">{{ p.nome }}</dd>
-        </div>
-        <div>
-          <dt class="text-xs font-medium tracking-wide text-slate-500 uppercase">CPF</dt>
-          <dd class="mt-1 text-sm text-white">{{ cpfFormatado() }}</dd>
-        </div>
-        <div>
-          <dt class="text-xs font-medium tracking-wide text-slate-500 uppercase">E-mail</dt>
-          <dd class="mt-1 text-sm text-white">{{ p.email ?? 'Não informado' }}</dd>
-        </div>
-        <div>
-          <dt class="text-xs font-medium tracking-wide text-slate-500 uppercase">Status da conta</dt>
-          <dd class="mt-1 text-sm text-white">{{ p.status }}</dd>
-        </div>
-      </dl>
-    </div>
-  }
+              <div class="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-400">
+                <span class="inline-flex items-center gap-1.5">
+                  <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+                    <rect x="3.5" y="6" width="17" height="12" rx="1.5" />
+                    <path d="M8 10v4M12 10v4M16 10v4" stroke-linecap="round" />
+                  </svg>
+                  {{ vaga.nomeEmpresa }}
+                </span>
+
+                <span class="inline-flex items-center gap-1.5">
+                  <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+                    <path d="M12 21s7-6.5 7-11.5A7 7 0 0 0 5 9.5C5 14.5 12 21 12 21Z" />
+                    <circle cx="12" cy="9.5" r="2.3" />
+                  </svg>
+                  {{ formatarLocalizacao(vaga) }}
+                </span>
+              </div>
+
+              @if (vaga.requisitos.length > 0) {
+                <div class="mt-3 flex flex-wrap gap-2">
+                  @for (requisito of vaga.requisitos.slice(0, 4); track requisito) {
+                    <span
+                      class="rounded-full border border-white/12 bg-ink-800/60 px-3 py-1 text-xs font-medium text-slate-200"
+                    >
+                      {{ requisito }}
+                    </span>
+                  }
+                </div>
+              }
+
+              <div class="mt-4 flex flex-wrap items-center justify-between gap-3">
+                @if (formatarSalario(vaga); as salario) {
+                  <span class="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-300">
+                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+                      <rect x="2.5" y="6" width="19" height="12" rx="2" />
+                      <circle cx="12" cy="12" r="2.5" />
+                      <path d="M6 9v.01M18 15v.01" stroke-linecap="round" />
+                    </svg>
+                    {{ salario }}
+                  </span>
+                } @else {
+                  <span></span>
+                }
+
+                <a
+                  [routerLink]="['/vaga', vaga.id]"
+                  class="rounded-lg border border-white/12 bg-ink-800/60 px-4 py-2 text-xs font-semibold text-slate-200 transition hover:border-brand-400/40 hover:bg-ink-700/70 hover:text-brand-200"
+                >
+                  Ver Detalhes
+                </a>
+              </div>
+            </li>
+          }
+        </ul>
+      }
+    </section>
+
+    <!-- ============ ATIVIDADE RECENTE ============ -->
+    <aside class="rounded-2xl border border-white/10 bg-ink-900/60 p-5">
+      <h2 class="text-sm font-semibold text-white">Atividade recente</h2>
+
+      @if (candidaturas().length === 0) {
+        <p class="mt-3 text-xs text-slate-500">Suas candidaturas e novidades vão aparecer aqui.</p>
+      } @else {
+        <ul class="mt-3 flex flex-col gap-3">
+          @for (candidatura of candidaturas(); track candidatura.idVaga) {
+            <li class="flex items-start gap-2.5">
+              <span class="mt-1.5 size-1.5 shrink-0 rounded-full" [class]="corStatusCandidatura(candidatura.status)"></span>
+              <div class="min-w-0">
+                <p class="text-sm text-slate-200">
+                  Candidatura enviada — <span class="font-medium text-white">{{ candidatura.titulo }}</span>
+                </p>
+                <p class="mt-0.5 text-xs text-slate-500">
+                  {{ formatarTempoRelativo(candidatura.dataCandidatura) }} · {{ formatarStatusCandidatura(candidatura.status) }}
+                </p>
+              </div>
+            </li>
+          }
+        </ul>
+      }
+    </aside>
+  </div>
 </div>

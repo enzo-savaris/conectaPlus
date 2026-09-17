@@ -29,8 +29,14 @@ export const routes: Routes = [
       import('./features/auth/register-choice/register-choice').then((m) => m.RegisterChoice)
   },
 
-  // Fora do Shell de propósito: quem cadastra uma empresa ainda não tem
-  // sessão, então não faz sentido mostrar a sidebar nessas telas.
+  // Fora do Shell de propósito: quem se cadastra ainda não tem sessão, então
+  // não faz sentido mostrar a sidebar nessas telas.
+  {
+    path: 'candidato/cadastro',
+    title: 'Cadastro de Candidato | Conecta+',
+    loadComponent: () =>
+      import('./features/candidato/register/candidato-register').then((m) => m.CandidatoRegister)
+  },
   {
     path: 'empresa/cadastro',
     title: 'Cadastro de Empresa | Conecta+',
@@ -51,11 +57,6 @@ export const routes: Routes = [
     path: '',
     loadComponent: () => import('./layout/shell/shell').then((m) => m.Shell),
     children: [
-      {
-        path: 'teste',
-        title: 'Testes | Conecta+',
-        loadComponent: () => import('./features/home/home').then((m) => m.Home)
-      },
       {
         path: 'cursos',
         title: 'Cursos | Conecta+',
@@ -117,6 +118,14 @@ export const routes: Routes = [
         data: { ambiente: 'empresa' },
         canActivate: [ambienteGuard('empresa')],
         loadComponent: () => import('./features/candidatos/candidatos').then((m) => m.Candidatos)
+      },
+      {
+        path: 'empresa/candidatos/:id',
+        title: 'Detalhes do Candidato | Conecta+',
+        data: { ambiente: 'empresa' },
+        canActivate: [ambienteGuard('empresa')],
+        loadComponent: () =>
+          import('./features/company/candidato-detalhes/candidato-detalhes').then((m) => m.CandidatoDetalhes)
       },
       {
         path: 'empresa/vagas/nova',

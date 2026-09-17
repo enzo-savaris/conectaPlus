@@ -18,7 +18,6 @@ export class RegisterChoice {
   private readonly roteador = inject(Router);
 
   protected readonly ambiente = signal<Ambiente | null>(null);
-  protected readonly avisoPcd = signal(false);
   protected readonly erroFormulario = signal<string | null>(null);
 
   protected readonly formulario = new FormGroup({
@@ -30,7 +29,6 @@ export class RegisterChoice {
 
   protected escolherAmbiente(ambiente: Ambiente): void {
     this.ambiente.set(ambiente);
-    this.avisoPcd.set(false);
     this.erroFormulario.set(null);
   }
 
@@ -50,7 +48,6 @@ export class RegisterChoice {
 
   protected aoContinuar(): void {
     this.erroFormulario.set(null);
-    this.avisoPcd.set(false);
 
     const ambiente = this.ambiente();
     if (ambiente === null) {
@@ -64,12 +61,13 @@ export class RegisterChoice {
       return;
     }
 
+    const documento = this.formulario.controls.documento.value;
+
     if (ambiente === 'usuario') {
-      this.avisoPcd.set(true);
+      this.roteador.navigate(['/candidato/cadastro'], { queryParams: { cpf: documento } });
       return;
     }
 
-    const documento = this.formulario.controls.documento.value;
     this.roteador.navigate(['/empresa/cadastro'], { queryParams: { cnpj: documento } });
   }
 }

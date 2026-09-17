@@ -56,6 +56,39 @@ export function cnpjValido(valor: string): boolean {
   return digitoVerificador(12) === Number(cnpj[12]) && digitoVerificador(13) === Number(cnpj[13]);
 }
 
+/**
+ * Confere os dígitos verificadores do CPF pelo algoritmo padrão da Receita
+ * Federal. Usado no cadastro do candidato PCD, que se identifica por CPF
+ * (assim como a empresa se identifica por CNPJ).
+ */
+export function cpfValido(valor: string): boolean {
+  if (valor.length !== 11) {
+    return false;
+  }
+
+  // Sequências repetidas passam na conta, mas não existem na prática.
+  if (/^(\d)\1{10}$/.test(valor)) {
+    return false;
+  }
+
+  const digitoVerificador = (base: string): number => {
+    let peso = base.length + 1;
+    let soma = 0;
+
+    for (const caractere of base) {
+      soma += Number(caractere) * peso--;
+    }
+
+    const resto = soma % 11;
+    return resto < 2 ? 0 : 11 - resto;
+  };
+
+  return (
+    digitoVerificador(valor.slice(0, 9)) === Number(valor[9]) &&
+    digitoVerificador(valor.slice(0, 10)) === Number(valor[10])
+  );
+}
+
 export function emailValido(valor: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(valor);
 }

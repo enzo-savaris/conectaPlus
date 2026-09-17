@@ -4,7 +4,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import multer from 'multer';
 
-import { PASTA_UPLOADS_CURSOS } from './config/upload.ts';
+import { PASTA_UPLOADS_AVATARES_PCD, PASTA_UPLOADS_CURRICULOS_PCD, PASTA_UPLOADS_CURSOS } from './config/upload.ts';
 import { testarConexao } from './config/dataBase.ts';
 import rotasAuth from './routes/auth.routes.ts';
 import rotasCidade from './routes/cidade.routes.ts';
@@ -34,6 +34,12 @@ app.use('/vagas', rotasVaga);
 
 // Vídeos de curso enviados pela empresa (POST/PUT /cursos com arquivo anexado).
 app.use('/uploads/cursos', express.static(PASTA_UPLOADS_CURSOS));
+
+// Fotos de perfil enviadas no cadastro do candidato PCD.
+app.use('/uploads/avatares', express.static(PASTA_UPLOADS_AVATARES_PCD));
+
+// Currículos em PDF enviados pelo candidato PCD no perfil.
+app.use('/uploads/curriculos', express.static(PASTA_UPLOADS_CURRICULOS_PCD));
 
 // Qualquer caminho que não bata com as rotas acima.
 app.use((requisicao: Request, resposta: Response) => {

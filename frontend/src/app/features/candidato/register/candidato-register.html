@@ -1,0 +1,355 @@
+<main class="relative min-h-dvh bg-ink-950 px-4 py-8 sm:px-6 sm:py-12">
+  <!-- Brilho decorativo de fundo -->
+  <div aria-hidden="true" class="pointer-events-none absolute inset-0 overflow-hidden">
+    <div
+      class="absolute -top-40 left-1/2 h-80 w-80 -translate-x-1/2 rounded-full bg-brand-500/15 blur-3xl"
+    ></div>
+  </div>
+
+  <section
+    class="relative mx-auto w-full max-w-lg rounded-3xl border border-white/10 bg-ink-900/80 p-6 shadow-2xl shadow-black/40 backdrop-blur-sm sm:p-8"
+    aria-labelledby="candidato-register-title"
+  >
+    @if (erroFormulario()) {
+      <p
+        class="mb-6 rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200"
+        role="alert"
+      >
+        {{ erroFormulario() }}
+      </p>
+    }
+
+    @if (etapa() === 1) {
+      <!-- ============ ETAPA 1: CRIAR CONTA ============ -->
+      <header>
+        <h1 id="candidato-register-title" class="text-2xl font-bold text-white sm:text-3xl">Criar conta</h1>
+        <p class="mt-1.5 text-sm text-slate-400">Vamos começar com os seus dados básicos.</p>
+      </header>
+
+      <form class="mt-6 flex flex-col gap-4" (ngSubmit)="aoAvancar()" [formGroup]="formularioConta" novalidate>
+        <!-- Avatar -->
+        <div class="flex flex-col items-center gap-2 self-center">
+          <label
+            for="avatar"
+            class="group relative flex size-20 cursor-pointer items-center justify-center overflow-hidden rounded-full border-2 border-dashed border-white/20 bg-ink-800/60 transition hover:border-brand-400/50"
+          >
+            @if (avatarPreviewUrl(); as url) {
+              <img [src]="url" alt="Pré-visualização da foto de perfil" class="size-full object-cover" />
+            } @else {
+              <svg class="size-8 text-slate-500 transition group-hover:text-brand-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                <circle cx="12" cy="8" r="3.2" />
+                <path d="M5 20c0-3.3 3.1-6 7-6s7 2.7 7 6" stroke-linecap="round" />
+              </svg>
+            }
+            <input id="avatar" type="file" accept="image/*" (change)="selecionarAvatar($event)" class="sr-only" />
+          </label>
+          <p class="text-xs text-slate-500">Foto do perfil (opcional) · JPG ou PNG até 5MB</p>
+        </div>
+
+        <!-- Nome completo -->
+        <div>
+          <label for="nome" class="field-label">Nome completo</label>
+          <div class="relative mt-1.5">
+            <span class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-500" aria-hidden="true">
+              <svg class="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6">
+                <circle cx="12" cy="8" r="3.2" />
+                <path d="M5 20c0-3.3 3.1-6 7-6s7 2.7 7 6" stroke-linecap="round" />
+              </svg>
+            </span>
+            <input
+              id="nome"
+              type="text"
+              formControlName="nome"
+              autocomplete="name"
+              placeholder="Nome completo"
+              class="field-input pl-10"
+              [attr.aria-invalid]="temErroConta('nome')"
+            />
+          </div>
+          @if (temErroConta('nome')) {
+            <p class="field-error" role="alert">Informe seu nome completo (ao menos 3 caracteres).</p>
+          }
+        </div>
+
+        <!-- E-mail -->
+        <div>
+          <label for="email" class="field-label">E-mail</label>
+          <div class="relative mt-1.5">
+            <span class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-500" aria-hidden="true">
+              <svg class="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6">
+                <rect x="3" y="5" width="18" height="14" rx="2" />
+                <path d="m4 6.5 8 6 8-6" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+            </span>
+            <input
+              id="email"
+              type="email"
+              formControlName="email"
+              autocomplete="email"
+              placeholder="seuemail@exemplo.com"
+              class="field-input pl-10"
+              [attr.aria-invalid]="temErroConta('email')"
+            />
+          </div>
+          @if (temErroConta('email')) {
+            <p class="field-error" role="alert">Informe um e-mail válido.</p>
+          }
+        </div>
+
+        <!-- Telefone -->
+        <div>
+          <label for="telefone" class="field-label">Telefone</label>
+          <div class="relative mt-1.5">
+            <span class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-500" aria-hidden="true">
+              <svg class="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6">
+                <path d="M5 4.5h3l1.5 4-2 1.5a11 11 0 0 0 5 5l1.5-2 4 1.5v3a1.5 1.5 0 0 1-1.6 1.5A15.5 15.5 0 0 1 3.5 6.1 1.5 1.5 0 0 1 5 4.5Z" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+            </span>
+            <input
+              id="telefone"
+              type="tel"
+              formControlName="telefone"
+              (input)="aplicarMascara('telefone', $event)"
+              autocomplete="tel"
+              inputmode="tel"
+              placeholder="(00) 00000-0000"
+              class="field-input pl-10"
+              [attr.aria-invalid]="temErroConta('telefone')"
+            />
+          </div>
+          @if (temErroConta('telefone')) {
+            <p class="field-error" role="alert">Informe um telefone válido com DDD.</p>
+          }
+        </div>
+
+        <!-- CPF -->
+        <div>
+          <label for="cpf" class="field-label">CPF</label>
+          <div class="relative mt-1.5">
+            <span class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-500" aria-hidden="true">
+              <svg class="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6">
+                <rect x="3" y="4" width="18" height="16" rx="2.5" />
+                <circle cx="9" cy="10.5" r="2" />
+                <path d="M6 16.5c.6-1.5 1.7-2.3 3-2.3s2.4.8 3 2.3M14.5 9h4M14.5 12.5h4" stroke-linecap="round" />
+              </svg>
+            </span>
+            <input
+              id="cpf"
+              type="text"
+              formControlName="cpf"
+              (input)="aplicarMascara('cpf', $event)"
+              autocomplete="off"
+              inputmode="numeric"
+              placeholder="000.000.000-00"
+              class="field-input pl-10"
+              [attr.aria-invalid]="temErroConta('cpf')"
+            />
+          </div>
+          @if (temErroConta('cpf')) {
+            <p class="field-error" role="alert">Informe um CPF válido.</p>
+          }
+        </div>
+
+        <!-- Senha -->
+        <div>
+          <label for="senha" class="field-label">Senha</label>
+          <div class="relative mt-1.5">
+            <span class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-500" aria-hidden="true">
+              <svg class="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6">
+                <rect x="4.5" y="10" width="15" height="10" rx="2" />
+                <path d="M8 10V7a4 4 0 0 1 8 0v3" stroke-linecap="round" />
+              </svg>
+            </span>
+            <input
+              id="senha"
+              [type]="senhaVisivel() ? 'text' : 'password'"
+              formControlName="senha"
+              autocomplete="new-password"
+              placeholder="Mínimo de 8 caracteres"
+              class="field-input pr-11 pl-10"
+              [attr.aria-invalid]="temErroConta('senha')"
+            />
+            <button
+              type="button"
+              (click)="alternarVisibilidadeSenha()"
+              class="absolute inset-y-0 right-0 flex items-center rounded-lg px-3 text-slate-400 transition hover:text-brand-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-400"
+              [attr.aria-label]="senhaVisivel() ? 'Ocultar senha' : 'Mostrar senha'"
+            >
+              <svg class="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+                <path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z" />
+                <circle cx="12" cy="12" r="3" />
+                @if (!senhaVisivel()) {
+                  <path d="m4 20 16-16" stroke-linecap="round" />
+                }
+              </svg>
+            </button>
+          </div>
+          @if (temErroConta('senha')) {
+            <p class="field-error" role="alert">A senha deve ter ao menos 8 caracteres.</p>
+          }
+        </div>
+
+        <!-- Termos -->
+        <div>
+          <label class="flex items-start gap-2.5 text-sm text-slate-300">
+            <input
+              type="checkbox"
+              formControlName="aceitaTermos"
+              class="mt-0.5 size-4 shrink-0 rounded border-white/20 bg-ink-800 text-brand-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-400"
+            />
+            <span>Aceito os Termos de Uso e a Política de Privacidade.</span>
+          </label>
+          @if (temErroConta('aceitaTermos')) {
+            <p class="field-error" role="alert">Você precisa aceitar os termos para continuar.</p>
+          }
+        </div>
+
+        <button
+          type="submit"
+          class="mt-2 inline-flex items-center justify-center gap-2 self-end rounded-full bg-gradient-to-r from-brand-300 to-brand-600 px-6 py-2.5 text-sm font-semibold text-ink-950 shadow-lg shadow-brand-500/20 transition hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-300"
+        >
+          Avançar
+          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="M5 12h14M13 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </button>
+      </form>
+
+      <p class="mt-6 text-center text-sm text-slate-400">
+        Já tem conta?
+        <a
+          routerLink="/login"
+          class="rounded font-medium text-brand-300 underline-offset-4 transition hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-400"
+        >
+          Entrar
+        </a>
+      </p>
+    } @else {
+      <!-- ============ ETAPA 2: CONTE SOBRE VOCÊ ============ -->
+      <header>
+        <h1 id="candidato-register-title" class="text-2xl font-bold text-white sm:text-3xl">Conte sobre você</h1>
+        <p class="mt-1.5 text-sm text-slate-400">Personalizamos vagas e recursos de acessibilidade.</p>
+      </header>
+
+      <div class="mt-6 flex flex-col gap-6">
+        <!-- Tipo de deficiência -->
+        <div>
+          <span class="text-xs font-semibold tracking-widest text-slate-400 uppercase">Tipo de deficiência</span>
+          <div class="mt-2 flex flex-wrap gap-2">
+            @for (tipo of tiposDeficiencia; track tipo.valor) {
+              <button
+                type="button"
+                (click)="selecionarTipoDeficiencia(tipo.valor)"
+                [attr.aria-pressed]="tipoDeficienciaSelecionado() === tipo.valor"
+                class="rounded-full border px-4 py-1.5 text-sm font-medium transition hover:border-white/25"
+                [class.border-brand-400]="tipoDeficienciaSelecionado() === tipo.valor"
+                [class.bg-brand-400/15]="tipoDeficienciaSelecionado() === tipo.valor"
+                [class.text-brand-200]="tipoDeficienciaSelecionado() === tipo.valor"
+                [class.border-white/12]="tipoDeficienciaSelecionado() !== tipo.valor"
+                [class.text-slate-300]="tipoDeficienciaSelecionado() !== tipo.valor"
+              >
+                {{ tipo.rotulo }}
+              </button>
+            }
+          </div>
+        </div>
+
+        <!-- Recursos de acessibilidade -->
+        <div>
+          <span class="text-xs font-semibold tracking-widest text-slate-400 uppercase">
+            Recursos que você usa no dia a dia
+          </span>
+          <div class="mt-2 flex flex-wrap gap-2">
+            @for (recurso of recursosDisponiveis; track recurso) {
+              <button
+                type="button"
+                (click)="alternarRecurso(recurso)"
+                [attr.aria-pressed]="recursoSelecionado(recurso)"
+                class="rounded-full border px-4 py-1.5 text-sm font-medium transition hover:border-white/25"
+                [class.border-brand-400]="recursoSelecionado(recurso)"
+                [class.bg-brand-400/15]="recursoSelecionado(recurso)"
+                [class.text-brand-200]="recursoSelecionado(recurso)"
+                [class.border-white/12]="!recursoSelecionado(recurso)"
+                [class.text-slate-300]="!recursoSelecionado(recurso)"
+              >
+                {{ recurso }}
+              </button>
+            }
+          </div>
+        </div>
+
+        <!-- Áreas de interesse -->
+        <div>
+          <label for="interesse" class="field-label">Áreas de interesse</label>
+          <div class="relative mt-1.5">
+            <span class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-500" aria-hidden="true">
+              <svg class="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6">
+                <rect x="3.5" y="6" width="17" height="12" rx="1.5" />
+                <path d="M8 10v4M12 10v4M16 10v4" stroke-linecap="round" />
+              </svg>
+            </span>
+            <input
+              id="interesse"
+              #interesseInput
+              type="text"
+              placeholder="Ex.: Tecnologia e Design"
+              (keydown.enter)="$event.preventDefault(); adicionarInteresse(interesseInput)"
+              class="field-input pl-10"
+            />
+          </div>
+          <button
+            type="button"
+            (click)="adicionarInteresse(interesseInput)"
+            class="mt-1.5 text-xs font-medium text-brand-300 transition hover:text-brand-200"
+          >
+            + adicione mais áreas de interesse
+          </button>
+
+          @if (interesses().length > 0) {
+            <ul class="mt-3 flex flex-wrap gap-2">
+              @for (item of interesses(); track $index) {
+                <li
+                  class="inline-flex items-center gap-1.5 rounded-full border border-white/12 bg-ink-800/60 py-1 pr-2 pl-3 text-xs font-medium text-slate-200"
+                >
+                  {{ item }}
+                  <button
+                    type="button"
+                    (click)="removerInteresse($index)"
+                    class="rounded-full p-0.5 text-slate-500 transition hover:text-rose-300"
+                    [attr.aria-label]="'Remover ' + item"
+                  >
+                    <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                      <path d="m6 6 12 12M18 6 6 18" stroke-linecap="round" />
+                    </svg>
+                  </button>
+                </li>
+              }
+            </ul>
+          }
+        </div>
+      </div>
+
+      <div class="mt-8 flex items-center justify-between gap-3">
+        <button
+          type="button"
+          (click)="aoVoltar()"
+          aria-label="Voltar"
+          class="inline-flex size-10 items-center justify-center rounded-full border border-white/12 bg-ink-800/60 text-slate-300 transition hover:border-white/25 hover:bg-ink-700/70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-400"
+        >
+          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="M15 19l-7-7 7-7" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </button>
+
+        <button
+          type="button"
+          (click)="aoFinalizar()"
+          [disabled]="enviando()"
+          class="rounded-full bg-gradient-to-r from-brand-300 to-brand-600 px-6 py-2.5 text-sm font-semibold text-ink-950 shadow-lg shadow-brand-500/20 transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-300"
+        >
+          {{ enviando() ? 'Enviando…' : 'Finalizar Cadastro' }}
+        </button>
+      </div>
+    }
+  </section>
+</main>
