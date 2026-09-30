@@ -1,14 +1,29 @@
-<main class="flex min-h-dvh bg-ink-950">
-  <app-brand-panel />
+<main class="relative min-h-dvh overflow-hidden bg-ink-950">
+  <!-- Landing pública real ao fundo, só como cenário: desfocada, sem interação e fora da leitura de tela. -->
+  <div class="pointer-events-none absolute inset-0 scale-105 overflow-hidden blur-md" aria-hidden="true" inert>
+    <app-landing />
+  </div>
+  <div class="absolute inset-0 bg-ink-950/75" aria-hidden="true"></div>
 
   <!-- Painel de login -->
-  <section class="relative flex flex-1 items-center justify-center bg-ink-900/30 px-4 py-8 sm:px-6 sm:py-12">
+  <section class="relative z-10 flex min-h-dvh items-center justify-center px-4 py-8 sm:px-6 sm:py-12">
     <div
-      class="relative w-full max-w-md rounded-3xl border border-brand-400/25 bg-ink-900/80 p-6 shadow-2xl shadow-black/40 backdrop-blur-sm sm:p-10"
+      class="relative w-full max-w-md rounded-3xl border border-brand-400/25 bg-ink-900/90 p-6 shadow-2xl shadow-black/50 backdrop-blur-sm sm:p-10"
       aria-labelledby="login-title"
     >
+      <!-- Voltar para a página anterior (a landing, que está desfocada ao fundo) -->
+      <a
+        routerLink="/"
+        class="absolute top-4 left-4 inline-flex size-9 items-center justify-center rounded-full border border-white/15 bg-ink-800/60 text-slate-300 transition hover:border-white/30 hover:bg-ink-700/70 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-400 sm:top-6 sm:left-6"
+        aria-label="Voltar para a página inicial"
+      >
+        <svg class="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <path d="M15 19l-7-7 7-7" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+      </a>
+
       <!-- Cabeçalho -->
-      <header>
+      <header class="mt-8 text-center">
         <h1 id="login-title" class="text-2xl font-bold text-white sm:text-3xl">Bem-vindo(a) de volta</h1>
         <p class="mt-1.5 text-sm text-slate-400">Entre para continuar sua jornada inclusiva</p>
       </header>
