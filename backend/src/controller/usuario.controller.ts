@@ -1,5 +1,6 @@
 import type { Request, Response } from 'express';
 import * as usuarioService from '../services/usuario.service.ts';
+import { PASTA_UPLOADS_AVATARES_PCD, PASTA_UPLOADS_CURRICULOS_PCD } from '../config/upload.ts';
 import { ErroApp, erroDeValidacao } from '../utils/erro-app.ts';
 import { validarId } from '../utils/validacao.ts';
 import { validarCandidato, validarPerfilCandidato } from '../utils/validacao-candidato.ts';
@@ -52,6 +53,9 @@ export const cadastrarUsuario = async (requisicao: Request, resposta: Response):
 
     resposta.status(201).json(usuario);
   } catch (erro) {
+    // Se a validação falhou depois que o multer já salvou a foto no disco,
+    // o arquivo ficaria órfão (sem nenhum candidato apontando pra ele).
+    await usuarioService.removerArquivo(PASTA_UPLOADS_AVATARES_PCD, requisicao.file?.filename ?? null);
     responderErro(resposta, erro, 'Erro ao cadastrar candidato');
   }
 };
@@ -82,26 +86,33 @@ export const obterUsuario = async (requisicao: Request, resposta: Response): Pro
 
 /** PUT /usuarios/:id — atualiza o perfil do candidato (dados básicos, currículo, foto). */
 export const atualizarUsuario = async (requisicao: Request, resposta: Response): Promise<void> => {
+  const arquivos = requisicao.files as Record<string, Express.Multer.File[]> | undefined;
+  const novoAvatar = arquivos?.['avatar']?.[0]?.filename ?? null;
+  const novoCurriculoPdf = arquivos?.['curriculoPdf']?.[0]?.filename ?? null;
+
   try {
     const idPcd = validarId(requisicao.params['id']);
     const corpo = requisicao.body as Record<string, unknown>;
-    const dados = validarPerfilCandidato({
-      ...corpo,
-      recursos: corpo['recursos'] !== undefined ? listaDoCorpo(corpo['recursos']) : undefined,
-      interesses: corpo['interesses'] !== undefined ? listaDoCorpo(corpo['interesses']) : undefined,
-      habilidades: corpo['habilidades'] !== undefined ? listaDoCorpo(corpo['habilidades']) : undefined,
-      experiencias: corpo['experiencias'] !== undefined ? listaDoCorpo(corpo['experiencias']) : undefined,
-      formacoes: corpo['formacoes'] !== undefined ? listaDoCorpo(corpo['formacoes']) : undefined
-    });
-
-    const arquivos = requisicao.files as Record<string, Express.Multer.File[]> | undefined;
-    const novoAvatar = arquivos?.['avatar']?.[0]?.filename ?? null;
-    const novoCurriculoPdf = arquivos?.['curriculoPdf']?.[0]?.filename ?? null;
+    const dados = validarPerfilCandidato(
+      {
+        ...corpo,
+        recursos: corpo['recursos'] !== undefined ? listaDoCorpo(corpo['recursos']) : undefined,
+        interesses: corpo['interesses'] !== undefined ? listaDoCorpo(corpo['interesses']) : undefined,
+        habilidades: corpo['habilidades'] !== undefined ? listaDoCorpo(corpo['habilidades']) : undefined,
+        experiencias: corpo['experiencias'] !== undefined ? listaDoCorpo(corpo['experiencias']) : undefined,
+        formacoes: corpo['formacoes'] !== undefined ? listaDoCorpo(corpo['formacoes']) : undefined
+      },
+      Boolean(novoAvatar || novoCurriculoPdf)
+    );
 
     const usuario = await usuarioService.atualizar(idPcd, dados, novoAvatar, novoCurriculoPdf);
 
     resposta.json(usuario);
   } catch (erro) {
+    // Mesma lógica do cadastro: sem isso, um PUT que falhou na validação
+    // deixaria a foto/currículo já salvos pelo multer órfãos no disco.
+    await usuarioService.removerArquivo(PASTA_UPLOADS_AVATARES_PCD, novoAvatar);
+    await usuarioService.removerArquivo(PASTA_UPLOADS_CURRICULOS_PCD, novoCurriculoPdf);
     responderErro(resposta, erro, 'Erro ao atualizar perfil do candidato');
   }
 };

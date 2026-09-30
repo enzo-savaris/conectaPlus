@@ -81,7 +81,14 @@ export async function cadastrar(
 
   const [resultado] = await pool.execute<ResultSetHeader>(
     `INSERT INTO TBLCDSCURSO0
-      (IDEMPRESA, TITULO, DESCRICAO, CARGAHORARIA, PRECO, TIPOCONTEUDO, LINKCURSO, ARQUIVOCURSO)
+      (IDEMPRESA, 
+       TITULO, 
+       DESCRICAO, 
+       CARGAHORARIA, 
+       PRECO, 
+       TIPOCONTEUDO, 
+       LINKCURSO, 
+       ARQUIVOCURSO)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       idEmpresa,
@@ -147,8 +154,13 @@ export async function atualizar(
 
   await pool.execute(
     `UPDATE TBLCDSCURSO0 SET
-      TITULO = ?, DESCRICAO = ?, CARGAHORARIA = ?, PRECO = ?,
-      TIPOCONTEUDO = ?, LINKCURSO = ?, ARQUIVOCURSO = ?
+      TITULO       = ?, 
+      DESCRICAO    = ?,
+      CARGAHORARIA = ?, 
+      PRECO        = ?,
+      TIPOCONTEUDO = ?, 
+      LINKCURSO    = ?, 
+      ARQUIVOCURSO = ?
      WHERE IDCURSO = ?`,
     [
       dados.titulo,

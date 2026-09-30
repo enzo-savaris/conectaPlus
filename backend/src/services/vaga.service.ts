@@ -326,12 +326,11 @@ export async function listarCandidaturas(
   return linhas;
 }
 
-/**
- * Candidata o PCD à vaga. Só aceita vagas ATIVA (não dá pra se candidatar a
- * uma vaga encerrada ou inativa) e bloqueia uma segunda candidatura à mesma
- * vaga — a unicidade também é garantida no banco (UQ_CANDIDATURA), mas o
- * check aqui devolve uma mensagem amigável em vez do erro cru do MySQL.
- */
+//  * Candidata o PCD à vaga. Só aceita vagas ATIVA (não dá pra se candidatar a
+//  * uma vaga encerrada ou inativa) e bloqueia uma segunda candidatura à mesma
+//  * vaga — a unicidade também é garantida no banco (UQ_CANDIDATURA), mas o
+//  * check aqui devolve uma mensagem amigável em vez do erro cru do MySQL.
+ 
 export async function candidatar(idVaga: number, idPcd: number): Promise<RowDataPacket> {
   const vaga = await buscarPorId(idVaga);
 
@@ -361,11 +360,11 @@ export async function candidatar(idVaga: number, idPcd: number): Promise<RowData
   return linhas[0]!;
 }
 
-/**
- * Remove a vaga, só se ela pertencer à empresa informada. Lança 404 tanto se
- * o id não existir quanto se a vaga for de outra empresa — não dá pra saber
- * qual dos dois casos é, pra não revelar dados de vagas de outra empresa.
- */
+//
+//* Remove a vaga, só se ela pertencer à empresa informada. Lança 404 tanto se
+//* o id não existir quanto se a vaga for de outra empresa — não dá pra saber
+//* qual dos dois casos é, pra não revelar dados de vagas de outra empresa.
+//
 export async function remover(id: number, idEmpresa: number): Promise<void> {
   await garantirEmpresaAtiva(idEmpresa);
 

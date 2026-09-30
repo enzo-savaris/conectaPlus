@@ -115,7 +115,7 @@ export async function confirmarRelacionamento(idPcd: number, idEmpresa: number):
 }
 
 /** Remove o arquivo do disco quando uma operação falha depois que ele já foi salvo. */
-async function removerArquivo(pasta: string, nomeArquivo: string | null): Promise<void> {
+export async function removerArquivo(pasta: string, nomeArquivo: string | null): Promise<void> {
   if (!nomeArquivo) {
     return;
   }

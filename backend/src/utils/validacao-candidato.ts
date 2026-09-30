@@ -203,9 +203,11 @@ function listaDeFormacoes(valor: unknown): FormacaoCandidato[] {
 /**
  * Valida os campos do perfil presentes no corpo da requisição. Lança ErroApp
  * (422) se algum deles estiver inválido; campos ausentes são simplesmente
- * ignorados (o PUT é parcial).
+ * ignorados (o PUT é parcial). `temArquivo` indica que uma nova foto e/ou
+ * currículo em PDF vieram na requisição — nesse caso, mesmo sem nenhum campo
+ * de texto, a atualização é válida (o arquivo já é o que está sendo alterado).
  */
-export function validarPerfilCandidato(corpo: unknown): DadosPerfilCandidato {
+export function validarPerfilCandidato(corpo: unknown, temArquivo = false): DadosPerfilCandidato {
   if (typeof corpo !== 'object' || corpo === null) {
     throw erroDeValidacao({ corpo: 'Envie os dados do perfil.' });
   }
@@ -320,7 +322,7 @@ export function validarPerfilCandidato(corpo: unknown): DadosPerfilCandidato {
     throw erroDeValidacao(erros);
   }
 
-  if (Object.keys(dados).length === 0) {
+  if (Object.keys(dados).length === 0 && !temArquivo) {
     throw erroDeValidacao({ corpo: 'Envie ao menos um campo para atualizar.' });
   }
 

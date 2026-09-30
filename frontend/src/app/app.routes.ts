@@ -67,6 +67,7 @@ export const routes: Routes = [
       {
         path: 'perfil',
         title: 'Perfil | Conecta+',
+        canActivate: [ambienteGuard('usuario')],
         loadComponent: () => import('./features/perfil/perfil').then((m) => m.Perfil)
       },
       {
