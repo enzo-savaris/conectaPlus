@@ -5,6 +5,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { Subject, debounceTime, of, switchMap } from 'rxjs';
 import { CidadeService } from '../../../shared/services/cidade.service';
 import { EmpresaService } from '../../../shared/services/empresa.service';
+import { ToastService } from '../../../shared/services/toast.service';
 import { Cidade } from '../../../shared/types/cidade';
 import { formatarCep, formatarCnpj, formatarTelefone } from '../../../shared/utils/masks';
 import {
@@ -25,6 +26,7 @@ export class CompanyRegister {
   private readonly roteador = inject(Router);
   private readonly rota = inject(ActivatedRoute);
   private readonly empresaService = inject(EmpresaService);
+  private readonly toastService = inject(ToastService);
   private readonly cidadeService = inject(CidadeService);
 
   protected readonly estados = [
@@ -210,6 +212,7 @@ export class CompanyRegister {
       .subscribe({
         next: () => {
           this.enviando.set(false);
+          this.toastService.sucesso('Cadastro enviado com sucesso! Aguarde a confirmação.');
           this.roteador.navigate(['/empresa/aguardando-confirmacao']);
         },
         error: (erro: HttpErrorResponse) => {

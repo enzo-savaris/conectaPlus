@@ -9,9 +9,11 @@ import {
 
 const rotasCurso = Router();
 
-rotasCurso.post('/', uploadVideoCurso.single('arquivo'), cadastrarCurso);
+// .any() em vez de .single(): cada capítulo ARQUIVO manda seu próprio vídeo,
+// num campo nomeado "modulo_<i>_capitulo_<j>" — a quantidade é dinâmica.
+rotasCurso.post('/', uploadVideoCurso.any(), cadastrarCurso);
 rotasCurso.get('/', listarCursos);
 rotasCurso.get('/:id', obterCurso);
-rotasCurso.put('/:id', uploadVideoCurso.single('arquivo'), atualizarCurso);
+rotasCurso.put('/:id', uploadVideoCurso.any(), atualizarCurso);
 
 export default rotasCurso;

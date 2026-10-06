@@ -13,6 +13,7 @@ import { Subject, debounceTime, of, switchMap } from 'rxjs';
 import { AuthService } from '../../../shared/services/auth.service';
 import { CidadeService } from '../../../shared/services/cidade.service';
 import { CursoService } from '../../../shared/services/curso.service';
+import { ToastService } from '../../../shared/services/toast.service';
 import { VagaService } from '../../../shared/services/vaga.service';
 import { Cidade } from '../../../shared/types/cidade';
 import { Curso } from '../../../shared/types/curso';
@@ -44,6 +45,7 @@ export class VagaRegister {
   private readonly cursoService = inject(CursoService);
   private readonly cidadeService = inject(CidadeService);
   private readonly authService = inject(AuthService);
+  private readonly toastService = inject(ToastService);
 
   /** Presente só na rota de edição (`empresa/vagas/:id/editar`). */
   protected readonly idVagaEditando = signal<number | null>(null);
@@ -305,6 +307,9 @@ export class VagaRegister {
     operacao.subscribe({
       next: () => {
         this.enviando.set(false);
+        if (idEditando === null) {
+          this.toastService.sucesso('Vaga cadastrada com sucesso!');
+        }
         this.roteador.navigate(['/vagas']);
       },
       error: () => {

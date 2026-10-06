@@ -10,14 +10,31 @@ const TIPOS_CONTEUDO = ['LINK', 'ARQUIVO'] as const;
 
 export type TipoConteudoCurso = (typeof TIPOS_CONTEUDO)[number];
 
-/** Curso já validado e pronto para gravar na TBLCDSCURSO0 (menos o arquivo, tratado à parte pelo multer). */
+/**
+ * Um capítulo (aula) já validado. `arquivoNovo` vem do multer (campo
+ * `capitulo_<indiceModulo>_<indiceCapitulo>`, casado pelo controller);
+ * `arquivoAtual` é o nome do arquivo já cadastrado, reenviado pela tela de
+ * edição quando o capítulo mantém o vídeo que já tinha.
+ */
+export interface DadosCapitulo {
+  titulo: string;
+  tipoConteudo: TipoConteudoCurso;
+  linkCapitulo: string | null;
+  arquivoAtual: string | null;
+}
+
+export interface DadosModulo {
+  titulo: string;
+  capitulos: DadosCapitulo[];
+}
+
+/** Curso já validado e pronto para gravar (módulos e capítulos inclusos). */
 export interface DadosCurso {
   titulo: string;
   descricao: string | null;
   cargaHoraria: number | null;
   preco: number | null;
-  tipoConteudo: TipoConteudoCurso;
-  linkCurso: string | null;
+  modulos: DadosModulo[];
 }
 
 const REGEX_URL = /^https?:\/\/.+/i;
@@ -65,13 +82,67 @@ function validarPreco(valor: unknown, erros: Record<string, string>): number | n
   return numero;
 }
 
+function validarCapitulo(
+  entrada: unknown,
+  caminho: string,
+  erros: Record<string, string>
+): DadosCapitulo {
+  const objeto = typeof entrada === 'object' && entrada !== null ? (entrada as Record<string, unknown>) : {};
+
+  const titulo = texto(objeto['titulo']);
+  if (titulo.length < 3) {
+    erros[`${caminho}.titulo`] = 'O título da aula deve ter ao menos 3 caracteres.';
+  }
+
+  const tipoConteudo = texto(objeto['tipoConteudo']).toUpperCase();
+  if (!(TIPOS_CONTEUDO as readonly string[]).includes(tipoConteudo)) {
+    erros[`${caminho}.tipoConteudo`] = 'Selecione se a aula terá um link ou um vídeo anexado.';
+  }
+
+  let linkCapitulo: string | null = null;
+  if (tipoConteudo === 'LINK') {
+    linkCapitulo = textoOuNulo(objeto['linkCapitulo']);
+    if (linkCapitulo === null || !REGEX_URL.test(linkCapitulo)) {
+      erros[`${caminho}.linkCapitulo`] = 'Informe um link válido, começando com http:// ou https://.';
+    }
+  }
+
+  return {
+    titulo,
+    tipoConteudo: tipoConteudo as TipoConteudoCurso,
+    linkCapitulo,
+    arquivoAtual: textoOuNulo(objeto['arquivoAtual'])
+  };
+}
+
+function validarModulo(entrada: unknown, indice: number, erros: Record<string, string>): DadosModulo {
+  const objeto = typeof entrada === 'object' && entrada !== null ? (entrada as Record<string, unknown>) : {};
+  const caminhoModulo = `modulos[${indice}]`;
+
+  const titulo = texto(objeto['titulo']);
+  if (titulo.length < 3) {
+    erros[`${caminhoModulo}.titulo`] = 'O título do módulo deve ter ao menos 3 caracteres.';
+  }
+
+  const capitulosBrutos = Array.isArray(objeto['capitulos']) ? objeto['capitulos'] : [];
+  if (capitulosBrutos.length === 0) {
+    erros[`${caminhoModulo}.capitulos`] = 'Cadastre ao menos uma aula neste módulo.';
+  }
+
+  const capitulos = capitulosBrutos.map((capitulo, indiceCapitulo) =>
+    validarCapitulo(capitulo, `${caminhoModulo}.capitulos[${indiceCapitulo}]`, erros)
+  );
+
+  return { titulo, capitulos };
+}
+
 /**
  * Valida o corpo da requisição e devolve os dados prontos para o banco.
  * Lança ErroApp (422) se algum campo estiver inválido.
  *
- * Não valida a presença do arquivo quando `tipoConteudo` é ARQUIVO: no
- * cadastro isso é conferido pelo service (precisa vir um arquivo novo); na
- * edição, a ausência de um arquivo novo significa "manter o já cadastrado".
+ * `corpo.modulos` chega como string JSON (vem de um campo de formulário
+ * multipart, junto dos arquivos de vídeo) — o controller já faz o
+ * `JSON.parse` antes de chamar esta função.
  */
 export function validarCurso(corpo: unknown): DadosCurso {
   if (typeof corpo !== 'object' || corpo === null) {
@@ -92,29 +163,16 @@ export function validarCurso(corpo: unknown): DadosCurso {
   const cargaHoraria = validarInteiroPositivo(entrada['cargaHoraria'], 'cargaHoraria', erros);
   const preco = validarPreco(entrada['preco'], erros);
 
-  const tipoConteudo = texto(entrada['tipoConteudo']).toUpperCase();
-  if (!(TIPOS_CONTEUDO as readonly string[]).includes(tipoConteudo)) {
-    erros['tipoConteudo'] = 'Selecione se o curso terá um link ou um vídeo anexado.';
+  const modulosBrutos = Array.isArray(entrada['modulos']) ? entrada['modulos'] : [];
+  if (modulosBrutos.length === 0) {
+    erros['modulos'] = 'Cadastre ao menos um módulo.';
   }
 
-  let linkCurso: string | null = null;
-  if (tipoConteudo === 'LINK') {
-    linkCurso = textoOuNulo(entrada['linkCurso']);
-    if (linkCurso === null || !REGEX_URL.test(linkCurso)) {
-      erros['linkCurso'] = 'Informe um link válido, começando com http:// ou https://.';
-    }
-  }
+  const modulos = modulosBrutos.map((modulo, indice) => validarModulo(modulo, indice, erros));
 
   if (Object.keys(erros).length > 0) {
     throw erroDeValidacao(erros);
   }
 
-  return {
-    titulo,
-    descricao,
-    cargaHoraria,
-    preco,
-    tipoConteudo: tipoConteudo as TipoConteudoCurso,
-    linkCurso
-  };
+  return { titulo, descricao, cargaHoraria, preco, modulos };
 }

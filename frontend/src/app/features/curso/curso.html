@@ -79,74 +79,6 @@
           </div>
 
           <div>
-            <span class="field-label">Conteúdo do curso</span>
-
-            <div class="mt-1.5 inline-flex rounded-lg border border-white/12 bg-ink-800/60 p-1">
-              <button
-                type="button"
-                (click)="alternarTipoConteudo('LINK')"
-                [disabled]="!empresaAtiva()"
-                class="rounded-md px-4 py-1.5 text-xs font-semibold transition disabled:cursor-not-allowed disabled:pointer-events-none disabled:opacity-50 disabled:grayscale"
-                [class.bg-brand-500]="formulario.controls.tipoConteudo.value === 'LINK'"
-                [class.text-ink-950]="formulario.controls.tipoConteudo.value === 'LINK'"
-                [class.text-slate-300]="formulario.controls.tipoConteudo.value !== 'LINK'"
-              >
-                Link
-              </button>
-              <button
-                type="button"
-                (click)="alternarTipoConteudo('ARQUIVO')"
-                [disabled]="!empresaAtiva()"
-                class="rounded-md px-4 py-1.5 text-xs font-semibold transition disabled:cursor-not-allowed disabled:pointer-events-none disabled:opacity-50 disabled:grayscale"
-                [class.bg-brand-500]="formulario.controls.tipoConteudo.value === 'ARQUIVO'"
-                [class.text-ink-950]="formulario.controls.tipoConteudo.value === 'ARQUIVO'"
-                [class.text-slate-300]="formulario.controls.tipoConteudo.value !== 'ARQUIVO'"
-              >
-                Vídeo
-              </button>
-            </div>
-
-            @if (formulario.controls.tipoConteudo.value === 'LINK') {
-              <input
-                type="text"
-                formControlName="linkCurso"
-                placeholder="https://..."
-                class="field-input mt-2"
-                [attr.aria-invalid]="temErroDeLink()"
-              />
-              @if (temErroDeLink()) {
-                <p class="field-error" role="alert">
-                  Informe um link válido, começando com http:// ou https://.
-                </p>
-              }
-            } @else {
-              <input
-                type="file"
-                accept="video/*"
-                (change)="selecionarArquivo($event)"
-                [disabled]="!empresaAtiva()"
-                class="field-input mt-2 file:mr-3 file:rounded-md file:border-0 file:bg-brand-500 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-ink-950 disabled:file:opacity-50 disabled:file:grayscale"
-              />
-              @if (arquivoSelecionado(); as arquivo) {
-                <p class="mt-1.5 text-xs text-slate-400">Selecionado: {{ arquivo.name }}</p>
-              } @else if (arquivoAtualUrl(); as urlAtual) {
-                <p class="mt-1.5 text-xs text-slate-400">
-                  Vídeo atual:
-                  <a
-                    [href]="urlAtual"
-                    target="_blank"
-                    rel="noopener"
-                    class="text-brand-300 underline hover:text-brand-200"
-                  >
-                    abrir/baixar
-                  </a>
-                  — escolha outro arquivo pra substituir.
-                </p>
-              }
-            }
-          </div>
-
-          <div>
             <label for="descricao" class="field-label">Descrição</label>
             <textarea
               id="descricao"
@@ -158,16 +90,159 @@
           </div>
         </div>
 
-        <div class="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-          @if (idCursoEditando() !== null) {
+        <!-- ============ MÓDULOS E AULAS ============ -->
+        <div class="mt-6">
+          <span class="field-label">Módulos e aulas</span>
+
+          @if (carregandoEdicao()) {
+            <p class="mt-2 text-xs text-slate-400">Carregando módulos…</p>
+          } @else {
+            <div class="mt-2 flex flex-col gap-4">
+              @for (modulo of modulos(); track $index; let indiceModulo = $index) {
+                <div class="rounded-xl border border-white/12 bg-ink-800/40 p-3">
+                  <div class="flex items-center gap-2">
+                    <span
+                      class="flex size-6 shrink-0 items-center justify-center rounded-full bg-brand-400/15 text-xs font-semibold text-brand-300"
+                    >
+                      {{ indiceModulo + 1 }}
+                    </span>
+                    <input
+                      type="text"
+                      [value]="modulo.titulo"
+                      (input)="atualizarTituloModulo(indiceModulo, $any($event.target).value)"
+                      [disabled]="!empresaAtiva()"
+                      placeholder="Título do módulo"
+                      aria-label="Título do módulo"
+                      class="field-input flex-1"
+                    />
+                    <button
+                      type="button"
+                      (click)="removerModulo(indiceModulo)"
+                      [disabled]="!empresaAtiva()"
+                      aria-label="Remover módulo"
+                      class="shrink-0 rounded-lg p-2 text-slate-500 transition hover:text-rose-300 disabled:pointer-events-none disabled:opacity-50"
+                    >
+                      <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                        <path d="M4 7h16M9.5 7V5a1.5 1.5 0 0 1 1.5-1.5h2A1.5 1.5 0 0 1 14.5 5v2M6.5 7l.8 12.1a2 2 0 0 0 2 1.9h5.4a2 2 0 0 0 2-1.9L17.5 7" stroke-linecap="round" stroke-linejoin="round" />
+                      </svg>
+                    </button>
+                  </div>
+
+                  <!-- ============ AULAS DO MÓDULO ============ -->
+                  <div class="mt-3 flex flex-col gap-2 border-l-2 border-white/10 pl-3">
+                    @for (capitulo of modulo.capitulos; track $index; let indiceCapitulo = $index) {
+                      <div class="rounded-lg border border-white/10 bg-ink-900/60 p-2.5">
+                        <div class="flex items-center gap-2">
+                          <input
+                            type="text"
+                            [value]="capitulo.titulo"
+                            (input)="atualizarTituloCapitulo(indiceModulo, indiceCapitulo, $any($event.target).value)"
+                            [disabled]="!empresaAtiva()"
+                            [placeholder]="'Aula ' + (indiceModulo + 1) + '.' + (indiceCapitulo + 1)"
+                            aria-label="Título da aula"
+                            class="field-input flex-1 py-1.5 text-xs"
+                          />
+                          <button
+                            type="button"
+                            (click)="removerCapitulo(indiceModulo, indiceCapitulo)"
+                            [disabled]="!empresaAtiva()"
+                            aria-label="Remover aula"
+                            class="shrink-0 rounded-lg p-1.5 text-slate-500 transition hover:text-rose-300 disabled:pointer-events-none disabled:opacity-50"
+                          >
+                            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                              <path d="m6 6 12 12M18 6 6 18" stroke-linecap="round" />
+                            </svg>
+                          </button>
+                        </div>
+
+                        <div class="mt-2 inline-flex rounded-md border border-white/12 bg-ink-800/60 p-0.5">
+                          <button
+                            type="button"
+                            (click)="alternarTipoConteudoCapitulo(indiceModulo, indiceCapitulo, 'LINK')"
+                            [disabled]="!empresaAtiva()"
+                            class="rounded px-3 py-1 text-[11px] font-semibold transition disabled:cursor-not-allowed disabled:pointer-events-none disabled:opacity-50"
+                            [class.bg-brand-500]="capitulo.tipoConteudo === 'LINK'"
+                            [class.text-ink-950]="capitulo.tipoConteudo === 'LINK'"
+                            [class.text-slate-300]="capitulo.tipoConteudo !== 'LINK'"
+                          >
+                            Link
+                          </button>
+                          <button
+                            type="button"
+                            (click)="alternarTipoConteudoCapitulo(indiceModulo, indiceCapitulo, 'ARQUIVO')"
+                            [disabled]="!empresaAtiva()"
+                            class="rounded px-3 py-1 text-[11px] font-semibold transition disabled:cursor-not-allowed disabled:pointer-events-none disabled:opacity-50"
+                            [class.bg-brand-500]="capitulo.tipoConteudo === 'ARQUIVO'"
+                            [class.text-ink-950]="capitulo.tipoConteudo === 'ARQUIVO'"
+                            [class.text-slate-300]="capitulo.tipoConteudo !== 'ARQUIVO'"
+                          >
+                            Vídeo
+                          </button>
+                        </div>
+
+                        @if (capitulo.tipoConteudo === 'LINK') {
+                          <input
+                            type="text"
+                            [value]="capitulo.linkCapitulo"
+                            (input)="atualizarLinkCapitulo(indiceModulo, indiceCapitulo, $any($event.target).value)"
+                            [disabled]="!empresaAtiva()"
+                            placeholder="https://..."
+                            aria-label="Link da aula"
+                            class="field-input mt-2 py-1.5 text-xs"
+                          />
+                        } @else {
+                          <input
+                            type="file"
+                            accept="video/*"
+                            (change)="selecionarArquivoCapitulo(indiceModulo, indiceCapitulo, $event)"
+                            [disabled]="!empresaAtiva()"
+                            aria-label="Vídeo da aula"
+                            class="field-input mt-2 py-1.5 text-xs file:mr-3 file:rounded-md file:border-0 file:bg-brand-500 file:px-2.5 file:py-1 file:text-[11px] file:font-semibold file:text-ink-950 disabled:file:opacity-50 disabled:file:grayscale"
+                          />
+                          @if (capitulo.arquivo) {
+                            <p class="mt-1 text-[11px] text-slate-400">Selecionado: {{ capitulo.arquivo.name }}</p>
+                          } @else if (capitulo.arquivoAtualNome) {
+                            <p class="mt-1 text-[11px] text-slate-400">
+                              Vídeo atual: {{ capitulo.arquivoAtualNome }} — escolha outro arquivo pra substituir.
+                            </p>
+                          }
+                        }
+                      </div>
+                    }
+
+                    <button
+                      type="button"
+                      (click)="adicionarCapitulo(indiceModulo)"
+                      [disabled]="!empresaAtiva()"
+                      class="self-start rounded-lg border border-dashed border-white/15 px-3 py-1.5 text-[11px] font-semibold text-slate-300 transition hover:border-brand-400/40 hover:text-brand-200 disabled:pointer-events-none disabled:opacity-50"
+                    >
+                      + Adicionar aula
+                    </button>
+                  </div>
+                </div>
+              }
+            </div>
+
             <button
               type="button"
-              (click)="aoCancelarEdicao()"
-              class="rounded-lg border border-white/12 bg-ink-800/60 px-6 py-2.5 text-sm font-medium text-slate-200 transition hover:border-white/25 hover:bg-ink-700/70"
+              (click)="adicionarModulo()"
+              [disabled]="!empresaAtiva()"
+              class="mt-3 rounded-lg border border-dashed border-white/15 px-4 py-2 text-xs font-semibold text-slate-300 transition hover:border-brand-400/40 hover:text-brand-200 disabled:pointer-events-none disabled:opacity-50"
             >
-              Cancelar edição
+              + Adicionar módulo
             </button>
           }
+        </div>
+
+        <div class="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+          <button
+            type="button"
+            (click)="aoCancelar()"
+            [disabled]="enviando()"
+            class="rounded-lg border border-white/12 bg-ink-800/60 px-6 py-2.5 text-sm font-medium text-slate-200 transition hover:border-white/25 hover:bg-ink-700/70 disabled:pointer-events-none disabled:opacity-50"
+          >
+            {{ idCursoEditando() !== null ? 'Cancelar edição' : 'Cancelar cadastro' }}
+          </button>
 
           <button
             type="submit"
@@ -224,26 +299,6 @@
               <p class="mt-1 text-xs text-slate-400">
                 {{ formatarCargaHoraria(curso) }} • {{ formatarPreco(curso) }}
               </p>
-
-              @if (curso.tipoConteudo === 'LINK' && curso.linkCurso) {
-                <a
-                  [href]="curso.linkCurso"
-                  target="_blank"
-                  rel="noopener"
-                  class="mt-2 inline-block text-xs text-brand-300 underline hover:text-brand-200"
-                >
-                  Abrir link do curso
-                </a>
-              } @else if (curso.arquivoCursoUrl) {
-                <a
-                  [href]="curso.arquivoCursoUrl"
-                  target="_blank"
-                  rel="noopener"
-                  class="mt-2 inline-block text-xs text-brand-300 underline hover:text-brand-200"
-                >
-                  Abrir/baixar vídeo
-                </a>
-              }
 
               @if (curso.descricao) {
                 <p class="mt-2 text-sm text-slate-300">{{ curso.descricao }}</p>

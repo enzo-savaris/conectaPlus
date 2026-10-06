@@ -85,6 +85,31 @@ export const routes: Routes = [
             (m) => m.VagasDisponiveis
           )
       },
+      // Mesma tela de /vaga/:id (pública), mas dentro do Shell: candidato
+      // logado que abre uma vaga pelo painel ou pelas vagas disponíveis
+      // continua vendo a sidebar, em vez de cair na versão sem sessão.
+      {
+        path: 'vagas-disponiveis/:id',
+        title: 'Vaga | Conecta+',
+        canActivate: [ambienteGuard('usuario')],
+        loadComponent: () => import('./features/vaga-publica/vaga-publica').then((m) => m.VagaPublica)
+      },
+      {
+        path: 'cursos-disponiveis',
+        title: 'Cursos Disponíveis | Conecta+',
+        canActivate: [ambienteGuard('usuario')],
+        loadComponent: () =>
+          import('./features/candidato/cursos-disponiveis/cursos-disponiveis').then(
+            (m) => m.CursosDisponiveis
+          )
+      },
+      {
+        path: 'cursos-disponiveis/:id',
+        title: 'Curso | Conecta+',
+        canActivate: [ambienteGuard('usuario')],
+        loadComponent: () =>
+          import('./features/candidato/curso-detalhes/curso-detalhes').then((m) => m.CursoDetalhes)
+      },
 
       // Ambiente da empresa: rotas marcadas com data.ambiente para o menu
       // lateral saber trocar "Perfil" (usuário) por "Candidatos" (empresa).
@@ -143,6 +168,16 @@ export const routes: Routes = [
         canActivate: [ambienteGuard('empresa')],
         loadComponent: () =>
           import('./features/company/vaga-detalhes/vaga-detalhes').then((m) => m.VagaDetalhes)
+      },
+      // Mesma tela de /cursos-disponiveis/:id (candidato), reaproveitada para
+      // a empresa ver a estrutura de um curso que ela recomendou numa vaga.
+      {
+        path: 'empresa/cursos/:id',
+        title: 'Curso | Conecta+',
+        data: { ambiente: 'empresa' },
+        canActivate: [ambienteGuard('empresa')],
+        loadComponent: () =>
+          import('./features/candidato/curso-detalhes/curso-detalhes').then((m) => m.CursoDetalhes)
       },
       {
         path: 'empresa/vagas/:id/editar',

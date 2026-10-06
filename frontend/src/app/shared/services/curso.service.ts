@@ -3,48 +3,95 @@ import { Injectable, inject } from '@angular/core';
 import { Observable, map } from 'rxjs';
 
 import { URL_BASE_API } from '../config/api';
-import { Curso, NovoCurso, StatusCurso, TipoConteudoCurso } from '../types/curso';
+import {
+  CapituloCurso,
+  Curso,
+  CursoDetalhado,
+  ModuloCurso,
+  NovoCurso,
+  StatusCurso,
+  TipoConteudoCurso
+} from '../types/curso';
 
-/** Formato bruto devolvido pela API: colunas da TBLCDSCURSO0. */
+/** Formato bruto devolvido pela API: colunas da TBLCDSCURSO0 + NOMEEMPRESA (join). */
 interface CursoDaApi {
   IDCURSO: number;
   IDEMPRESA: number;
+  NOMEEMPRESA: string;
   TITULO: string;
   DESCRICAO: string | null;
   CARGAHORARIA: number | null;
   // O mysql2 devolve colunas DECIMAL como string, para não perder precisão.
   PRECO: string | null;
-  TIPOCONTEUDO: TipoConteudoCurso;
-  LINKCURSO: string | null;
-  ARQUIVOCURSO: string | null;
   DTCAD: string;
   STATUSCURSO: StatusCurso;
+}
+
+interface CapituloDaApi {
+  IDCAPITULO: number;
+  TITULO: string;
+  TIPOCONTEUDO: TipoConteudoCurso;
+  LINKCAPITULO: string | null;
+  ARQUIVOCAPITULO: string | null;
+}
+
+interface ModuloDaApi {
+  IDMODULO: number;
+  TITULO: string;
+  capitulos: CapituloDaApi[];
+}
+
+interface CursoDetalhadoDaApi extends CursoDaApi {
+  modulos: ModuloDaApi[];
 }
 
 function paraCurso(curso: CursoDaApi): Curso {
   return {
     id: curso.IDCURSO,
     idEmpresa: curso.IDEMPRESA,
+    nomeEmpresa: curso.NOMEEMPRESA,
     titulo: curso.TITULO,
     descricao: curso.DESCRICAO,
     cargaHoraria: curso.CARGAHORARIA,
     preco: curso.PRECO !== null ? Number(curso.PRECO) : null,
-    tipoConteudo: curso.TIPOCONTEUDO,
-    linkCurso: curso.LINKCURSO,
-    arquivoCursoUrl: curso.ARQUIVOCURSO ? `${URL_BASE_API}/uploads/cursos/${curso.ARQUIVOCURSO}` : null,
     dataCadastro: curso.DTCAD,
     status: curso.STATUSCURSO
   };
 }
 
-/** Monta o multipart/form-data: o arquivo de vídeo só viaja assim, então usamos o mesmo formato pra tudo. */
+function paraCapitulo(capitulo: CapituloDaApi): CapituloCurso {
+  return {
+    id: capitulo.IDCAPITULO,
+    titulo: capitulo.TITULO,
+    tipoConteudo: capitulo.TIPOCONTEUDO,
+    linkCapitulo: capitulo.LINKCAPITULO,
+    arquivoCapituloUrl: capitulo.ARQUIVOCAPITULO ? `${URL_BASE_API}/uploads/cursos/${capitulo.ARQUIVOCAPITULO}` : null
+  };
+}
+
+function paraModulo(modulo: ModuloDaApi): ModuloCurso {
+  return {
+    id: modulo.IDMODULO,
+    titulo: modulo.TITULO,
+    capitulos: modulo.capitulos.map(paraCapitulo)
+  };
+}
+
+function paraCursoDetalhado(curso: CursoDetalhadoDaApi): CursoDetalhado {
+  return { ...paraCurso(curso), modulos: curso.modulos.map(paraModulo) };
+}
+
+/**
+ * Monta o multipart/form-data: os módulos/capítulos viajam como JSON num
+ * único campo (`modulos`), e cada vídeo de capítulo vai num campo à parte,
+ * nomeado `modulo_<i>_capitulo_<j>` — é assim que o controller casa cada
+ * arquivo de volta com o capítulo certo.
+ */
 function paraFormData(dados: NovoCurso, idEmpresa: number): FormData {
   const formData = new FormData();
 
   formData.append('idEmpresa', String(idEmpresa));
   formData.append('titulo', dados.titulo);
-  formData.append('tipoConteudo', dados.tipoConteudo);
-
   if (dados.descricao) {
     formData.append('descricao', dados.descricao);
   }
@@ -54,12 +101,25 @@ function paraFormData(dados: NovoCurso, idEmpresa: number): FormData {
   if (dados.preco !== null) {
     formData.append('preco', String(dados.preco));
   }
-  if (dados.tipoConteudo === 'LINK' && dados.linkCurso) {
-    formData.append('linkCurso', dados.linkCurso);
-  }
-  if (dados.tipoConteudo === 'ARQUIVO' && dados.arquivo) {
-    formData.append('arquivo', dados.arquivo);
-  }
+
+  const modulosParaJson = dados.modulos.map((modulo) => ({
+    titulo: modulo.titulo,
+    capitulos: modulo.capitulos.map((capitulo) => ({
+      titulo: capitulo.titulo,
+      tipoConteudo: capitulo.tipoConteudo,
+      linkCapitulo: capitulo.tipoConteudo === 'LINK' ? capitulo.linkCapitulo : null,
+      arquivoAtual: capitulo.tipoConteudo === 'ARQUIVO' ? capitulo.arquivoAtual : null
+    }))
+  }));
+  formData.append('modulos', JSON.stringify(modulosParaJson));
+
+  dados.modulos.forEach((modulo, indiceModulo) => {
+    modulo.capitulos.forEach((capitulo, indiceCapitulo) => {
+      if (capitulo.tipoConteudo === 'ARQUIVO' && capitulo.arquivo) {
+        formData.append(`modulo_${indiceModulo}_capitulo_${indiceCapitulo}`, capitulo.arquivo);
+      }
+    });
+  });
 
   return formData;
 }
@@ -68,27 +128,39 @@ function paraFormData(dados: NovoCurso, idEmpresa: number): FormData {
 export class CursoService {
   private readonly http = inject(HttpClient);
 
-  listar(idEmpresa: number): Observable<Curso[]> {
-    const parametros = new HttpParams().set('idEmpresa', idEmpresa);
+  /**
+   * Sem `idEmpresa`, lista os cursos de todas as empresas. `status` é usado
+   * pela busca aberta ao candidato PCD (`status: 'ATIVO'`), pra não mostrar
+   * cursos desativados de nenhuma empresa.
+   */
+  listar(idEmpresa?: number, status?: StatusCurso): Observable<Curso[]> {
+    let parametros = new HttpParams();
+    if (idEmpresa !== undefined) {
+      parametros = parametros.set('idEmpresa', idEmpresa);
+    }
+    if (status !== undefined) {
+      parametros = parametros.set('status', status);
+    }
 
     return this.http
       .get<CursoDaApi[]>(`${URL_BASE_API}/cursos`, { params: parametros })
       .pipe(map((cursos) => cursos.map(paraCurso)));
   }
 
-  obterPorId(id: number): Observable<Curso> {
-    return this.http.get<CursoDaApi>(`${URL_BASE_API}/cursos/${id}`).pipe(map(paraCurso));
+  /** Curso com os módulos e capítulos — usado na tela de detalhes e para preencher a edição. */
+  obterPorId(id: number): Observable<CursoDetalhado> {
+    return this.http.get<CursoDetalhadoDaApi>(`${URL_BASE_API}/cursos/${id}`).pipe(map(paraCursoDetalhado));
   }
 
-  cadastrar(dados: NovoCurso, idEmpresa: number): Observable<Curso> {
+  cadastrar(dados: NovoCurso, idEmpresa: number): Observable<CursoDetalhado> {
     return this.http
-      .post<CursoDaApi>(`${URL_BASE_API}/cursos`, paraFormData(dados, idEmpresa))
-      .pipe(map(paraCurso));
+      .post<CursoDetalhadoDaApi>(`${URL_BASE_API}/cursos`, paraFormData(dados, idEmpresa))
+      .pipe(map(paraCursoDetalhado));
   }
 
-  atualizar(id: number, dados: NovoCurso, idEmpresa: number): Observable<Curso> {
+  atualizar(id: number, dados: NovoCurso, idEmpresa: number): Observable<CursoDetalhado> {
     return this.http
-      .put<CursoDaApi>(`${URL_BASE_API}/cursos/${id}`, paraFormData(dados, idEmpresa))
-      .pipe(map(paraCurso));
+      .put<CursoDetalhadoDaApi>(`${URL_BASE_API}/cursos/${id}`, paraFormData(dados, idEmpresa))
+      .pipe(map(paraCursoDetalhado));
   }
 }

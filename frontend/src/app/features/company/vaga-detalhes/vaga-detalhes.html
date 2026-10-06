@@ -195,16 +195,12 @@
                     {{ formatarCargaHorariaCurso(curso) }} • {{ formatarPrecoCurso(curso) }}
                   </p>
 
-                  @if (linkDoCurso(curso); as url) {
-                    <a
-                      [href]="url"
-                      target="_blank"
-                      rel="noopener"
-                      class="mt-2 inline-flex w-full items-center justify-center rounded-lg border border-white/12 bg-ink-800/60 px-3 py-1.5 text-xs font-medium text-slate-200 transition hover:border-brand-400/40 hover:bg-ink-700/70 hover:text-brand-200"
-                    >
-                      Ver curso
-                    </a>
-                  }
+                  <a
+                    [routerLink]="['/empresa/cursos', curso.id]"
+                    class="mt-2 inline-flex w-full items-center justify-center rounded-lg border border-white/12 bg-ink-800/60 px-3 py-1.5 text-xs font-medium text-slate-200 transition hover:border-brand-400/40 hover:bg-ink-700/70 hover:text-brand-200"
+                  >
+                    Ver curso
+                  </a>
                 </li>
               }
             </ul>

@@ -25,7 +25,8 @@ export class Painel {
   private readonly authService = inject(AuthService);
   private readonly vagaService = inject(VagaService);
 
-  protected readonly vagasDestaque = signal<VagaDetalhada[]>([]);
+  /** Todas as vagas ativas (com requisitos), base tanto do destaque quanto da busca. */
+  protected readonly todasVagas = signal<VagaDetalhada[]>([]);
   protected readonly candidaturas = signal<MinhaCandidatura[]>([]);
   protected readonly carregando = signal(true);
   protected readonly erro = signal<string | null>(null);
@@ -37,14 +38,17 @@ export class Painel {
     return nome.split(' ')[0] || nome;
   });
 
-  /** Filtra as vagas em destaque por título, empresa, área, cidade ou requisito. */
+  /** Sem busca, só as primeiras N vagas aparecem aqui — o resto fica em "Ver todas". */
+  protected readonly vagasDestaque = computed(() => this.todasVagas().slice(0, QUANTIDADE_VAGAS_EM_DESTAQUE));
+
+  /** Com busca, procura em todas as vagas ativas carregadas, não só nas em destaque. */
   protected readonly vagasFiltradas = computed(() => {
     const termo = this.termoBusca().trim().toLowerCase();
     if (!termo) {
       return this.vagasDestaque();
     }
 
-    return this.vagasDestaque().filter((vaga) =>
+    return this.todasVagas().filter((vaga) =>
       [vaga.titulo, vaga.nomeEmpresa, vaga.area, vaga.cidade, ...vaga.requisitos]
         .filter((campo): campo is string => !!campo)
         .some((campo) => campo.toLowerCase().includes(termo))
@@ -69,19 +73,18 @@ export class Painel {
 
     this.vagaService.listar(undefined, 'ATIVA').subscribe({
       next: (vagas) => {
-        const idsEmDestaque = vagas.slice(0, QUANTIDADE_VAGAS_EM_DESTAQUE).map((vaga) => vaga.id);
-
-        if (idsEmDestaque.length === 0) {
-          this.vagasDestaque.set([]);
+        if (vagas.length === 0) {
+          this.todasVagas.set([]);
           this.carregando.set(false);
           this.carregarCandidaturas(idPcd);
           return;
         }
 
-        // Busca os detalhes (com requisitos) só das vagas em destaque, que são poucas.
-        forkJoin(idsEmDestaque.map((id) => this.vagaService.obterPorId(id))).subscribe({
+        // Busca os detalhes (com requisitos) de todas as vagas ativas, para
+        // que a busca encontre qualquer uma delas, não só as em destaque.
+        forkJoin(vagas.map((vaga) => this.vagaService.obterPorId(vaga.id))).subscribe({
           next: (detalhes) => {
-            this.vagasDestaque.set(detalhes);
+            this.todasVagas.set(detalhes);
             this.carregando.set(false);
             this.carregarCandidaturas(idPcd);
           },

@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { forkJoin } from 'rxjs';
 
 import { AuthService } from '../../../shared/services/auth.service';
+import { ToastService } from '../../../shared/services/toast.service';
 import { VagaService } from '../../../shared/services/vaga.service';
 import { MinhaCandidatura, Vaga } from '../../../shared/types/vaga';
 import {
@@ -20,17 +21,33 @@ import {
 export class VagasDisponiveis {
   private readonly vagaService = inject(VagaService);
   private readonly authService = inject(AuthService);
+  private readonly toastService = inject(ToastService);
 
   protected readonly vagas = signal<Vaga[]>([]);
   protected readonly minhasCandidaturas = signal<MinhaCandidatura[]>([]);
   protected readonly carregando = signal(true);
   protected readonly erro = signal<string | null>(null);
   protected readonly candidatandoId = signal<number | null>(null);
+  protected readonly termoBusca = signal('');
 
   /** Ids das vagas em que o candidato já se candidatou, pra desabilitar o botão delas. */
   protected readonly idsCandidatados = computed(
     () => new Set(this.minhasCandidaturas().map((candidatura) => candidatura.idVaga))
   );
+
+  /** Filtra por título, empresa, área ou cidade — mesmo critério da busca do painel. */
+  protected readonly vagasFiltradas = computed(() => {
+    const termo = this.termoBusca().trim().toLowerCase();
+    if (!termo) {
+      return this.vagas();
+    }
+
+    return this.vagas().filter((vaga) =>
+      [vaga.titulo, vaga.nomeEmpresa, vaga.area, vaga.cidade]
+        .filter((campo): campo is string => !!campo)
+        .some((campo) => campo.toLowerCase().includes(termo))
+    );
+  });
 
   constructor() {
     this.carregar();
@@ -64,6 +81,10 @@ export class VagasDisponiveis {
     });
   }
 
+  protected aoDigitarBusca(evento: Event): void {
+    this.termoBusca.set((evento.target as HTMLInputElement).value);
+  }
+
   protected jaCandidatado(vaga: Vaga): boolean {
     return this.idsCandidatados().has(vaga.id);
   }
@@ -86,6 +107,7 @@ export class VagasDisponiveis {
           }
         ]);
         this.candidatandoId.set(null);
+        this.toastService.sucesso('Candidatura enviada com sucesso!');
       },
       error: (erro: HttpErrorResponse) => {
         this.candidatandoId.set(null);

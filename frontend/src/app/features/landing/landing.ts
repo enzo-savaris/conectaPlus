@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { Router, RouterLink } from '@angular/router';
 
 import { AuthService } from '../../shared/services/auth.service';
+import { ToastService } from '../../shared/services/toast.service';
 import { VagaService } from '../../shared/services/vaga.service';
 import { MinhaCandidatura, Vaga } from '../../shared/types/vaga';
 import {
@@ -27,6 +28,7 @@ export class Landing {
   private readonly vagaService = inject(VagaService);
   private readonly authService = inject(AuthService);
   private readonly roteador = inject(Router);
+  private readonly toastService = inject(ToastService);
 
   protected readonly anoAtual = new Date().getFullYear();
 
@@ -123,6 +125,7 @@ export class Landing {
           { idVaga: vaga.id, titulo: vaga.titulo, status: 'PENDENTE', dataCandidatura: new Date().toISOString() }
         ]);
         this.candidatandoId.set(null);
+        this.toastService.sucesso('Candidatura enviada com sucesso!');
       },
       error: () => {
         this.candidatandoId.set(null);

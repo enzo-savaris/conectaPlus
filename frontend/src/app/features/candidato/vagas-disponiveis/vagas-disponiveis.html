@@ -1,7 +1,31 @@
 <div class="p-8">
-  <header>
-    <h1 class="text-xl font-semibold text-white sm:text-2xl">Vagas Disponíveis</h1>
-    <p class="mt-1 text-sm text-slate-400">Oportunidades abertas em empresas parceiras.</p>
+  <header class="flex flex-wrap items-start justify-between gap-4">
+    <div>
+      <h1 class="text-xl font-semibold text-white sm:text-2xl">Vagas Disponíveis</h1>
+      <p class="mt-1 text-sm text-slate-400">Oportunidades abertas em empresas parceiras.</p>
+    </div>
+
+    <div class="relative w-full sm:w-72">
+      <svg
+        class="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-slate-500"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+        stroke-width="2"
+        aria-hidden="true"
+      >
+        <circle cx="11" cy="11" r="7" />
+        <path d="m21 21-4.35-4.35" stroke-linecap="round" />
+      </svg>
+      <input
+        type="text"
+        [value]="termoBusca()"
+        (input)="aoDigitarBusca($event)"
+        placeholder="Buscar por cargo, empresa ou cidade"
+        aria-label="Buscar por cargo, empresa ou cidade"
+        class="field-input pl-9"
+      />
+    </div>
   </header>
 
   @if (erro()) {
@@ -15,14 +39,20 @@
 
   @if (carregando()) {
     <p class="mt-8 text-sm text-slate-400">Carregando vagas…</p>
-  } @else if (vagas().length === 0) {
+  } @else if (vagasFiltradas().length === 0) {
     <div class="mt-8 rounded-2xl border border-dashed border-white/15 bg-ink-900/40 p-10 text-center">
-      <p class="text-sm font-medium text-slate-200">Nenhuma vaga disponível no momento.</p>
+      <p class="text-sm font-medium text-slate-200">
+        @if (vagas().length === 0) {
+          Nenhuma vaga disponível no momento.
+        } @else {
+          Nenhuma vaga encontrada para essa busca.
+        }
+      </p>
       <p class="mt-1 text-xs text-slate-500">Novas oportunidades aparecem aqui assim que forem publicadas.</p>
     </div>
   } @else {
     <ul class="mt-6 flex flex-col gap-4">
-      @for (vaga of vagas(); track vaga.id) {
+      @for (vaga of vagasFiltradas(); track vaga.id) {
         <li
           class="rounded-2xl border border-white/10 bg-ink-900/60 p-5 transition hover:border-brand-400/40 sm:p-6"
         >

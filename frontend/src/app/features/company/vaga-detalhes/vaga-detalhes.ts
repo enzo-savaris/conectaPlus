@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
 
 import { AuthService } from '../../../shared/services/auth.service';
@@ -15,6 +15,7 @@ import {
 /** Tela de detalhes da vaga: dados completos e inscritos, vindos do banco. */
 @Component({
   selector: 'app-vaga-detalhes',
+  imports: [RouterLink],
   templateUrl: './vaga-detalhes.html',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
@@ -29,9 +30,11 @@ export class VagaDetalhes {
   protected readonly carregando = signal(true);
   protected readonly erro = signal<string | null>(null);
 
+  private readonly idVaga: number;
+
   constructor() {
-    const idVaga = Number(this.rota.snapshot.paramMap.get('id'));
-    this.carregar(idVaga);
+    this.idVaga = Number(this.rota.snapshot.paramMap.get('id'));
+    this.carregar(this.idVaga);
   }
 
   /** Garantido pelo ambienteGuard('empresa'): só entra aqui quem está logado como empresa. */
@@ -66,8 +69,15 @@ export class VagaDetalhes {
     this.roteador.navigate(['/vagas']);
   }
 
+  /**
+   * Leva a origem (esta vaga) na URL, para que o "Voltar" da tela do
+   * candidato saiba trazer a empresa de volta pra cá — e não para a lista
+   * geral de candidatos, que é o destino certo só quando se chega lá por ela.
+   */
   protected aoClicarCandidato(candidatura: Candidatura): void {
-    this.roteador.navigate(['/empresa/candidatos', candidatura.idCandidato]);
+    this.roteador.navigate(['/empresa/candidatos', candidatura.idCandidato], {
+      queryParams: { origemVaga: this.idVaga }
+    });
   }
 
   protected formatarLocalizacao(vaga: VagaDetalhada): string {
@@ -101,10 +111,6 @@ export class VagaDetalhes {
 
   protected formatarPrecoCurso(curso: CursoRecomendado): string {
     return formatarPrecoCurso(curso.preco);
-  }
-
-  protected linkDoCurso(curso: CursoRecomendado): string | null {
-    return curso.tipoConteudo === 'LINK' ? curso.linkCurso : curso.arquivoCursoUrl;
   }
 
   protected corStatusCandidatura(status: Candidatura['status']): string {

@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/cor
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 
+import { ToastService } from '../../../shared/services/toast.service';
 import { UsuarioService } from '../../../shared/services/usuario.service';
 import { NovoCandidato, TipoDeficiencia } from '../../../shared/types/candidato';
 import { formatarCpf, formatarTelefone } from '../../../shared/utils/masks';
@@ -41,6 +42,7 @@ export class CandidatoRegister {
   private readonly roteador = inject(Router);
   private readonly rota = inject(ActivatedRoute);
   private readonly usuarioService = inject(UsuarioService);
+  private readonly toastService = inject(ToastService);
 
   protected readonly tiposDeficiencia = TIPOS_DEFICIENCIA;
   protected readonly recursosDisponiveis = RECURSOS_DISPONIVEIS;
@@ -198,6 +200,7 @@ export class CandidatoRegister {
     this.usuarioService.cadastrar(dados).subscribe({
       next: () => {
         this.enviando.set(false);
+        this.toastService.sucesso('Cadastro realizado com sucesso! Entre com seu CPF e senha.');
         this.roteador.navigate(['/login']);
       },
       error: (erro: HttpErrorResponse) => {

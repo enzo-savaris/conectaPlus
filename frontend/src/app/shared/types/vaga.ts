@@ -1,5 +1,3 @@
-import { TipoConteudoCurso } from './curso';
-
 export type ModeloTrabalho = 'PRESENCIAL' | 'HIBRIDO' | 'REMOTO';
 
 export type TipoContratacao = 'CLT' | 'PJ' | 'ESTAGIO' | 'TEMPORARIO' | 'FREELANCER';
@@ -26,15 +24,16 @@ export interface Vaga {
   status: StatusVaga;
 }
 
-/** Curso recomendado por uma vaga, como mostrado no card "Cursos recomendados" da página da vaga. */
+/**
+ * Curso recomendado por uma vaga, como mostrado no card "Cursos recomendados"
+ * da página da vaga — o conteúdo (módulos/capítulos) mora na tela do próprio
+ * curso; o card só linka pra lá pelo `id`.
+ */
 export interface CursoRecomendado {
   id: number;
   titulo: string;
   cargaHoraria: number | null;
   preco: number | null;
-  tipoConteudo: TipoConteudoCurso;
-  linkCurso: string | null;
-  arquivoCursoUrl: string | null;
 }
 
 /** Vaga com as listas de itens do cadastro, usada para preencher a tela de edição. */

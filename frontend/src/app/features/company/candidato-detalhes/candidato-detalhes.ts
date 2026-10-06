@@ -22,8 +22,22 @@ export class CandidatoDetalhes {
   protected readonly carregando = signal(true);
   protected readonly erro = signal<string | null>(null);
 
+  /**
+   * Quando se chega aqui a partir da tela de uma vaga (inscritos), o id dela
+   * vem na query string — é para lá que o "Voltar" deve mandar a empresa, em
+   * vez da lista geral de candidatos, que é a origem padrão (ex.: menu lateral).
+   */
+  private readonly idVagaOrigem: number | null;
+
+  /** Rótulo do botão "Voltar" reflete pra onde ele realmente vai, em vez de um texto genérico. */
+  protected readonly textoVoltar: string;
+
   constructor() {
     const idCandidato = Number(this.rota.snapshot.paramMap.get('id'));
+    const origemVaga = this.rota.snapshot.queryParamMap.get('origemVaga');
+    this.idVagaOrigem = origemVaga !== null ? Number(origemVaga) : null;
+    this.textoVoltar = this.idVagaOrigem !== null ? 'Voltar para a vaga' : 'Voltar para candidatos';
+
     this.carregar(idCandidato);
   }
 
@@ -50,6 +64,11 @@ export class CandidatoDetalhes {
   }
 
   protected aoClicarVoltar(): void {
+    if (this.idVagaOrigem !== null) {
+      this.roteador.navigate(['/empresa/vagas', this.idVagaOrigem]);
+      return;
+    }
+
     this.roteador.navigate(['/empresa/candidatos']);
   }
 

@@ -113,10 +113,14 @@ async function listarItens(chave: ChaveDeItens, idVaga: number): Promise<string[
   return linhas.map((linha) => linha['DESCRICAO'] as string);
 }
 
-/** Cursos que a empresa recomenda para a vaga, com os dados usados no card da página da vaga. */
+/**
+ * Cursos que a empresa recomenda para a vaga, com os dados usados no card da
+ * página da vaga. O conteúdo em si (módulos/capítulos) fica na própria tela
+ * do curso — o card só linka pra lá, não abre um vídeo direto.
+ */
 async function listarCursosRecomendados(idVaga: number): Promise<RowDataPacket[]> {
   const [linhas] = await pool.query<RowDataPacket[]>(
-    `SELECT c.IDCURSO, c.TITULO, c.CARGAHORARIA, c.PRECO, c.TIPOCONTEUDO, c.LINKCURSO, c.ARQUIVOCURSO
+    `SELECT c.IDCURSO, c.TITULO, c.CARGAHORARIA, c.PRECO
      FROM TBLCDSVAGCURSO0 vc
      INNER JOIN TBLCDSCURSO0 c ON c.IDCURSO = vc.IDCURSO
      WHERE vc.IDVAGA = ?

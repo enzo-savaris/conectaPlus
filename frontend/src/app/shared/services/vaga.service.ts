@@ -3,7 +3,6 @@ import { Injectable, inject } from '@angular/core';
 import { Observable, map } from 'rxjs';
 
 import { URL_BASE_API } from '../config/api';
-import { TipoConteudoCurso } from '../types/curso';
 import {
   Candidatura,
   CursoRecomendado,
@@ -43,9 +42,6 @@ interface CursoRecomendadoDaApi {
   TITULO: string;
   CARGAHORARIA: number | null;
   PRECO: string | null;
-  TIPOCONTEUDO: TipoConteudoCurso;
-  LINKCURSO: string | null;
-  ARQUIVOCURSO: string | null;
 }
 
 function paraCursoRecomendado(curso: CursoRecomendadoDaApi): CursoRecomendado {
@@ -53,10 +49,7 @@ function paraCursoRecomendado(curso: CursoRecomendadoDaApi): CursoRecomendado {
     id: curso.IDCURSO,
     titulo: curso.TITULO,
     cargaHoraria: curso.CARGAHORARIA,
-    preco: curso.PRECO !== null ? Number(curso.PRECO) : null,
-    tipoConteudo: curso.TIPOCONTEUDO,
-    linkCurso: curso.LINKCURSO,
-    arquivoCursoUrl: curso.ARQUIVOCURSO ? `${URL_BASE_API}/uploads/cursos/${curso.ARQUIVOCURSO}` : null
+    preco: curso.PRECO !== null ? Number(curso.PRECO) : null
   };
 }
 

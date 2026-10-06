@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/cor
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 
 import { AuthService } from '../../shared/services/auth.service';
+import { ToastService } from '../../shared/services/toast.service';
 import { VagaService } from '../../shared/services/vaga.service';
 import { CursoRecomendado, VagaDetalhada } from '../../shared/types/vaga';
 import { formatarCargaHorariaCurso, formatarPrecoCurso } from '../../shared/utils/curso-format';
@@ -27,6 +28,7 @@ export class VagaPublica {
   private readonly roteador = inject(Router);
   private readonly vagaService = inject(VagaService);
   private readonly authService = inject(AuthService);
+  private readonly toastService = inject(ToastService);
 
   protected readonly vaga = signal<VagaDetalhada | null>(null);
   protected readonly carregando = signal(true);
@@ -80,6 +82,7 @@ export class VagaPublica {
       next: () => {
         this.candidatando.set(false);
         this.jaCandidatado.set(true);
+        this.toastService.sucesso('Candidatura enviada com sucesso!');
       },
       error: (erro: HttpErrorResponse) => {
         this.candidatando.set(false);
@@ -115,7 +118,28 @@ export class VagaPublica {
     return formatarPrecoCurso(curso.preco);
   }
 
-  protected linkDoCurso(curso: CursoRecomendado): string | null {
-    return curso.tipoConteudo === 'LINK' ? curso.linkCurso : curso.arquivoCursoUrl;
+  /**
+   * A empresa cadastra os benefícios como texto livre (ex.: "Vale refeição"),
+   * então o ícone do card é escolhido por palavra-chave — sem categoria
+   * cadastrada no banco, é a forma mais simples de dar uma pista visual sem
+   * exigir que a empresa escolha um ícone na hora de cadastrar a vaga.
+   */
+  protected iconeBeneficio(item: string): 'alimentacao' | 'transporte' | 'saude' | 'folga' | 'generico' {
+    const texto = item.toLowerCase();
+
+    if (/refei|aliment|restaurante/.test(texto)) {
+      return 'alimentacao';
+    }
+    if (/transport|combust|estacionamento/.test(texto)) {
+      return 'transporte';
+    }
+    if (/sa[úu]de|m[ée]dic|odont|psic/.test(texto)) {
+      return 'saude';
+    }
+    if (/anivers|day ?off|f[ée]rias|folga/.test(texto)) {
+      return 'folga';
+    }
+
+    return 'generico';
   }
 }
