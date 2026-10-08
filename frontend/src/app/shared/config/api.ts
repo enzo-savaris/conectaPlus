@@ -1,14 +1,16 @@
 /**
  * Endereço base da API do backend. Provisório até existir configuração de ambientes.
  *
- * Usa o mesmo host com que a página foi carregada (em vez de "localhost" fixo) pra
- * funcionar tanto rodando local quanto quando alguém acessa pelo IP da rede local
- * (ex.: um colega abrindo http://192.168.0.10:4200 enquanto o backend roda na
- * mesma máquina) — pra essa pessoa, "localhost" apontaria pro computador dela,
- * não pro servidor. No SSR (onde `window` não existe), cai de volta pra
- * "localhost", porque a renderização roda na própria máquina do backend.
+ * No navegador, as chamadas vão para `/api` no mesmo endereço em que a página
+ * foi aberta, e o proxy do `ng serve` (proxy.conf.json) repassa para o backend
+ * em localhost:3000, tirando o prefixo `/api`. Assim funciona igual rodando
+ * local, pelo IP da rede local ou por um túnel como o ngrok — quem acessa de
+ * fora nunca precisa enxergar a porta 3000, só a do frontend.
+ *
+ * O prefixo existe porque o frontend tem rotas com o mesmo nome das da API
+ * (/vagas, /cursos): sem ele, o proxy capturaria também as páginas.
+ *
+ * No SSR/prerender (onde `window` não existe) não há proxy no caminho, então
+ * a chamada vai direto pro backend, que roda na mesma máquina.
  */
-const hostAtual = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
-const protocoloAtual = typeof window !== 'undefined' ? window.location.protocol : 'http:';
-
-export const URL_BASE_API = `${protocoloAtual}//${hostAtual}:3000`;
+export const URL_BASE_API = typeof window !== 'undefined' ? '/api' : 'http://localhost:3000';

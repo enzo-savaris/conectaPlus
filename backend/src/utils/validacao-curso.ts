@@ -11,16 +11,19 @@ const TIPOS_CONTEUDO = ['LINK', 'ARQUIVO'] as const;
 export type TipoConteudoCurso = (typeof TIPOS_CONTEUDO)[number];
 
 /**
- * Um capítulo (aula) já validado. `arquivoNovo` vem do multer (campo
- * `capitulo_<indiceModulo>_<indiceCapitulo>`, casado pelo controller);
- * `arquivoAtual` é o nome do arquivo já cadastrado, reenviado pela tela de
- * edição quando o capítulo mantém o vídeo que já tinha.
+ * Um capítulo (aula) já validado. `arquivoNovo`/`materialNovo` vêm do multer
+ * (campos `modulo_<i>_capitulo_<j>` e `material_modulo_<i>_capitulo_<j>`,
+ * casados pelo controller); `arquivoAtual`/`materialAtual` são os nomes dos
+ * arquivos já cadastrados, reenviados pela tela de edição quando o capítulo
+ * mantém o que já tinha. A descrição é opcional — só o título é obrigatório.
  */
 export interface DadosCapitulo {
   titulo: string;
+  descricao: string | null;
   tipoConteudo: TipoConteudoCurso;
   linkCapitulo: string | null;
   arquivoAtual: string | null;
+  materialAtual: string | null;
 }
 
 export interface DadosModulo {
@@ -109,9 +112,11 @@ function validarCapitulo(
 
   return {
     titulo,
+    descricao: textoOuNulo(objeto['descricao']),
     tipoConteudo: tipoConteudo as TipoConteudoCurso,
     linkCapitulo,
-    arquivoAtual: textoOuNulo(objeto['arquivoAtual'])
+    arquivoAtual: textoOuNulo(objeto['arquivoAtual']),
+    materialAtual: textoOuNulo(objeto['materialAtual'])
   };
 }
 

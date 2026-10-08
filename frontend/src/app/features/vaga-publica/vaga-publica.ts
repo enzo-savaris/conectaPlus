@@ -1,9 +1,7 @@
-import { HttpErrorResponse } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 
 import { AuthService } from '../../shared/services/auth.service';
-import { ToastService } from '../../shared/services/toast.service';
 import { VagaService } from '../../shared/services/vaga.service';
 import { CursoRecomendado, VagaDetalhada } from '../../shared/types/vaga';
 import { formatarCargaHorariaCurso, formatarPrecoCurso } from '../../shared/utils/curso-format';
@@ -28,18 +26,30 @@ export class VagaPublica {
   private readonly roteador = inject(Router);
   private readonly vagaService = inject(VagaService);
   private readonly authService = inject(AuthService);
-  private readonly toastService = inject(ToastService);
 
   protected readonly vaga = signal<VagaDetalhada | null>(null);
   protected readonly carregando = signal(true);
   protected readonly erro = signal<string | null>(null);
-  protected readonly candidatando = signal(false);
   protected readonly jaCandidatado = signal(false);
-  protected readonly erroCandidatura = signal<string | null>(null);
 
   constructor() {
     const idVaga = Number(this.rota.snapshot.paramMap.get('id'));
     this.carregar(idVaga);
+    this.verificarCandidatura(idVaga);
+  }
+
+  /** Candidato logado que já se candidatou vê "Acompanhar candidatura" no lugar do botão. */
+  private verificarCandidatura(idVaga: number): void {
+    const sessao = this.authService.sessao();
+    if (sessao?.ambiente !== 'usuario') {
+      return;
+    }
+
+    this.vagaService.obterMinhaCandidatura(sessao.perfil.id, idVaga).subscribe({
+      next: () => this.jaCandidatado.set(true),
+      // 404: ainda não se candidatou — o botão de candidatar continua aparecendo.
+      error: () => this.jaCandidatado.set(false)
+    });
   }
 
   private carregar(idVaga: number): void {
@@ -59,8 +69,8 @@ export class VagaPublica {
   }
 
   /**
-   * Quem já está logado como candidato PCD se candidata na hora; visitante
-   * (ou empresa, se por acaso estiver logada) é mandado pro login primeiro.
+   * Quem já está logado como candidato PCD vai para a tela de candidatura;
+   * visitante (ou empresa, se por acaso estiver logada) é mandado pro login primeiro.
    */
   protected candidatarSe(): void {
     const vaga = this.vaga();
@@ -75,27 +85,7 @@ export class VagaPublica {
       return;
     }
 
-    this.erroCandidatura.set(null);
-    this.candidatando.set(true);
-
-    this.vagaService.candidatar(vaga.id, sessao.perfil.id).subscribe({
-      next: () => {
-        this.candidatando.set(false);
-        this.jaCandidatado.set(true);
-        this.toastService.sucesso('Candidatura enviada com sucesso!');
-      },
-      error: (erro: HttpErrorResponse) => {
-        this.candidatando.set(false);
-
-        if (erro.status === 409) {
-          // Já tinha se candidatado antes (ex.: outra aba); só reflete o estado real.
-          this.jaCandidatado.set(true);
-          return;
-        }
-
-        this.erroCandidatura.set('Não foi possível enviar sua candidatura. Tente novamente.');
-      }
-    });
+    this.roteador.navigate(['/vagas-disponiveis', vaga.id, 'candidatar']);
   }
 
   protected formatarLocalizacao(vaga: VagaDetalhada): string {

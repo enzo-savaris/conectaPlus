@@ -63,6 +63,10 @@
               "buildTarget": "conectaPlus:build:development"
             }
           },
+          "options": {
+            "proxyConfig": "proxy.conf.json",
+            "allowedHosts": ["letter-flinch-footer.ngrok-free.dev"]
+          },
           "defaultConfiguration": "development"
         },
         "test": {

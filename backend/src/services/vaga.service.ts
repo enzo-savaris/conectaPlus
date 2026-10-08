@@ -3,6 +3,7 @@ import pool from '../config/dataBase.ts';
 import * as cidadeService from './cidade.service.ts';
 import { garantirEmpresaAtiva } from './empresa.service.ts';
 import { erroDeConflito, erroNaoEncontrado } from '../utils/erro-app.ts';
+import type { DadosCandidatura } from '../utils/validacao-candidatura.ts';
 import type { DadosVaga } from '../utils/validacao-vaga.ts';
 
 /**
@@ -25,7 +26,8 @@ const TABELAS_DE_ITENS = {
   responsabilidades: { tabela: 'TBLCDSVAGRESP0', coluna: 'IDRESP' },
   requisitos: { tabela: 'TBLCDSVAGREQ0', coluna: 'IDREQ' },
   acessibilidade: { tabela: 'TBLCDSVAGACS0', coluna: 'IDACS' },
-  beneficios: { tabela: 'TBLCDSVAGBEN0', coluna: 'IDBEN' }
+  beneficios: { tabela: 'TBLCDSVAGBEN0', coluna: 'IDBEN' },
+  perguntas: { tabela: 'TBLCDSVAGPERG0', coluna: 'IDPERG' }
 } as const;
 
 type ChaveDeItens = keyof typeof TABELAS_DE_ITENS;
@@ -166,15 +168,17 @@ async function definirCursosRecomendados(
 export async function obterDetalhado(id: number): Promise<Record<string, unknown>> {
   const vaga = await obterPorId(id);
 
-  const [responsabilidades, requisitos, acessibilidade, beneficios, cursosRecomendados] = await Promise.all([
-    listarItens('responsabilidades', id),
-    listarItens('requisitos', id),
-    listarItens('acessibilidade', id),
-    listarItens('beneficios', id),
-    listarCursosRecomendados(id)
-  ]);
+  const [responsabilidades, requisitos, acessibilidade, beneficios, perguntas, cursosRecomendados] =
+    await Promise.all([
+      listarItens('responsabilidades', id),
+      listarItens('requisitos', id),
+      listarItens('acessibilidade', id),
+      listarItens('beneficios', id),
+      listarItens('perguntas', id),
+      listarCursosRecomendados(id)
+    ]);
 
-  return { ...vaga, responsabilidades, requisitos, acessibilidade, beneficios, cursosRecomendados };
+  return { ...vaga, responsabilidades, requisitos, acessibilidade, beneficios, perguntas, cursosRecomendados };
 }
 
 export async function cadastrar(dados: DadosVaga, idEmpresa: number): Promise<RowDataPacket> {
@@ -213,6 +217,7 @@ export async function cadastrar(dados: DadosVaga, idEmpresa: number): Promise<Ro
     await inserirItens(conexao, 'requisitos', idVaga, dados.requisitos);
     await inserirItens(conexao, 'acessibilidade', idVaga, dados.acessibilidade);
     await inserirItens(conexao, 'beneficios', idVaga, dados.beneficios);
+    await inserirItens(conexao, 'perguntas', idVaga, dados.perguntas);
     await definirCursosRecomendados(conexao, idVaga, idEmpresa, dados.cursosRecomendados);
 
     await conexao.commit();
@@ -283,11 +288,13 @@ export async function atualizar(
     await removerItens(conexao, 'requisitos', id);
     await removerItens(conexao, 'acessibilidade', id);
     await removerItens(conexao, 'beneficios', id);
+    await removerItens(conexao, 'perguntas', id);
 
     await inserirItens(conexao, 'responsabilidades', id, dados.responsabilidades);
     await inserirItens(conexao, 'requisitos', id, dados.requisitos);
     await inserirItens(conexao, 'acessibilidade', id, dados.acessibilidade);
     await inserirItens(conexao, 'beneficios', id, dados.beneficios);
+    await inserirItens(conexao, 'perguntas', id, dados.perguntas);
     await definirCursosRecomendados(conexao, id, idEmpresa, dados.cursosRecomendados);
 
     await conexao.commit();
@@ -319,6 +326,9 @@ export async function listarCandidaturas(
 
   const [linhas] = await pool.query<RowDataPacket[]>(
     `SELECT c.IDCANDIDATURA, c.STATUSCANDIDATURA, c.DTCAD AS DTCANDIDATURA,
+            c.CARTAAPRESENTACAO, c.ENTREVISTAREMOTA, c.TEMPOESTENDIDO,
+            c.INTERPRETELIBRAS, c.INICIOIMEDIATO,
+            COALESCE(c.CURRICULOPDF, u.CURRICULOPDF) AS CURRICULOPDF,
             u.IDPCD, u.NOME, u.EMAIL, u.SOBREMIM
      FROM TBLCDSCAND0 c
      INNER JOIN TBLCDSUSR0 u ON u.IDPCD = c.IDPCD
@@ -327,41 +337,117 @@ export async function listarCandidaturas(
     [idVaga]
   );
 
-  return linhas;
+  const respostas = await listarRespostas(linhas.map((linha) => linha['IDCANDIDATURA'] as number));
+
+  return linhas.map((linha) => ({
+    ...linha,
+    respostas: respostas.get(linha['IDCANDIDATURA'] as number) ?? []
+  })) as RowDataPacket[];
 }
 
-//  * Candidata o PCD à vaga. Só aceita vagas ATIVA (não dá pra se candidatar a
-//  * uma vaga encerrada ou inativa) e bloqueia uma segunda candidatura à mesma
-//  * vaga — a unicidade também é garantida no banco (UQ_CANDIDATURA), mas o
-//  * check aqui devolve uma mensagem amigável em vez do erro cru do MySQL.
- 
-export async function candidatar(idVaga: number, idPcd: number): Promise<RowDataPacket> {
+/**
+ * Candidata o PCD à vaga, com a carta de apresentação, as adaptações de
+ * acessibilidade pedidas para o processo e as respostas às perguntas da
+ * empresa. Só aceita vagas ATIVA (não dá pra se candidatar a uma vaga
+ * encerrada ou inativa) e bloqueia uma segunda candidatura à mesma vaga — a
+ * unicidade também é garantida no banco (UQ_CANDIDATURA), mas o check aqui
+ * devolve uma mensagem amigável em vez do erro cru do MySQL.
+ *
+ * `curriculoPdf` é o nome do arquivo já salvo pelo multer quando o candidato
+ * anexou um PDF só para esta vaga; `null` usa o currículo do perfil.
+ */
+export async function candidatar(
+  idVaga: number,
+  dados: DadosCandidatura,
+  curriculoPdf: string | null
+): Promise<RowDataPacket> {
   const vaga = await buscarPorId(idVaga);
 
   if (vaga === null || vaga['STATUSVAGA'] !== 'ATIVA') {
     throw erroNaoEncontrado('Vaga não encontrada.');
   }
 
-  const [existentes] = await pool.query<RowDataPacket[]>(
-    'SELECT IDCANDIDATURA FROM TBLCDSCAND0 WHERE IDVAGA = ? AND IDPCD = ?',
-    [idVaga, idPcd]
-  );
+  const conexao = await pool.getConnection();
 
-  if (existentes.length > 0) {
-    throw erroDeConflito('Você já se candidatou a esta vaga.');
+  try {
+    await conexao.beginTransaction();
+
+    const [existentes] = await conexao.query<RowDataPacket[]>(
+      'SELECT IDCANDIDATURA FROM TBLCDSCAND0 WHERE IDVAGA = ? AND IDPCD = ?',
+      [idVaga, dados.idPcd]
+    );
+
+    if (existentes.length > 0) {
+      throw erroDeConflito('Você já se candidatou a esta vaga.');
+    }
+
+    const [resultado] = await conexao.execute<ResultSetHeader>(
+      `INSERT INTO TBLCDSCAND0
+        (IDVAGA, IDPCD, CARTAAPRESENTACAO, CURRICULOPDF,
+         ENTREVISTAREMOTA, TEMPOESTENDIDO, INTERPRETELIBRAS, INICIOIMEDIATO)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        idVaga,
+        dados.idPcd,
+        dados.cartaApresentacao,
+        curriculoPdf,
+        dados.entrevistaRemota,
+        dados.tempoEstendido,
+        dados.interpreteLibras,
+        dados.inicioImediato
+      ]
+    );
+
+    const idCandidatura = resultado.insertId;
+
+    // Primeira linha do histórico do processo seletivo ("Candidatura recebida").
+    await conexao.execute('INSERT INTO TBLCDSCANDHIST0 (IDCANDIDATURA, STATUSCANDIDATURA) VALUES (?, ?)', [
+      idCandidatura,
+      'PENDENTE'
+    ]);
+
+    if (dados.respostas.length > 0) {
+      const valores = dados.respostas.map((item) => [idCandidatura, item.pergunta, item.resposta]);
+      await conexao.query('INSERT INTO TBLCDSCANDRESP0 (IDCANDIDATURA, PERGUNTA, RESPOSTA) VALUES ?', [valores]);
+    }
+
+    await conexao.commit();
+
+    const [linhas] = await pool.query<RowDataPacket[]>(
+      'SELECT IDCANDIDATURA, IDVAGA, IDPCD, STATUSCANDIDATURA, DTCAD FROM TBLCDSCAND0 WHERE IDCANDIDATURA = ?',
+      [idCandidatura]
+    );
+
+    return linhas[0]!;
+  } catch (erro) {
+    await conexao.rollback();
+    throw erro;
+  } finally {
+    conexao.release();
+  }
+}
+
+/** Respostas às perguntas da vaga, agrupadas por candidatura. */
+export async function listarRespostas(idsCandidaturas: number[]): Promise<Map<number, RowDataPacket[]>> {
+  const porCandidatura = new Map<number, RowDataPacket[]>();
+
+  if (idsCandidaturas.length === 0) {
+    return porCandidatura;
   }
 
-  const [resultado] = await pool.execute<ResultSetHeader>(
-    'INSERT INTO TBLCDSCAND0 (IDVAGA, IDPCD) VALUES (?, ?)',
-    [idVaga, idPcd]
-  );
-
   const [linhas] = await pool.query<RowDataPacket[]>(
-    'SELECT IDCANDIDATURA, IDVAGA, IDPCD, STATUSCANDIDATURA, DTCAD FROM TBLCDSCAND0 WHERE IDCANDIDATURA = ?',
-    [resultado.insertId]
+    `SELECT IDCANDIDATURA, PERGUNTA, RESPOSTA FROM TBLCDSCANDRESP0
+     WHERE IDCANDIDATURA IN (${idsCandidaturas.map(() => '?').join(',')})
+     ORDER BY IDRESPOSTA`,
+    idsCandidaturas
   );
 
-  return linhas[0]!;
+  for (const linha of linhas) {
+    const id = linha['IDCANDIDATURA'] as number;
+    porCandidatura.set(id, [...(porCandidatura.get(id) ?? []), linha]);
+  }
+
+  return porCandidatura;
 }
 
 //

@@ -7,6 +7,7 @@ import multer from 'multer';
 import { PASTA_UPLOADS_AVATARES_PCD, PASTA_UPLOADS_CURRICULOS_PCD, PASTA_UPLOADS_CURSOS } from './config/upload.ts';
 import { testarConexao } from './config/dataBase.ts';
 import rotasAuth from './routes/auth.routes.ts';
+import rotasCandidatura from './routes/candidatura.routes.ts';
 import rotasCidade from './routes/cidade.routes.ts';
 import rotasCurso from './routes/curso.routes.ts';
 import rotasEmpresa from './routes/empresa.routes.ts';
@@ -26,6 +27,7 @@ app.get('/', (_requisicao: Request, resposta: Response) => {
 });
 
 app.use('/auth', rotasAuth);
+app.use('/candidaturas', rotasCandidatura);
 app.use('/cidades', rotasCidade);
 app.use('/cursos', rotasCurso);
 app.use('/empresas', rotasEmpresa);

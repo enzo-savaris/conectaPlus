@@ -2,7 +2,6 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { Router, RouterLink } from '@angular/router';
 
 import { AuthService } from '../../shared/services/auth.service';
-import { ToastService } from '../../shared/services/toast.service';
 import { VagaService } from '../../shared/services/vaga.service';
 import { MinhaCandidatura, Vaga } from '../../shared/types/vaga';
 import {
@@ -28,7 +27,6 @@ export class Landing {
   private readonly vagaService = inject(VagaService);
   private readonly authService = inject(AuthService);
   private readonly roteador = inject(Router);
-  private readonly toastService = inject(ToastService);
 
   protected readonly anoAtual = new Date().getFullYear();
 
@@ -36,7 +34,6 @@ export class Landing {
   protected readonly minhasCandidaturas = signal<MinhaCandidatura[]>([]);
   protected readonly carregando = signal(true);
   protected readonly erro = signal<string | null>(null);
-  protected readonly candidatandoId = signal<number | null>(null);
   protected readonly termoBusca = signal('');
 
   /** Ids das vagas em que o candidato logado já se candidatou, pra desabilitar o botão delas. */
@@ -104,7 +101,7 @@ export class Landing {
   }
 
   /**
-   * Quem já está logado como candidato PCD se candidata na hora; visitante
+   * Quem já está logado como candidato PCD vai para a tela de candidatura; visitante
    * (ou empresa, se por acaso estiver logada) é mandado pro login primeiro.
    */
   protected candidatarSe(vaga: Vaga): void {
@@ -115,23 +112,7 @@ export class Landing {
       return;
     }
 
-    this.erro.set(null);
-    this.candidatandoId.set(vaga.id);
-
-    this.vagaService.candidatar(vaga.id, sessao.perfil.id).subscribe({
-      next: () => {
-        this.minhasCandidaturas.update((lista) => [
-          ...lista,
-          { idVaga: vaga.id, titulo: vaga.titulo, status: 'PENDENTE', dataCandidatura: new Date().toISOString() }
-        ]);
-        this.candidatandoId.set(null);
-        this.toastService.sucesso('Candidatura enviada com sucesso!');
-      },
-      error: () => {
-        this.candidatandoId.set(null);
-        this.erro.set('Não foi possível enviar sua candidatura. Tente novamente.');
-      }
-    });
+    this.roteador.navigate(['/vagas-disponiveis', vaga.id, 'candidatar']);
   }
 
   protected formatarLocalizacao(vaga: Vaga): string {

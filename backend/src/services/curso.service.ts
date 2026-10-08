@@ -70,7 +70,7 @@ async function obterPorId(id: number): Promise<RowDataPacket> {
 /** Capítulos de um módulo, na ordem em que foram cadastrados. */
 async function listarCapitulos(idModulo: number): Promise<RowDataPacket[]> {
   const [linhas] = await pool.query<RowDataPacket[]>(
-    `SELECT IDCAPITULO, TITULO, TIPOCONTEUDO, LINKCAPITULO, ARQUIVOCAPITULO
+    `SELECT IDCAPITULO, TITULO, DESCRICAO, TIPOCONTEUDO, LINKCAPITULO, ARQUIVOCAPITULO, MATERIAL
      FROM TBLCDSCURSOCAP0 WHERE IDMODULO = ? ORDER BY IDCAPITULO`,
     [idModulo]
   );
@@ -117,9 +117,11 @@ async function removerArquivo(nomeArquivo: string | null): Promise<void> {
 
 /**
  * Grava os módulos e capítulos do curso. `arquivosPorChave` traz os arquivos
- * recém-enviados, indexados por `modulo_<indiceModulo>_capitulo_<indiceCapitulo>`
- * (convenção combinada com o controller, que monta o mapa a partir do
- * `fieldname` de cada arquivo do multer).
+ * recém-enviados, indexados por `modulo_<i>_capitulo_<j>` (conteúdo principal,
+ * só quando ARQUIVO) e `material_modulo_<i>_capitulo_<j>` (material de apoio,
+ * opcional, qualquer tipo de conteúdo) — convenção combinada com o
+ * controller, que monta o mapa a partir do `fieldname` de cada arquivo do
+ * multer.
  */
 async function inserirModulos(
   conexao: PoolConnection,
@@ -139,8 +141,13 @@ async function inserirModulos(
     for (let indiceCapitulo = 0; indiceCapitulo < modulo.capitulos.length; indiceCapitulo++) {
       const capitulo = modulo.capitulos[indiceCapitulo]!;
       const chave = `modulo_${indiceModulo}_capitulo_${indiceCapitulo}`;
+      const chaveMaterial = `material_${chave}`;
+
       const arquivoNovo = arquivosPorChave.get(chave) ?? null;
       const arquivoFinal = capitulo.tipoConteudo === 'ARQUIVO' ? (arquivoNovo ?? capitulo.arquivoAtual) : null;
+
+      const materialNovo = arquivosPorChave.get(chaveMaterial) ?? null;
+      const materialFinal = materialNovo ?? capitulo.materialAtual;
 
       if (capitulo.tipoConteudo === 'ARQUIVO' && !arquivoFinal) {
         throw erroDeValidacao({
@@ -150,14 +157,16 @@ async function inserirModulos(
       }
 
       await conexao.execute(
-        `INSERT INTO TBLCDSCURSOCAP0 (IDMODULO, TITULO, TIPOCONTEUDO, LINKCAPITULO, ARQUIVOCAPITULO)
-         VALUES (?, ?, ?, ?, ?)`,
+        `INSERT INTO TBLCDSCURSOCAP0 (IDMODULO, TITULO, DESCRICAO, TIPOCONTEUDO, LINKCAPITULO, ARQUIVOCAPITULO, MATERIAL)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
         [
           idModulo,
           capitulo.titulo,
+          capitulo.descricao,
           capitulo.tipoConteudo,
           capitulo.tipoConteudo === 'LINK' ? capitulo.linkCapitulo : null,
-          arquivoFinal
+          arquivoFinal,
+          materialFinal
         ]
       );
     }
@@ -242,13 +251,17 @@ export async function atualizar(
     const arquivosAntigos = new Set<string>();
     if (idsModulosAntigos.length > 0) {
       const [capitulosAntigos] = await conexao.query<RowDataPacket[]>(
-        `SELECT ARQUIVOCAPITULO FROM TBLCDSCURSOCAP0 WHERE IDMODULO IN (${idsModulosAntigos.map(() => '?').join(',')})`,
+        `SELECT ARQUIVOCAPITULO, MATERIAL FROM TBLCDSCURSOCAP0 WHERE IDMODULO IN (${idsModulosAntigos.map(() => '?').join(',')})`,
         idsModulosAntigos
       );
       for (const linha of capitulosAntigos) {
         const arquivo = linha['ARQUIVOCAPITULO'] as string | null;
+        const material = linha['MATERIAL'] as string | null;
         if (arquivo) {
           arquivosAntigos.add(arquivo);
+        }
+        if (material) {
+          arquivosAntigos.add(material);
         }
       }
     }
@@ -269,6 +282,9 @@ export async function atualizar(
       for (const capitulo of modulo.capitulos) {
         if (capitulo.arquivoAtual) {
           arquivosEmUso.add(capitulo.arquivoAtual);
+        }
+        if (capitulo.materialAtual) {
+          arquivosEmUso.add(capitulo.materialAtual);
         }
       }
     }

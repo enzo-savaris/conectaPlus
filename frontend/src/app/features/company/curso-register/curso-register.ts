@@ -1,24 +1,29 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { ActivatedRoute, Router } from '@angular/router';
 
-import { AuthService } from '../../shared/services/auth.service';
-import { CursoService } from '../../shared/services/curso.service';
-import { ToastService } from '../../shared/services/toast.service';
-import { Curso as CursoModelo, NovoCurso, NovoModulo, TipoConteudoCurso } from '../../shared/types/curso';
-import { formatarCargaHorariaCurso, formatarPrecoCurso } from '../../shared/utils/curso-format';
+import { AuthService } from '../../../shared/services/auth.service';
+import { CursoService } from '../../../shared/services/curso.service';
+import { ToastService } from '../../../shared/services/toast.service';
+import { NovoCurso, NovoModulo, TipoConteudoCurso } from '../../../shared/types/curso';
 
 const REGEX_URL = /^https?:\/\/.+/i;
 
 /** Estado de edição de uma aula: espelha `NovoCapitulo`, mas com string vazia em vez de null nos campos de texto (mais fácil de ligar ao input). */
 interface CapituloEmEdicao {
   titulo: string;
+  descricao: string;
   tipoConteudo: TipoConteudoCurso;
   linkCapitulo: string;
   arquivo: File | null;
   /** Nome do vídeo já cadastrado (edição) e sua URL só para exibir o nome ao usuário. */
   arquivoAtual: string | null;
   arquivoAtualNome: string | null;
+  material: File | null;
+  /** Nome do material já cadastrado (edição) e seu nome só para exibir ao usuário. */
+  materialAtual: string | null;
+  materialAtualNome: string | null;
 }
 
 interface ModuloEmEdicao {
@@ -29,11 +34,15 @@ interface ModuloEmEdicao {
 function criarCapituloVazio(): CapituloEmEdicao {
   return {
     titulo: '',
+    descricao: '',
     tipoConteudo: 'LINK',
     linkCapitulo: '',
     arquivo: null,
     arquivoAtual: null,
-    arquivoAtualNome: null
+    arquivoAtualNome: null,
+    material: null,
+    materialAtual: null,
+    materialAtualNome: null
   };
 }
 
@@ -46,24 +55,27 @@ function nomeArquivoDaUrl(url: string): string {
   return url.split('/').pop() ?? url;
 }
 
-/** Tela de cursos da empresa: cadastro por módulos e aulas, e lista dos já publicados. */
+/** Tela de cadastro/edição de curso da empresa: dados básicos, mais módulos e aulas. */
 @Component({
-  selector: 'app-curso',
+  selector: 'app-curso-register',
   imports: [ReactiveFormsModule],
-  templateUrl: './curso.html',
+  templateUrl: './curso-register.html',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class Curso {
+export class CursoRegister {
+  private readonly roteador = inject(Router);
+  private readonly rota = inject(ActivatedRoute);
   private readonly cursoService = inject(CursoService);
   private readonly authService = inject(AuthService);
   private readonly toastService = inject(ToastService);
 
-  protected readonly cursos = signal<CursoModelo[]>([]);
-  protected readonly carregando = signal(true);
+  /** Presente só na rota de edição (`empresa/cursos/:id/editar`). */
+  protected readonly idCursoEditando = signal<number | null>(null);
+  protected readonly carregandoCurso = signal(false);
   protected readonly enviando = signal(false);
-  protected readonly carregandoEdicao = signal(false);
-  protected readonly erroLista = signal<string | null>(null);
   protected readonly erroFormulario = signal<string | null>(null);
+
+  protected readonly modulos = signal<ModuloEmEdicao[]>([criarModuloVazio()]);
 
   /**
    * Só empresa ATIVA pode cadastrar/editar cursos; PENDENTE (ex.: depois de
@@ -73,10 +85,6 @@ export class Curso {
     const sessao = this.authService.sessao();
     return sessao?.ambiente !== 'empresa' || sessao.perfil.status === 'ATIVA';
   });
-
-  /** Presente só durante a edição de um curso já cadastrado. */
-  protected readonly idCursoEditando = signal<number | null>(null);
-  protected readonly modulos = signal<ModuloEmEdicao[]>([criarModuloVazio()]);
 
   protected readonly formulario = new FormGroup({
     titulo: new FormControl('', {
@@ -89,7 +97,12 @@ export class Curso {
   });
 
   constructor() {
-    this.carregarCursos();
+    if (!this.empresaAtiva()) {
+      // Empresa PENDENTE/INATIVA não deve cair aqui nem digitando a URL direto:
+      // sem isso, o botão fica escondido na lista, mas a rota continuaria acessível.
+      this.roteador.navigate(['/cursos']);
+      return;
+    }
 
     // Mantém o formulário em sincronia com o status da empresa: se ela deixar
     // de estar ATIVA (ex.: editou CNPJ/razão social) enquanto a tela já está
@@ -101,6 +114,13 @@ export class Curso {
         this.formulario.disable({ emitEvent: false });
       }
     });
+
+    const idParam = this.rota.snapshot.paramMap.get('id');
+    if (idParam) {
+      const idCurso = Number(idParam);
+      this.idCursoEditando.set(idCurso);
+      this.carregarCursoParaEdicao(idCurso);
+    }
   }
 
   /** Garantido pelo ambienteGuard('empresa'): só entra aqui quem está logado como empresa. */
@@ -109,18 +129,42 @@ export class Curso {
     return sessao?.ambiente === 'empresa' ? sessao.perfil.id : 0;
   }
 
-  private carregarCursos(): void {
-    this.carregando.set(true);
-    this.erroLista.set(null);
+  private carregarCursoParaEdicao(idCurso: number): void {
+    this.carregandoCurso.set(true);
+    this.erroFormulario.set(null);
 
-    this.cursoService.listar(this.idEmpresaLogada()).subscribe({
-      next: (cursos) => {
-        this.cursos.set(cursos);
-        this.carregando.set(false);
+    this.cursoService.obterPorId(idCurso).subscribe({
+      next: (detalhado) => {
+        this.carregandoCurso.set(false);
+
+        this.formulario.setValue({
+          titulo: detalhado.titulo,
+          cargaHoraria: detalhado.cargaHoraria,
+          preco: detalhado.preco,
+          descricao: detalhado.descricao ?? ''
+        });
+
+        this.modulos.set(
+          detalhado.modulos.map((modulo) => ({
+            titulo: modulo.titulo,
+            capitulos: modulo.capitulos.map((capitulo) => ({
+              titulo: capitulo.titulo,
+              descricao: capitulo.descricao ?? '',
+              tipoConteudo: capitulo.tipoConteudo,
+              linkCapitulo: capitulo.linkCapitulo ?? '',
+              arquivo: null,
+              arquivoAtual: capitulo.arquivoCapituloUrl ? nomeArquivoDaUrl(capitulo.arquivoCapituloUrl) : null,
+              arquivoAtualNome: capitulo.arquivoCapituloUrl ? nomeArquivoDaUrl(capitulo.arquivoCapituloUrl) : null,
+              material: null,
+              materialAtual: capitulo.materialUrl ? nomeArquivoDaUrl(capitulo.materialUrl) : null,
+              materialAtualNome: capitulo.materialUrl ? nomeArquivoDaUrl(capitulo.materialUrl) : null
+            }))
+          }))
+        );
       },
       error: () => {
-        this.erroLista.set('Não foi possível carregar os cursos. Tente novamente.');
-        this.carregando.set(false);
+        this.carregandoCurso.set(false);
+        this.erroFormulario.set('Não foi possível carregar esse curso para edição.');
       }
     });
   }
@@ -189,6 +233,10 @@ export class Curso {
     this.atualizarCapitulo(indiceModulo, indiceCapitulo, { titulo: valor });
   }
 
+  protected atualizarDescricaoCapitulo(indiceModulo: number, indiceCapitulo: number, valor: string): void {
+    this.atualizarCapitulo(indiceModulo, indiceCapitulo, { descricao: valor });
+  }
+
   protected atualizarLinkCapitulo(indiceModulo: number, indiceCapitulo: number, valor: string): void {
     this.atualizarCapitulo(indiceModulo, indiceCapitulo, { linkCapitulo: valor });
   }
@@ -206,57 +254,21 @@ export class Curso {
     this.atualizarCapitulo(indiceModulo, indiceCapitulo, { arquivo: entrada.files?.[0] ?? null });
   }
 
+  /** Material de apoio é opcional e independe do tipo de conteúdo (link ou vídeo) da aula. */
+  protected selecionarMaterialCapitulo(indiceModulo: number, indiceCapitulo: number, evento: Event): void {
+    const entrada = evento.target as HTMLInputElement;
+    this.atualizarCapitulo(indiceModulo, indiceCapitulo, { material: entrada.files?.[0] ?? null });
+  }
+
   /** Falta um vídeo nessa aula: nem veio um novo, nem já havia um cadastrado (edição). */
   protected precisaDeArquivoNovo(capitulo: CapituloEmEdicao): boolean {
     return capitulo.tipoConteudo === 'ARQUIVO' && capitulo.arquivo === null && capitulo.arquivoAtual === null;
   }
 
-  // ============ CADASTRO / EDIÇÃO / ENVIO ============
+  // ============ ENVIO ============
 
-  protected aoClicarEditar(curso: CursoModelo): void {
-    this.erroFormulario.set(null);
-    this.carregandoEdicao.set(true);
-    this.idCursoEditando.set(curso.id);
-
-    this.cursoService.obterPorId(curso.id).subscribe({
-      next: (detalhado) => {
-        this.carregandoEdicao.set(false);
-
-        this.formulario.setValue({
-          titulo: detalhado.titulo,
-          cargaHoraria: detalhado.cargaHoraria,
-          preco: detalhado.preco,
-          descricao: detalhado.descricao ?? ''
-        });
-
-        this.modulos.set(
-          detalhado.modulos.map((modulo) => ({
-            titulo: modulo.titulo,
-            capitulos: modulo.capitulos.map((capitulo) => ({
-              titulo: capitulo.titulo,
-              tipoConteudo: capitulo.tipoConteudo,
-              linkCapitulo: capitulo.linkCapitulo ?? '',
-              arquivo: null,
-              arquivoAtual: capitulo.arquivoCapituloUrl ? nomeArquivoDaUrl(capitulo.arquivoCapituloUrl) : null,
-              arquivoAtualNome: capitulo.arquivoCapituloUrl ? nomeArquivoDaUrl(capitulo.arquivoCapituloUrl) : null
-            }))
-          }))
-        );
-      },
-      error: () => {
-        this.carregandoEdicao.set(false);
-        this.erroFormulario.set('Não foi possível carregar esse curso para edição.');
-        this.idCursoEditando.set(null);
-      }
-    });
-  }
-
-  /** Limpa o formulário — tanto pra sair da edição quanto pra descartar um cadastro novo em andamento. */
   protected aoCancelar(): void {
-    this.idCursoEditando.set(null);
-    this.erroFormulario.set(null);
-    this.modulos.set([criarModuloVazio()]);
-    this.formulario.reset({ titulo: '', cargaHoraria: null, preco: null, descricao: '' });
+    this.roteador.navigate(['/cursos']);
   }
 
   /** Valida módulos e capítulos no cliente; o servidor repete tudo isso, mas aqui dá feedback na hora. */
@@ -313,10 +325,13 @@ export class Curso {
       titulo: modulo.titulo,
       capitulos: modulo.capitulos.map((capitulo) => ({
         titulo: capitulo.titulo,
+        descricao: capitulo.descricao.trim() || null,
         tipoConteudo: capitulo.tipoConteudo,
         linkCapitulo: capitulo.tipoConteudo === 'LINK' ? capitulo.linkCapitulo : null,
         arquivo: capitulo.tipoConteudo === 'ARQUIVO' ? capitulo.arquivo : null,
-        arquivoAtual: capitulo.tipoConteudo === 'ARQUIVO' ? capitulo.arquivoAtual : null
+        arquivoAtual: capitulo.tipoConteudo === 'ARQUIVO' ? capitulo.arquivoAtual : null,
+        material: capitulo.material,
+        materialAtual: capitulo.materialAtual
       }))
     }));
 
@@ -336,17 +351,12 @@ export class Curso {
         : this.cursoService.cadastrar(dados, idEmpresa);
 
     operacao.subscribe({
-      next: (curso) => {
+      next: () => {
         this.enviando.set(false);
-        this.cursos.update((lista) =>
-          idEditando !== null
-            ? lista.map((item) => (item.id === curso.id ? curso : item))
-            : [curso, ...lista]
-        );
         if (idEditando === null) {
           this.toastService.sucesso('Curso cadastrado com sucesso!');
         }
-        this.aoCancelar();
+        this.roteador.navigate(['/cursos']);
       },
       error: (erro: HttpErrorResponse) => {
         this.enviando.set(false);
@@ -358,13 +368,5 @@ export class Curso {
         );
       }
     });
-  }
-
-  protected formatarCargaHoraria(curso: CursoModelo): string {
-    return formatarCargaHorariaCurso(curso.cargaHoraria);
-  }
-
-  protected formatarPreco(curso: CursoModelo): string {
-    return formatarPrecoCurso(curso.preco);
   }
 }

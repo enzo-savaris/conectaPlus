@@ -59,29 +59,30 @@
 
           <!-- CTA de candidatura: fica no topo pra não precisar rolar a página inteira. -->
           <section class="rounded-2xl border border-white/10 bg-ink-900/60 p-5">
-            @if (erroCandidatura()) {
-              <p class="mb-3 rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200" role="alert">
-                {{ erroCandidatura() }}
-              </p>
-            }
-
             @if (jaCandidatado()) {
-              <span
-                class="inline-flex items-center gap-1.5 rounded-lg border border-emerald-400/30 bg-emerald-400/10 px-4 py-2 text-sm font-semibold text-emerald-300"
-              >
-                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                  <path d="m5 12 4.5 4.5L19 7" stroke-linecap="round" stroke-linejoin="round" />
-                </svg>
-                Você já se candidatou a esta vaga.
-              </span>
+              <div class="flex flex-wrap items-center gap-3">
+                <span
+                  class="inline-flex items-center gap-1.5 rounded-lg border border-emerald-400/30 bg-emerald-400/10 px-4 py-2 text-sm font-semibold text-emerald-300"
+                >
+                  <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                    <path d="m5 12 4.5 4.5L19 7" stroke-linecap="round" stroke-linejoin="round" />
+                  </svg>
+                  Você já se candidatou a esta vaga.
+                </span>
+                <a
+                  [routerLink]="['/vagas-disponiveis', v.id, 'candidatura']"
+                  class="text-sm font-semibold text-brand-300 transition hover:text-brand-200"
+                >
+                  Acompanhar candidatura →
+                </a>
+              </div>
             } @else {
               <button
                 type="button"
                 (click)="candidatarSe()"
-                [disabled]="candidatando()"
                 class="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-brand-300 to-brand-600 px-6 py-2.5 text-sm font-semibold text-ink-950 shadow-lg shadow-brand-500/20 transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-300"
               >
-                {{ candidatando() ? 'Enviando…' : 'Candidatar-se a esta vaga' }}
+                Candidatar-se a esta vaga
               </button>
               <p class="mt-2 text-xs text-slate-500">
                 Precisa estar logado como candidato pra se candidatar — se ainda não tem conta, é rápido criar uma.

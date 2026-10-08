@@ -5,6 +5,7 @@ import { forkJoin } from 'rxjs';
 import { AuthService } from '../../shared/services/auth.service';
 import { VagaService } from '../../shared/services/vaga.service';
 import { MinhaCandidatura, VagaDetalhada } from '../../shared/types/vaga';
+import { corStatusCandidatura, formatarStatusCandidatura } from '../../shared/utils/candidatura-format';
 import {
   formatarLocalizacaoVaga,
   formatarSalarioVaga,
@@ -126,29 +127,11 @@ export class Painel {
   }
 
   protected formatarStatusCandidatura(status: MinhaCandidatura['status']): string {
-    switch (status) {
-      case 'EM_ANALISE':
-        return 'Em análise';
-      case 'APROVADO':
-        return 'Aprovado';
-      case 'REPROVADO':
-        return 'Reprovado';
-      default:
-        return 'Enviada';
-    }
+    return formatarStatusCandidatura(status, 'candidato');
   }
 
   protected corStatusCandidatura(status: MinhaCandidatura['status']): string {
-    switch (status) {
-      case 'EM_ANALISE':
-        return 'bg-amber-400';
-      case 'APROVADO':
-        return 'bg-emerald-400';
-      case 'REPROVADO':
-        return 'bg-rose-400';
-      default:
-        return 'bg-brand-400';
-    }
+    return corStatusCandidatura(status);
   }
 
   /** Formata a data da candidatura como tempo relativo ("2 dias atrás"), como no mockup. */

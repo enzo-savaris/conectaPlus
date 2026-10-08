@@ -88,6 +88,7 @@ export class VagaRegister {
   protected readonly requisitos = signal<string[]>([]);
   protected readonly acessibilidade = signal<string[]>([]);
   protected readonly beneficios = signal<string[]>([]);
+  protected readonly perguntas = signal<string[]>([]);
 
   protected readonly cursosDaEmpresa = signal<Curso[]>([]);
   protected readonly cursosSelecionados = signal<ReadonlySet<number>>(new Set());
@@ -257,6 +258,7 @@ export class VagaRegister {
         this.requisitos.set(vaga.requisitos);
         this.acessibilidade.set(vaga.acessibilidade);
         this.beneficios.set(vaga.beneficios);
+        this.perguntas.set(vaga.perguntas);
         this.cursosSelecionados.set(new Set(vaga.cursosRecomendados.map((curso) => curso.id)));
         this.carregandoVaga.set(false);
       },
@@ -295,6 +297,7 @@ export class VagaRegister {
       requisitos: this.requisitos(),
       acessibilidade: this.acessibilidade(),
       beneficios: this.beneficios(),
+      perguntas: this.perguntas(),
       cursosRecomendados: Array.from(this.cursosSelecionados())
     };
 

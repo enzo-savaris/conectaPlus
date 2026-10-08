@@ -5,6 +5,8 @@ import { PASTA_UPLOADS_AVATARES_PCD, PASTA_UPLOADS_CURRICULOS_PCD } from '../con
 import pool from '../config/dataBase.ts';
 import { erroDeConflito, erroNaoEncontrado } from '../utils/erro-app.ts';
 import { gerarHashSenha } from '../utils/senha.ts';
+import { COLUNAS_PROCESSO, listarHistorico } from './candidatura.service.ts';
+import { listarRespostas } from './vaga.service.ts';
 import type { DadosCandidato, DadosPerfilCandidato } from '../utils/validacao-candidato.ts';
 
 /**
@@ -367,4 +369,35 @@ export async function listarCandidaturas(idPcd: number): Promise<RowDataPacket[]
   );
 
   return linhas;
+}
+
+/**
+ * Candidatura do próprio candidato a uma vaga, usada na tela de
+ * acompanhamento depois do envio: status, data, nome da vaga/empresa, o que
+ * ele enviou (adaptações de acessibilidade pedidas) e o andamento do processo
+ * (entrevista agendada, resultado e o histórico de cada etapa).
+ */
+export async function obterCandidatura(idPcd: number, idVaga: number): Promise<Record<string, unknown>> {
+  const [linhas] = await pool.query<RowDataPacket[]>(
+    `SELECT c.IDCANDIDATURA, c.IDVAGA, ${COLUNAS_PROCESSO}, c.CARTAAPRESENTACAO,
+            v.TITULO, COALESCE(emp.FANTASIA, emp.RAZAO) AS NOMEEMPRESA
+     FROM TBLCDSCAND0 c
+     INNER JOIN TBLCDSVAG0 v ON v.IDVAGA = c.IDVAGA
+     LEFT JOIN TBLCDSEMP0 emp ON emp.IDEMPRESA = v.IDEMPRESA
+     WHERE c.IDPCD = ? AND c.IDVAGA = ?`,
+    [idPcd, idVaga]
+  );
+
+  const candidatura = linhas[0];
+  if (!candidatura) {
+    throw erroNaoEncontrado('Candidatura não encontrada.');
+  }
+
+  const idCandidatura = candidatura['IDCANDIDATURA'] as number;
+  const [respostas, historico] = await Promise.all([
+    listarRespostas([idCandidatura]),
+    listarHistorico(idCandidatura)
+  ]);
+
+  return { ...candidatura, respostas: respostas.get(idCandidatura) ?? [], historico };
 }

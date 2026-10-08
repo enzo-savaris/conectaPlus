@@ -6,6 +6,7 @@ import { AuthService } from '../../../shared/services/auth.service';
 import { VagaService } from '../../../shared/services/vaga.service';
 import { Candidatura, CursoRecomendado, VagaDetalhada } from '../../../shared/types/vaga';
 import { formatarCargaHorariaCurso, formatarPrecoCurso } from '../../../shared/utils/curso-format';
+import { corStatusCandidatura, formatarStatusCandidatura } from '../../../shared/utils/candidatura-format';
 import {
   formatarLocalizacaoVaga,
   formatarSalarioVaga,
@@ -69,6 +70,11 @@ export class VagaDetalhes {
     this.roteador.navigate(['/vagas']);
   }
 
+  /** Clicar no inscrito abre a gestão da candidatura (etapas do processo seletivo). */
+  protected aoClicarCandidatura(candidatura: Candidatura): void {
+    this.roteador.navigate(['/empresa/candidaturas', candidatura.id]);
+  }
+
   /**
    * Leva a origem (esta vaga) na URL, para que o "Voltar" da tela do
    * candidato saiba trazer a empresa de volta pra cá — e não para a lista
@@ -92,17 +98,19 @@ export class VagaDetalhes {
     return formatarTipoContratacao(vaga.tipoContratacao);
   }
 
+  /** Adaptações de acessibilidade que o candidato pediu no envio, já como texto. */
+  protected adaptacoesPedidas(candidatura: Candidatura): string[] {
+    const { entrevistaRemota, tempoEstendido, interpreteLibras } = candidatura.adaptacoes;
+
+    return [
+      entrevistaRemota ? 'Entrevista 100% remota' : null,
+      tempoEstendido ? 'Tempo estendido em testes' : null,
+      interpreteLibras ? 'Intérprete de Libras' : null
+    ].filter((item): item is string => item !== null);
+  }
+
   protected formatarStatusCandidatura(status: Candidatura['status']): string {
-    switch (status) {
-      case 'EM_ANALISE':
-        return 'Em análise';
-      case 'APROVADO':
-        return 'Aprovado';
-      case 'REPROVADO':
-        return 'Reprovado';
-      default:
-        return 'Novo';
-    }
+    return formatarStatusCandidatura(status, 'empresa');
   }
 
   protected formatarCargaHorariaCurso(curso: CursoRecomendado): string {
@@ -114,15 +122,6 @@ export class VagaDetalhes {
   }
 
   protected corStatusCandidatura(status: Candidatura['status']): string {
-    switch (status) {
-      case 'EM_ANALISE':
-        return 'bg-amber-400';
-      case 'APROVADO':
-        return 'bg-emerald-400';
-      case 'REPROVADO':
-        return 'bg-rose-400';
-      default:
-        return 'bg-brand-400';
-    }
+    return corStatusCandidatura(status);
   }
 }

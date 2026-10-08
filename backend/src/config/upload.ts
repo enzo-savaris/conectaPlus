@@ -32,14 +32,22 @@ function criarArmazenamento(pasta: string): multer.StorageEngine {
 const armazenamento = criarArmazenamento(PASTA_UPLOADS);
 
 /**
- * Aceita só vídeo, para o campo de anexo do curso — o link externo cobre
- * qualquer outro tipo de material (PDF, apresentação, etc.).
+ * O conteúdo principal de uma aula (campo `modulo_<i>_capitulo_<j>`) só
+ * aceita vídeo — o link externo cobre qualquer outro tipo. Já o material de
+ * apoio (campo `material_modulo_<i>_capitulo_<j>`) é à parte do conteúdo
+ * principal e aceita qualquer tipo de arquivo (PDF, slides, etc.), então não
+ * passa por esse filtro de vídeo.
  */
-function filtrarVideo(
+function filtrarVideoDaAula(
   _requisicao: unknown,
   arquivo: Express.Multer.File,
   callback: multer.FileFilterCallback
 ): void {
+  if (arquivo.fieldname.startsWith('material_')) {
+    callback(null, true);
+    return;
+  }
+
   if (!arquivo.mimetype.startsWith('video/')) {
     callback(new Error('O arquivo enviado precisa ser um vídeo.'));
     return;
@@ -50,7 +58,7 @@ function filtrarVideo(
 
 export const uploadVideoCurso = multer({
   storage: armazenamento,
-  fileFilter: filtrarVideo,
+  fileFilter: filtrarVideoDaAula,
   limits: { fileSize: 200 * 1024 * 1024 }
 });
 
@@ -116,6 +124,23 @@ export const uploadPerfilPcd = multer({
   { name: 'avatar', maxCount: 1 },
   { name: 'curriculoPdf', maxCount: 1 }
 ]);
+
+/**
+ * Currículo em PDF anexado só para uma candidatura (botão "Trocar" da tela
+ * de candidatura) — fica na mesma pasta dos currículos do perfil.
+ */
+export const uploadCurriculoCandidatura = multer({
+  storage: criarArmazenamento(PASTA_UPLOADS_CURRICULOS),
+  fileFilter: (_requisicao, arquivo, callback) => {
+    if (arquivo.mimetype !== 'application/pdf') {
+      callback(new Error('O currículo precisa ser um arquivo PDF.'));
+      return;
+    }
+
+    callback(null, true);
+  },
+  limits: { fileSize: 10 * 1024 * 1024 }
+});
 
 /** Usada pelo `server.ts` para servir os vídeos enviados como arquivos estáticos. */
 export const PASTA_UPLOADS_CURSOS = PASTA_UPLOADS;

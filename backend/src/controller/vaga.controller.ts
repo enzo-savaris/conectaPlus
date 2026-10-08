@@ -1,7 +1,10 @@
 import type { Request, Response } from 'express';
+import { PASTA_UPLOADS_CURRICULOS_PCD } from '../config/upload.ts';
+import { removerArquivo } from '../services/usuario.service.ts';
 import * as vagaService from '../services/vaga.service.ts';
 import { ErroApp } from '../utils/erro-app.ts';
 import { validarId } from '../utils/validacao.ts';
+import { validarCandidatura } from '../utils/validacao-candidatura.ts';
 import { validarVaga } from '../utils/validacao-vaga.ts';
 
 /**
@@ -97,16 +100,24 @@ export const listarCandidaturasDaVaga = async (
   }
 };
 
-/** POST /vagas/:id/candidaturas — candidata o PCD informado em `idPcd` à vaga. */
+/**
+ * POST /vagas/:id/candidaturas — candidata o PCD informado em `idPcd` à vaga.
+ * Chega como multipart/form-data: o campo `curriculoPdf` é opcional e só vem
+ * quando o candidato trocou o currículo do perfil por outro só para esta vaga.
+ */
 export const candidatarNaVaga = async (requisicao: Request, resposta: Response): Promise<void> => {
+  const curriculoPdf = requisicao.file?.filename ?? null;
+
   try {
     const idVaga = validarId(requisicao.params['id']);
-    const corpo = requisicao.body as Record<string, unknown>;
-    const idPcd = validarId(corpo['idPcd']);
-    const candidatura = await vagaService.candidatar(idVaga, idPcd);
+    const dados = validarCandidatura(requisicao.body);
+    const candidatura = await vagaService.candidatar(idVaga, dados, curriculoPdf);
 
     resposta.status(201).json(candidatura);
   } catch (erro) {
+    // Sem isso, uma candidatura recusada (validação, vaga encerrada,
+    // duplicada) deixaria o PDF já salvo pelo multer órfão no disco.
+    await removerArquivo(PASTA_UPLOADS_CURRICULOS_PCD, curriculoPdf);
     responderErro(resposta, erro, 'Erro ao candidatar-se à vaga');
   }
 };

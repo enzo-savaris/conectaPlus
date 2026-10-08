@@ -62,7 +62,7 @@ export const routes: Routes = [
         title: 'Cursos | Conecta+',
         data: { ambiente: 'empresa' },
         canActivate: [ambienteGuard('empresa')],
-        loadComponent: () => import('./features/curso/curso').then((m) => m.Curso)
+        loadComponent: () => import('./features/cursos/cursos').then((m) => m.Cursos)
       },
       {
         path: 'perfil',
@@ -93,6 +93,24 @@ export const routes: Routes = [
         title: 'Vaga | Conecta+',
         canActivate: [ambienteGuard('usuario')],
         loadComponent: () => import('./features/vaga-publica/vaga-publica').then((m) => m.VagaPublica)
+      },
+      // Fluxo de candidatura: o formulário de envio e, depois, a confirmação
+      // que também serve de acompanhamento do processo seletivo.
+      {
+        path: 'vagas-disponiveis/:id/candidatar',
+        title: 'Candidatar-se | Conecta+',
+        canActivate: [ambienteGuard('usuario')],
+        loadComponent: () =>
+          import('./features/candidato/candidatura/candidatura').then((m) => m.Candidatura)
+      },
+      {
+        path: 'vagas-disponiveis/:id/candidatura',
+        title: 'Candidatura enviada | Conecta+',
+        canActivate: [ambienteGuard('usuario')],
+        loadComponent: () =>
+          import('./features/candidato/candidatura-enviada/candidatura-enviada').then(
+            (m) => m.CandidaturaEnviada
+          )
       },
       {
         path: 'cursos-disponiveis',
@@ -154,6 +172,14 @@ export const routes: Routes = [
           import('./features/company/candidato-detalhes/candidato-detalhes').then((m) => m.CandidatoDetalhes)
       },
       {
+        path: 'empresa/candidaturas/:id',
+        title: 'Gerenciar Candidatura | Conecta+',
+        data: { ambiente: 'empresa' },
+        canActivate: [ambienteGuard('empresa')],
+        loadComponent: () =>
+          import('./features/company/candidatura-gestao/candidatura-gestao').then((m) => m.GerenciarCandidatura)
+      },
+      {
         path: 'empresa/vagas/nova',
         title: 'Cadastrar Vaga | Conecta+',
         data: { ambiente: 'empresa' },
@@ -169,15 +195,31 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/company/vaga-detalhes/vaga-detalhes').then((m) => m.VagaDetalhes)
       },
-      // Mesma tela de /cursos-disponiveis/:id (candidato), reaproveitada para
-      // a empresa ver a estrutura de um curso que ela recomendou numa vaga.
       {
-        path: 'empresa/cursos/:id',
-        title: 'Curso | Conecta+',
+        path: 'empresa/cursos/novo',
+        title: 'Cadastrar Curso | Conecta+',
         data: { ambiente: 'empresa' },
         canActivate: [ambienteGuard('empresa')],
         loadComponent: () =>
-          import('./features/candidato/curso-detalhes/curso-detalhes').then((m) => m.CursoDetalhes)
+          import('./features/company/curso-register/curso-register').then((m) => m.CursoRegister)
+      },
+      {
+        path: 'empresa/cursos/:id',
+        title: 'Detalhes do Curso | Conecta+',
+        data: { ambiente: 'empresa' },
+        canActivate: [ambienteGuard('empresa')],
+        loadComponent: () =>
+          import('./features/company/curso-detalhes/curso-detalhes-empresa').then(
+            (m) => m.CursoDetalhesEmpresa
+          )
+      },
+      {
+        path: 'empresa/cursos/:id/editar',
+        title: 'Editar Curso | Conecta+',
+        data: { ambiente: 'empresa' },
+        canActivate: [ambienteGuard('empresa')],
+        loadComponent: () =>
+          import('./features/company/curso-register/curso-register').then((m) => m.CursoRegister)
       },
       {
         path: 'empresa/vagas/:id/editar',

@@ -27,6 +27,8 @@ export interface DadosVaga {
   requisitos: string[];
   acessibilidade: string[];
   beneficios: string[];
+  /** Perguntas que o candidato responde ao se candidatar. */
+  perguntas: string[];
   /** Ids de cursos recomendados; o service confere que pertencem à mesma empresa antes de gravar. */
   cursosRecomendados: number[];
 }
@@ -159,6 +161,7 @@ export function validarVaga(corpo: unknown): DadosVaga {
     requisitos: listaDeTextos(entrada['requisitos']),
     acessibilidade: listaDeTextos(entrada['acessibilidade']),
     beneficios: listaDeTextos(entrada['beneficios']),
+    perguntas: listaDeTextos(entrada['perguntas']),
     cursosRecomendados: listaDeIds(entrada['cursosRecomendados'])
   };
 }

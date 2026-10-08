@@ -1,0 +1,161 @@
+<div class="p-8">
+  <a
+    routerLink="/cursos"
+    class="inline-flex items-center gap-1.5 rounded-full border border-white/12 bg-ink-800/60 px-4 py-1.5 text-xs font-medium text-slate-300 transition hover:border-white/25 hover:bg-ink-700/70 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-400"
+  >
+    <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+      <path d="M15 19l-7-7 7-7" stroke-linecap="round" stroke-linejoin="round" />
+    </svg>
+    Voltar para cursos
+  </a>
+
+  @if (erro()) {
+    <p class="mt-6 rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200" role="alert">
+      {{ erro() }}
+    </p>
+  }
+
+  @if (carregando()) {
+    <p class="mt-8 text-sm text-slate-400">Carregando curso…</p>
+  } @else if (curso(); as c) {
+    <div class="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[2fr_1fr]">
+      <div class="flex flex-col gap-6">
+        <header>
+          <h1 class="text-2xl font-bold text-white sm:text-3xl">{{ c.titulo }}</h1>
+          @if (c.descricao) {
+            <p class="mt-3 text-sm whitespace-pre-line text-slate-300">{{ c.descricao }}</p>
+          }
+        </header>
+
+        <section class="flex flex-col gap-3">
+          <h2 class="text-sm font-semibold text-white">Conteúdo do curso</h2>
+
+          @if (c.modulos.length === 0) {
+            <p class="rounded-xl border border-dashed border-white/15 bg-ink-900/40 p-6 text-center text-sm text-slate-400">
+              Este curso ainda não tem módulos cadastrados.
+            </p>
+          }
+
+          @for (modulo of c.modulos; track modulo.id; let indiceModulo = $index) {
+            <div class="overflow-hidden rounded-2xl border border-white/10 bg-ink-900/60">
+              <button
+                type="button"
+                (click)="alternarModulo(modulo.id)"
+                class="flex w-full items-center justify-between gap-3 px-5 py-4 text-left transition hover:bg-white/5"
+                [attr.aria-expanded]="moduloAberto(modulo.id)"
+              >
+                <span class="flex min-w-0 items-center gap-3">
+                  <svg
+                    class="h-4 w-4 shrink-0 text-brand-300 transition-transform duration-200"
+                    [class.rotate-90]="moduloAberto(modulo.id)"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    aria-hidden="true"
+                  >
+                    <path d="m9 5 7 7-7 7" stroke-linecap="round" stroke-linejoin="round" />
+                  </svg>
+                  <span class="truncate text-sm font-semibold text-white">
+                    Módulo {{ indiceModulo + 1 }} — {{ modulo.titulo }}
+                  </span>
+                </span>
+                <span class="shrink-0 rounded-full border border-white/12 bg-ink-800/60 px-3 py-1 text-xs font-medium text-slate-300">
+                  {{ modulo.capitulos.length }} {{ modulo.capitulos.length === 1 ? 'aula' : 'aulas' }}
+                </span>
+              </button>
+
+              @if (moduloAberto(modulo.id)) {
+                <ul class="flex flex-col divide-y divide-white/10 border-t border-white/10">
+                  @for (capitulo of modulo.capitulos; track capitulo.id; let indiceCapitulo = $index) {
+                    <li class="px-5 py-3 pl-12">
+                      @if (linkDoCapitulo(capitulo); as url) {
+                        <a
+                          [href]="url"
+                          target="_blank"
+                          rel="noopener"
+                          class="flex items-center justify-between gap-3 text-sm text-slate-300 transition hover:text-brand-200"
+                        >
+                          <span class="truncate">{{ indiceModulo + 1 }}.{{ indiceCapitulo + 1 }} {{ capitulo.titulo }}</span>
+                          <span class="shrink-0 text-xs text-slate-500">
+                            {{ capitulo.tipoConteudo === 'LINK' ? 'Link' : 'Vídeo' }}
+                          </span>
+                        </a>
+                      } @else {
+                        <span class="block truncate text-sm text-slate-500">
+                          {{ indiceModulo + 1 }}.{{ indiceCapitulo + 1 }} {{ capitulo.titulo }}
+                        </span>
+                      }
+
+                      @if (capitulo.descricao) {
+                        <p class="mt-1 text-xs text-slate-400">{{ capitulo.descricao }}</p>
+                      }
+
+                      @if (capitulo.materialUrl) {
+                        <a
+                          [href]="capitulo.materialUrl"
+                          target="_blank"
+                          rel="noopener"
+                          class="mt-1.5 inline-flex items-center gap-1.5 text-xs text-brand-300 transition hover:text-brand-200"
+                        >
+                          Material de apoio
+                        </a>
+                      }
+                    </li>
+                  }
+                </ul>
+              }
+            </div>
+          }
+        </section>
+      </div>
+
+      <aside class="flex h-fit flex-col gap-4 rounded-2xl border border-white/10 bg-ink-900/60 p-5">
+        <div class="flex items-center justify-between gap-3">
+          <h2 class="text-sm font-semibold text-white">Resumo</h2>
+          <span
+            class="rounded-full border px-3 py-1 text-xs font-semibold"
+            [class]="c.status === 'ATIVO'
+              ? 'border-emerald-400/40 bg-emerald-400/10 text-emerald-300'
+              : 'border-slate-400/30 bg-slate-400/10 text-slate-300'"
+          >
+            {{ c.status === 'ATIVO' ? 'Ativo' : 'Inativo' }}
+          </span>
+        </div>
+
+        <dl class="flex flex-col gap-3 text-sm">
+          <div>
+            <dt class="text-xs text-slate-500">Carga horária</dt>
+            <dd class="text-slate-200">{{ formatarCargaHoraria(c) }}</dd>
+          </div>
+          <div>
+            <dt class="text-xs text-slate-500">Preço</dt>
+            <dd class="font-semibold text-brand-300">{{ formatarPreco(c) }}</dd>
+          </div>
+          <div>
+            <dt class="text-xs text-slate-500">Estrutura</dt>
+            <dd class="text-slate-200">
+              {{ c.modulos.length }} {{ c.modulos.length === 1 ? 'módulo' : 'módulos' }} ·
+              {{ totalAulas() }} {{ totalAulas() === 1 ? 'aula' : 'aulas' }}
+            </dd>
+          </div>
+          <div>
+            <dt class="text-xs text-slate-500">Cadastrado em</dt>
+            <dd class="text-slate-200">{{ formatarData(c) }}</dd>
+          </div>
+        </dl>
+
+        @if (empresaAtiva()) {
+          <a
+            [routerLink]="['/empresa/cursos', c.id, 'editar']"
+            class="inline-flex items-center justify-center rounded-full bg-gradient-to-r from-brand-300 to-brand-600 px-5 py-2.5 text-sm font-semibold text-ink-950 shadow-lg shadow-brand-500/20 transition hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-300"
+          >
+            Editar curso
+          </a>
+        } @else {
+          <p class="text-xs text-amber-200">Cadastro em análise ou inativo: edição indisponível.</p>
+        }
+      </aside>
+    </div>
+  }
+</div>

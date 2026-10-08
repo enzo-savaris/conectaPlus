@@ -30,9 +30,11 @@ interface CursoDaApi {
 interface CapituloDaApi {
   IDCAPITULO: number;
   TITULO: string;
+  DESCRICAO: string | null;
   TIPOCONTEUDO: TipoConteudoCurso;
   LINKCAPITULO: string | null;
   ARQUIVOCAPITULO: string | null;
+  MATERIAL: string | null;
 }
 
 interface ModuloDaApi {
@@ -63,9 +65,11 @@ function paraCapitulo(capitulo: CapituloDaApi): CapituloCurso {
   return {
     id: capitulo.IDCAPITULO,
     titulo: capitulo.TITULO,
+    descricao: capitulo.DESCRICAO,
     tipoConteudo: capitulo.TIPOCONTEUDO,
     linkCapitulo: capitulo.LINKCAPITULO,
-    arquivoCapituloUrl: capitulo.ARQUIVOCAPITULO ? `${URL_BASE_API}/uploads/cursos/${capitulo.ARQUIVOCAPITULO}` : null
+    arquivoCapituloUrl: capitulo.ARQUIVOCAPITULO ? `${URL_BASE_API}/uploads/cursos/${capitulo.ARQUIVOCAPITULO}` : null,
+    materialUrl: capitulo.MATERIAL ? `${URL_BASE_API}/uploads/cursos/${capitulo.MATERIAL}` : null
   };
 }
 
@@ -83,9 +87,10 @@ function paraCursoDetalhado(curso: CursoDetalhadoDaApi): CursoDetalhado {
 
 /**
  * Monta o multipart/form-data: os módulos/capítulos viajam como JSON num
- * único campo (`modulos`), e cada vídeo de capítulo vai num campo à parte,
- * nomeado `modulo_<i>_capitulo_<j>` — é assim que o controller casa cada
- * arquivo de volta com o capítulo certo.
+ * único campo (`modulos`), o vídeo de capítulo vai num campo à parte,
+ * nomeado `modulo_<i>_capitulo_<j>`, e o material de apoio (opcional, de
+ * qualquer tipo de conteúdo) vai em `material_modulo_<i>_capitulo_<j>` — é
+ * assim que o controller casa cada arquivo de volta com o capítulo certo.
  */
 function paraFormData(dados: NovoCurso, idEmpresa: number): FormData {
   const formData = new FormData();
@@ -106,17 +111,24 @@ function paraFormData(dados: NovoCurso, idEmpresa: number): FormData {
     titulo: modulo.titulo,
     capitulos: modulo.capitulos.map((capitulo) => ({
       titulo: capitulo.titulo,
+      descricao: capitulo.descricao,
       tipoConteudo: capitulo.tipoConteudo,
       linkCapitulo: capitulo.tipoConteudo === 'LINK' ? capitulo.linkCapitulo : null,
-      arquivoAtual: capitulo.tipoConteudo === 'ARQUIVO' ? capitulo.arquivoAtual : null
+      arquivoAtual: capitulo.tipoConteudo === 'ARQUIVO' ? capitulo.arquivoAtual : null,
+      materialAtual: capitulo.materialAtual
     }))
   }));
   formData.append('modulos', JSON.stringify(modulosParaJson));
 
   dados.modulos.forEach((modulo, indiceModulo) => {
     modulo.capitulos.forEach((capitulo, indiceCapitulo) => {
+      const chave = `modulo_${indiceModulo}_capitulo_${indiceCapitulo}`;
+
       if (capitulo.tipoConteudo === 'ARQUIVO' && capitulo.arquivo) {
-        formData.append(`modulo_${indiceModulo}_capitulo_${indiceCapitulo}`, capitulo.arquivo);
+        formData.append(chave, capitulo.arquivo);
+      }
+      if (capitulo.material) {
+        formData.append(`material_${chave}`, capitulo.material);
       }
     });
   });

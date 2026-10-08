@@ -145,3 +145,19 @@ export const listarCandidaturasDoUsuario = async (
     responderErro(resposta, erro, 'Erro ao buscar candidaturas do usuário');
   }
 };
+
+/** GET /usuarios/:id/candidaturas/:idVaga — acompanhamento da candidatura do candidato a uma vaga. */
+export const obterCandidaturaDoUsuario = async (
+  requisicao: Request,
+  resposta: Response
+): Promise<void> => {
+  try {
+    const idPcd = validarId(requisicao.params['id']);
+    const idVaga = validarId(requisicao.params['idVaga']);
+    const candidatura = await usuarioService.obterCandidatura(idPcd, idVaga);
+
+    resposta.json(candidatura);
+  } catch (erro) {
+    responderErro(resposta, erro, 'Erro ao buscar candidatura');
+  }
+};

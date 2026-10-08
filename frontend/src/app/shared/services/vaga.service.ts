@@ -3,9 +3,13 @@ import { Injectable, inject } from '@angular/core';
 import { Observable, map } from 'rxjs';
 
 import { URL_BASE_API } from '../config/api';
+import { ProcessoSeletivoDaApi, paraProcessoSeletivo } from './candidatura.service';
 import {
+  AcompanhamentoCandidatura,
+  AdaptacoesCandidatura,
   Candidatura,
   CursoRecomendado,
+  EnvioCandidatura,
   MinhaCandidatura,
   ModeloTrabalho,
   NovaVaga,
@@ -59,6 +63,7 @@ interface VagaDetalhadaDaApi extends VagaDaApi {
   requisitos: string[];
   acessibilidade: string[];
   beneficios: string[];
+  perguntas: string[];
   cursosRecomendados: CursoRecomendadoDaApi[];
 }
 
@@ -89,6 +94,7 @@ function paraVagaDetalhada(vaga: VagaDetalhadaDaApi): VagaDetalhada {
     requisitos: vaga.requisitos,
     acessibilidade: vaga.acessibilidade,
     beneficios: vaga.beneficios,
+    perguntas: vaga.perguntas,
     cursosRecomendados: vaga.cursosRecomendados.map(paraCursoRecomendado)
   };
 }
@@ -102,6 +108,31 @@ interface CandidaturaDaApi {
   SOBREMIM: string | null;
   STATUSCANDIDATURA: StatusCandidatura;
   DTCANDIDATURA: string;
+  CARTAAPRESENTACAO: string | null;
+  CURRICULOPDF: string | null;
+  ENTREVISTAREMOTA: number;
+  TEMPOESTENDIDO: number;
+  INTERPRETELIBRAS: number;
+  INICIOIMEDIATO: number;
+  respostas: RespostaDaApi[];
+}
+
+interface RespostaDaApi {
+  PERGUNTA: string;
+  RESPOSTA: string;
+}
+
+/** As flags de acessibilidade são TINYINT(1) no MySQL, então chegam como 0/1. */
+function paraAdaptacoes(candidatura: {
+  ENTREVISTAREMOTA: number;
+  TEMPOESTENDIDO: number;
+  INTERPRETELIBRAS: number;
+}): AdaptacoesCandidatura {
+  return {
+    entrevistaRemota: Boolean(candidatura.ENTREVISTAREMOTA),
+    tempoEstendido: Boolean(candidatura.TEMPOESTENDIDO),
+    interpreteLibras: Boolean(candidatura.INTERPRETELIBRAS)
+  };
 }
 
 function paraCandidatura(candidatura: CandidaturaDaApi): Candidatura {
@@ -112,8 +143,57 @@ function paraCandidatura(candidatura: CandidaturaDaApi): Candidatura {
     email: candidatura.EMAIL,
     sobreMim: candidatura.SOBREMIM,
     status: candidatura.STATUSCANDIDATURA,
-    dataCandidatura: candidatura.DTCANDIDATURA
+    dataCandidatura: candidatura.DTCANDIDATURA,
+    cartaApresentacao: candidatura.CARTAAPRESENTACAO,
+    curriculoPdfUrl: candidatura.CURRICULOPDF
+      ? `${URL_BASE_API}/uploads/curriculos/${candidatura.CURRICULOPDF}`
+      : null,
+    adaptacoes: paraAdaptacoes(candidatura),
+    inicioImediato: Boolean(candidatura.INICIOIMEDIATO),
+    respostas: candidatura.respostas.map((item) => ({ pergunta: item.PERGUNTA, resposta: item.RESPOSTA }))
   };
+}
+
+/** Formato bruto devolvido pela API: GET /usuarios/:id/candidaturas/:idVaga. */
+interface AcompanhamentoCandidaturaDaApi extends ProcessoSeletivoDaApi {
+  IDCANDIDATURA: number;
+  IDVAGA: number;
+  TITULO: string;
+  NOMEEMPRESA: string;
+  ENTREVISTAREMOTA: number;
+  TEMPOESTENDIDO: number;
+  INTERPRETELIBRAS: number;
+}
+
+function paraAcompanhamento(candidatura: AcompanhamentoCandidaturaDaApi): AcompanhamentoCandidatura {
+  return {
+    ...paraProcessoSeletivo(candidatura),
+    id: candidatura.IDCANDIDATURA,
+    idVaga: candidatura.IDVAGA,
+    tituloVaga: candidatura.TITULO,
+    nomeEmpresa: candidatura.NOMEEMPRESA,
+    adaptacoes: paraAdaptacoes(candidatura)
+  };
+}
+
+/** Monta o multipart/form-data: o currículo em PDF opcional só viaja assim. */
+function paraFormDataCandidatura(idPcd: number, dados: EnvioCandidatura): FormData {
+  const formData = new FormData();
+
+  formData.append('idPcd', String(idPcd));
+  formData.append('cartaApresentacao', dados.cartaApresentacao);
+  formData.append('aceiteTermos', String(dados.aceiteTermos));
+  formData.append('inicioImediato', String(dados.inicioImediato));
+  formData.append('entrevistaRemota', String(dados.adaptacoes.entrevistaRemota));
+  formData.append('tempoEstendido', String(dados.adaptacoes.tempoEstendido));
+  formData.append('interpreteLibras', String(dados.adaptacoes.interpreteLibras));
+  formData.append('respostas', JSON.stringify(dados.respostas));
+
+  if (dados.curriculoPdf) {
+    formData.append('curriculoPdf', dados.curriculoPdf);
+  }
+
+  return formData;
 }
 
 /** Formato bruto devolvido pela API: GET /usuarios/:id/candidaturas. */
@@ -191,10 +271,17 @@ export class VagaService {
   }
 
   /** Candidata o PCD logado (`idPcd`) à vaga. O backend recusa uma segunda candidatura à mesma vaga. */
-  candidatar(idVaga: number, idPcd: number): Observable<void> {
+  candidatar(idVaga: number, idPcd: number, dados: EnvioCandidatura): Observable<void> {
     return this.http
-      .post<unknown>(`${URL_BASE_API}/vagas/${idVaga}/candidaturas`, { idPcd })
+      .post<unknown>(`${URL_BASE_API}/vagas/${idVaga}/candidaturas`, paraFormDataCandidatura(idPcd, dados))
       .pipe(map(() => undefined));
+  }
+
+  /** Candidatura do candidato logado a uma vaga, para a tela de acompanhamento. */
+  obterMinhaCandidatura(idPcd: number, idVaga: number): Observable<AcompanhamentoCandidatura> {
+    return this.http
+      .get<AcompanhamentoCandidaturaDaApi>(`${URL_BASE_API}/usuarios/${idPcd}/candidaturas/${idVaga}`)
+      .pipe(map(paraAcompanhamento));
   }
 
   /** Lista as vagas em que o candidato logado já se candidatou, para marcar "Já candidatado" na lista. */

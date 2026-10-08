@@ -1,0 +1,266 @@
+<div class="min-h-dvh bg-ink-950 p-4 sm:p-8">
+  <div class="mx-auto max-w-6xl">
+    <a
+      routerLink="/vagas-disponiveis"
+      class="inline-flex items-center gap-1.5 rounded-full border border-white/12 bg-ink-800/60 px-4 py-1.5 text-xs font-medium text-slate-300 transition hover:border-white/25 hover:bg-ink-700/70 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-400"
+    >
+      <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <path d="M15 19l-7-7 7-7" stroke-linecap="round" stroke-linejoin="round" />
+      </svg>
+      Voltar para vagas
+    </a>
+
+    @if (erro()) {
+      <p class="mt-6 rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200" role="alert">
+        {{ erro() }}
+      </p>
+    }
+
+    @if (carregando()) {
+      <p class="mt-8 text-sm text-slate-400">Carregando dados da candidatura…</p>
+    } @else if (vaga(); as v) {
+      <div class="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
+        <!-- ============ COLUNA PRINCIPAL ============ -->
+        <form class="flex flex-col gap-6" (submit)="$event.preventDefault(); enviar()" novalidate>
+          <header class="flex flex-wrap items-start justify-between gap-4">
+            <div class="min-w-0">
+              <h1 class="text-2xl font-bold text-white sm:text-3xl">Candidatar-se</h1>
+              <p class="mt-1 text-sm text-slate-400">
+                Você está se candidatando a
+                <a [routerLink]="['/vagas-disponiveis', v.id]" class="font-semibold text-brand-300 hover:text-brand-200">{{ v.titulo }}</a>
+                · {{ v.nomeEmpresa }}
+              </p>
+            </div>
+
+            <ol class="flex items-center gap-3 text-xs" aria-label="Etapas da candidatura">
+              <li class="inline-flex items-center gap-1.5 text-slate-400">
+                <span class="flex size-5 items-center justify-center rounded-full border border-brand-400/60 text-brand-300">
+                  <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+                    <path d="m5 12 4.5 4.5L19 7" stroke-linecap="round" stroke-linejoin="round" />
+                  </svg>
+                </span>
+                Identificação
+                <span class="sr-only">(concluída)</span>
+              </li>
+              <li class="h-px w-6 bg-white/15" aria-hidden="true"></li>
+              <li class="inline-flex items-center gap-1.5 font-semibold text-white" aria-current="step">
+                <span class="flex size-5 items-center justify-center rounded-full bg-brand-400 text-[11px] font-bold text-ink-950">2</span>
+                Envio
+              </li>
+            </ol>
+          </header>
+
+          <!-- Currículo -->
+          <section aria-labelledby="titulo-curriculo">
+            <h2 id="titulo-curriculo" class="text-xs font-semibold tracking-widest text-slate-400 uppercase">Seu currículo</h2>
+
+            <div class="mt-2 flex items-center gap-4 rounded-2xl border border-white/10 bg-ink-900/60 p-4">
+              <span class="flex size-10 shrink-0 items-center justify-center rounded-full border-2 border-brand-400/70 text-brand-300">
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                  <path d="m5 12 4.5 4.5L19 7" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+              </span>
+
+              <div class="min-w-0 flex-1">
+                @if (curriculoPdf(); as arquivo) {
+                  <p class="truncate text-sm font-semibold text-white">{{ arquivo.name }}</p>
+                  <p class="text-xs text-slate-400">Anexado só para esta vaga · {{ formatarTamanho(arquivo.size) }}</p>
+                } @else if (curriculoPdfDoPerfil(); as url) {
+                  <p class="truncate text-sm font-semibold text-white">Currículo do seu perfil (PDF)</p>
+                  <p class="text-xs text-slate-400">
+                    <a [href]="url" target="_blank" rel="noopener" class="text-brand-300 hover:text-brand-200">Visualizar arquivo</a>
+                    · Enviado pela página de perfil
+                  </p>
+                } @else if (perfil(); as p) {
+                  <p class="truncate text-sm font-semibold text-white">Currículo da plataforma</p>
+                  <p class="text-xs text-slate-400">
+                    {{ p.experiencias.length }} {{ p.experiencias.length === 1 ? 'experiência' : 'experiências' }} ·
+                    {{ p.formacoes.length }} {{ p.formacoes.length === 1 ? 'formação' : 'formações' }} ·
+                    <a routerLink="/perfil" class="text-brand-300 hover:text-brand-200">Editar no perfil</a>
+                  </p>
+                }
+              </div>
+
+              <div class="flex shrink-0 items-center gap-3">
+                @if (curriculoPdf()) {
+                  <button
+                    type="button"
+                    (click)="removerCurriculoAnexado()"
+                    class="text-xs font-medium text-slate-400 transition hover:text-rose-300"
+                  >
+                    Remover
+                  </button>
+                }
+                <label
+                  class="cursor-pointer text-xs font-semibold text-brand-300 transition hover:text-brand-200 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-brand-300"
+                >
+                  {{ curriculoPdf() || curriculoPdfDoPerfil() ? 'Trocar' : 'Anexar PDF' }}
+                  <input type="file" accept="application/pdf" class="sr-only" (change)="aoEscolherCurriculo($event)" />
+                </label>
+              </div>
+            </div>
+
+            @if (erroCurriculo()) {
+              <p class="field-error" role="alert">{{ erroCurriculo() }}</p>
+            }
+          </section>
+
+          <!-- Carta de apresentação -->
+          <section>
+            <label for="carta" class="text-xs font-semibold tracking-widest text-slate-400 uppercase">
+              Carta de apresentação
+            </label>
+
+            <div
+              class="mt-2 rounded-2xl border border-white/10 bg-ink-900/60 p-4 transition focus-within:border-brand-400 focus-within:ring-2 focus-within:ring-brand-400/40"
+            >
+              <textarea
+                id="carta"
+                rows="4"
+                [maxLength]="limiteCarta"
+                [value]="carta()"
+                (input)="aoDigitarCarta($event)"
+                placeholder="Conte em poucas linhas quem você é e por que essa vaga combina com você. (opcional)"
+                aria-describedby="carta-contador"
+                class="w-full resize-y bg-transparent text-sm text-slate-200 placeholder:text-slate-500 outline-none"
+              ></textarea>
+              <p id="carta-contador" class="mt-2 text-xs text-slate-500" aria-live="polite">
+                {{ carta().length }} / {{ limiteCarta }} caracteres
+              </p>
+            </div>
+          </section>
+
+          <!-- Confirmações -->
+          <fieldset class="flex flex-col gap-3">
+            <legend class="sr-only">Confirmações</legend>
+
+            <label class="flex cursor-pointer items-start gap-3 text-sm text-slate-300">
+              <input
+                type="checkbox"
+                [checked]="aceiteTermos()"
+                (change)="aoMarcarTermos($event)"
+                [attr.aria-invalid]="tentouEnviar() && !aceiteTermos()"
+                class="mt-0.5 size-4 shrink-0 accent-brand-400"
+                required
+              />
+              <span>Concordo com os termos e requisitos descritos para a vaga.</span>
+            </label>
+
+            <label class="flex cursor-pointer items-start gap-3 text-sm text-slate-300">
+              <input
+                type="checkbox"
+                [checked]="inicioImediato()"
+                (change)="aoMarcarInicioImediato($event)"
+                class="mt-0.5 size-4 shrink-0 accent-brand-400"
+              />
+              <span>Estou disponível para início imediato no modelo de trabalho proposto.</span>
+            </label>
+          </fieldset>
+
+          @if (erroEnvio()) {
+            <p class="rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200" role="alert">
+              {{ erroEnvio() }}
+            </p>
+          }
+
+          <div>
+            <button
+              type="submit"
+              [disabled]="enviando()"
+              class="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-brand-300 to-brand-600 px-6 py-2.5 text-sm font-semibold text-ink-950 shadow-lg shadow-brand-500/20 transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-300"
+            >
+              {{ enviando() ? 'Enviando…' : 'Enviar candidatura' }}
+              @if (!enviando()) {
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                  <path d="M5 12h14M13 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+              }
+            </button>
+          </div>
+        </form>
+
+        <!-- ============ COLUNA LATERAL ============ -->
+        <aside class="flex flex-col gap-6">
+          <section class="rounded-2xl border border-white/10 bg-ink-900/60 p-5" aria-labelledby="titulo-acessibilidade">
+            <h2 id="titulo-acessibilidade" class="inline-flex items-center gap-2 text-sm font-semibold text-white">
+              <svg class="h-4 w-4 text-brand-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                <circle cx="12" cy="4.5" r="1.5" />
+                <path d="M9 21a5 5 0 1 1 6-8M10 8h4l-1 5h4l2 6" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+              Acessibilidade no processo
+            </h2>
+            <p class="mt-1 text-xs text-slate-400">Escolha as adaptações que você precisa nas etapas da seleção.</p>
+
+            <ul class="mt-4 flex flex-col gap-3">
+              @for (opcao of opcoesAdaptacao; track opcao.chave) {
+                <li class="flex items-center justify-between gap-3">
+                  <span [id]="'adaptacao-' + opcao.chave" class="text-sm" [class]="adaptacoes()[opcao.chave] ? 'text-slate-200' : 'text-slate-400'">
+                    {{ opcao.rotulo }}
+                  </span>
+                  <button
+                    type="button"
+                    role="switch"
+                    [attr.aria-checked]="adaptacoes()[opcao.chave]"
+                    [attr.aria-labelledby]="'adaptacao-' + opcao.chave"
+                    (click)="alternarAdaptacao(opcao.chave)"
+                    class="relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-300"
+                    [class]="adaptacoes()[opcao.chave] ? 'bg-brand-400' : 'bg-white/15'"
+                  >
+                    <span
+                      class="inline-block size-4 rounded-full shadow transition-transform"
+                      [class]="adaptacoes()[opcao.chave] ? 'translate-x-4.5 bg-ink-950' : 'translate-x-0.5 bg-slate-300'"
+                    ></span>
+                  </button>
+                </li>
+              }
+            </ul>
+
+            @if (v.acessibilidade.length > 0) {
+              <div class="mt-4 border-t border-white/10 pt-3">
+                <p class="text-xs font-medium text-slate-400">Esta vaga já oferece:</p>
+                <ul class="mt-2 flex flex-col gap-1.5">
+                  @for (item of v.acessibilidade; track $index) {
+                    <li class="flex items-start gap-2 text-xs text-slate-300">
+                      <svg class="mt-0.5 h-3.5 w-3.5 shrink-0 text-brand-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round" />
+                      </svg>
+                      {{ item }}
+                    </li>
+                  }
+                </ul>
+              </div>
+            }
+          </section>
+
+          @if (v.perguntas.length > 0) {
+            <section class="rounded-2xl border border-white/10 bg-ink-900/60 p-5" aria-labelledby="titulo-perguntas">
+              <h2 id="titulo-perguntas" class="inline-flex items-center gap-2 text-sm font-semibold text-white">
+                <svg class="h-4 w-4 text-brand-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                  <path d="M4 5h16v11H8l-4 4V5Z" stroke-linejoin="round" />
+                </svg>
+                Perguntas da empresa
+              </h2>
+
+              <div class="mt-3 flex flex-col gap-4">
+                @for (pergunta of v.perguntas; track $index) {
+                  <div>
+                    <label [for]="'resposta-' + $index" class="block text-xs text-slate-300">{{ pergunta }}</label>
+                    <textarea
+                      [id]="'resposta-' + $index"
+                      rows="3"
+                      maxlength="2000"
+                      [value]="respostas()[$index]"
+                      (input)="aoDigitarResposta($index, $event)"
+                      placeholder="Escreva sua resposta aqui…"
+                      class="field-input mt-2 resize-y"
+                    ></textarea>
+                  </div>
+                }
+              </div>
+            </section>
+          }
+        </aside>
+      </div>
+    }
+  </div>
+</div>
