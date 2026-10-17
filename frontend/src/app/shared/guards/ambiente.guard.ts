@@ -2,12 +2,13 @@ import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
 
 import { AuthService } from '../services/auth.service';
-import { Ambiente } from '../types/ambiente';
+import { AmbienteSessao } from '../types/sessao';
 
 /** Tela inicial de cada ambiente, usada quando o guard precisa mandar alguém de volta pro lugar certo. */
-const ROTA_INICIAL: Record<Ambiente, string> = {
+export const ROTA_INICIAL: Record<AmbienteSessao, string> = {
   usuario: '/painel',
-  empresa: '/empresa/painel'
+  empresa: '/empresa/painel',
+  admin: '/admin/empresas'
 };
 
 /**
@@ -15,7 +16,7 @@ const ROTA_INICIAL: Record<Ambiente, string> = {
  * por exemplo, que uma empresa acesse a tela de um candidato (ou vice-versa)
  * só por digitar a URL direto no navegador, sem estar autenticada como tal.
  */
-export function ambienteGuard(ambiente: Ambiente): CanActivateFn {
+export function ambienteGuard(ambiente: AmbienteSessao): CanActivateFn {
   return () => {
     const authService = inject(AuthService);
     const roteador = inject(Router);
@@ -31,7 +32,8 @@ export function ambienteGuard(ambiente: Ambiente): CanActivateFn {
       return roteador.createUrlTree([ROTA_INICIAL[sessao.ambiente]]);
     }
 
-    return roteador.createUrlTree(['/login']);
+    // A equipe tem login próprio; os demais, o login comum.
+    return roteador.createUrlTree([ambiente === 'admin' ? '/admin/login' : '/login']);
   };
 }
 

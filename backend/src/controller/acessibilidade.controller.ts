@@ -17,18 +17,17 @@ function responderErro(resposta: Response, erro: unknown, mensagemPadrao: string
   resposta.status(500).json({ mensagem: mensagemPadrao });
 }
 
-/** A conta vem como `idPcd` (candidato) ou `idEmpresa` (empresa) — exatamente um dos dois. */
+/** A conta vem como `idPcd` (candidato), `idEmpresa` (empresa) ou `idAdmin` (equipe) — exatamente um. */
 function extrairDono(origem: Record<string, unknown>): DonoPreferencias {
-  const temPcd = origem['idPcd'] !== undefined && origem['idPcd'] !== '';
-  const temEmpresa = origem['idEmpresa'] !== undefined && origem['idEmpresa'] !== '';
+  const informado = (chave: string) => origem[chave] !== undefined && origem[chave] !== '';
+  const chaves = ['idPcd', 'idEmpresa', 'idAdmin'].filter(informado);
 
-  if (temPcd === temEmpresa) {
-    throw erroDeValidacao({ conta: 'Informe idPcd ou idEmpresa (apenas um).' });
+  if (chaves.length !== 1) {
+    throw erroDeValidacao({ conta: 'Informe idPcd, idEmpresa ou idAdmin (apenas um).' });
   }
 
-  return temPcd
-    ? { tipo: 'usuario', id: validarId(origem['idPcd']) }
-    : { tipo: 'empresa', id: validarId(origem['idEmpresa']) };
+  const tipo = ({ idPcd: 'usuario', idEmpresa: 'empresa', idAdmin: 'admin' } as const)[chaves[0] as 'idPcd' | 'idEmpresa' | 'idAdmin'];
+  return { tipo, id: validarId(origem[chaves[0]!]) };
 }
 
 /**

@@ -38,6 +38,23 @@ export class AuthService {
     );
   }
 
+  /** Login da equipe Conecta+ (e-mail e senha), separado do login de candidatos e empresas. */
+  entrarAdmin(email: string, senha: string, lembrarDeMim: boolean): Observable<Sessao> {
+    return this.http.post<Sessao>(`${URL_BASE_API}/admin/login`, { email, senha }).pipe(
+      tap((sessao) => {
+        this.sessaoSignal.set(sessao);
+        this.limparSessaoSalva();
+        this.salvarSessao(sessao, lembrarDeMim ? this.armazenamentoLocal() : this.armazenamentoDaAba());
+      })
+    );
+  }
+
+  /** Token da equipe, enviado pelo interceptor nas chamadas à API /admin. */
+  tokenAdmin(): string | null {
+    const sessao = this.sessaoSignal();
+    return sessao?.ambiente === 'admin' ? sessao.token : null;
+  }
+
   sair(): void {
     this.sessaoSignal.set(null);
     this.limparSessaoSalva();

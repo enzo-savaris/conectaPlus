@@ -160,11 +160,16 @@ export async function atualizar(
   }
 
   // Regra de negócio: alterar CNPJ ou razão social invalida a verificação
-  // já feita pelo suporte, então o status volta para PENDENTE — mesmo que o
-  // cliente tenha mandado outro status junto na mesma requisição.
+  // já feita pela equipe, então o status volta para PENDENTE (e a empresa
+  // reaparece na fila de validação do ambiente /admin).
+  //
+  // Fora isso, a empresa NÃO muda o próprio status: aprovar, recusar e
+  // inativar são decisões da equipe (PUT /admin/empresas/:id/decisao). O
+  // `status` que vier no corpo desta requisição é ignorado — antes, uma
+  // empresa pendente conseguia se aprovar sozinha mandando status 'ativo'.
   const cnpjMudou = dados.cnpj !== undefined && dados.cnpj !== atual['CNPJ'];
   const razaoSocialMudou = dados.razaoSocial !== undefined && dados.razaoSocial !== atual['RAZAO'];
-  const statusFinal = cnpjMudou || razaoSocialMudou ? 'PENDENTE' : dados.status;
+  const statusFinal = cnpjMudou || razaoSocialMudou ? 'PENDENTE' : undefined;
 
   if (statusFinal !== undefined) {
     atribuicoes.push('STATUSEMP = ?');

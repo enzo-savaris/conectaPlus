@@ -246,7 +246,20 @@
         <img src="logo-conectaplus.svg" alt="" class="size-4" />
         © {{ anoAtual }} Conecta+. Todos os direitos reservados.
       </p>
-      <p>Termos de uso · Política de privacidade</p>
+      <p class="flex flex-wrap items-center justify-center gap-x-1">
+        <span>Termos de uso · Política de privacidade ·</span>
+        <!-- Entrada da equipe Conecta+ (validação de empresas); só admins conseguem entrar. -->
+        <a
+          routerLink="/admin/login"
+          class="inline-flex items-center gap-1 rounded text-slate-400 underline-offset-2 transition hover:text-brand-300 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-400"
+        >
+          <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <rect x="5" y="11" width="14" height="9" rx="2" />
+            <path d="M8 11V8a4 4 0 1 1 8 0v3" stroke-linecap="round" />
+          </svg>
+          Área da equipe
+        </a>
+      </p>
     </div>
   </footer>
 </div>

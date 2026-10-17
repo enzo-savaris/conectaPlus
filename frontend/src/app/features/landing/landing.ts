@@ -9,6 +9,7 @@ import {
   formatarSalarioVaga,
   formatarTipoContratacao
 } from '../../shared/utils/vaga-format';
+import { ROTA_INICIAL } from '../../shared/guards/ambiente.guard';
 import { AcessibilidadeService } from '../../shared/services/acessibilidade.service';
 import { Logo } from '../../shared/components/logo/logo';
 
@@ -40,7 +41,7 @@ export class Landing {
     if (!sessao) {
       return null;
     }
-    return sessao.ambiente === 'empresa' ? '/empresa/painel' : '/painel';
+    return ROTA_INICIAL[sessao.ambiente];
   });
 
   protected readonly vagas = signal<Vaga[]>([]);

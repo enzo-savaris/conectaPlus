@@ -1,0 +1,67 @@
+<main class="relative flex min-h-dvh items-center justify-center bg-ink-950 px-4 py-8 sm:px-6">
+  <div aria-hidden="true" class="pointer-events-none absolute inset-0 overflow-hidden">
+    <div class="absolute -top-40 left-1/2 h-80 w-80 -translate-x-1/2 rounded-full bg-brand-500/15 blur-3xl"></div>
+  </div>
+
+  <section
+    class="relative w-full max-w-md rounded-3xl border border-brand-400/25 bg-ink-900/90 p-6 shadow-2xl shadow-black/50 sm:p-10"
+    aria-labelledby="admin-login-titulo"
+  >
+    <header class="text-center">
+      <app-logo class="mb-5 flex justify-center" classeSimbolo="size-10" classeNome="text-2xl" />
+      <p class="text-xs font-semibold tracking-widest text-brand-300 uppercase">Equipe Conecta+</p>
+      <h1 id="admin-login-titulo" class="mt-2 text-2xl font-bold text-white">Área administrativa</h1>
+      <p class="mt-1.5 text-sm text-slate-400">Acesso restrito à equipe que valida os cadastros.</p>
+    </header>
+
+    @if (sessaoExpirou) {
+      <p class="mt-6 rounded-xl border border-amber-400/30 bg-amber-400/10 px-4 py-3 text-sm text-amber-200" role="status">
+        Sua sessão expirou. Entre novamente.
+      </p>
+    }
+
+    <form class="mt-8 space-y-5" [formGroup]="formulario" (ngSubmit)="aoEnviar()" novalidate>
+      @if (erro()) {
+        <p class="rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200" role="alert">{{ erro() }}</p>
+      }
+
+      <div>
+        <label for="admin-email" class="field-label">E-mail</label>
+        <input
+          id="admin-email"
+          type="email"
+          autocomplete="username"
+          formControlName="email"
+          placeholder="voce@conectamais.com.br"
+          class="field-input mt-1.5"
+          [attr.aria-invalid]="temErro('email')"
+        />
+      </div>
+
+      <div>
+        <label for="admin-senha" class="field-label">Senha</label>
+        <input
+          id="admin-senha"
+          type="password"
+          autocomplete="current-password"
+          formControlName="senha"
+          class="field-input mt-1.5"
+          [attr.aria-invalid]="temErro('senha')"
+        />
+      </div>
+
+      <label class="flex cursor-pointer items-center gap-2 text-sm text-slate-300">
+        <input type="checkbox" formControlName="lembrarDeMim" class="size-4 accent-brand-400" />
+        Manter conectado neste computador
+      </label>
+
+      <button
+        type="submit"
+        [disabled]="enviando()"
+        class="w-full rounded-full bg-gradient-to-r from-brand-300 to-brand-600 px-6 py-3 text-sm font-semibold text-ink-950 shadow-lg shadow-brand-500/20 transition hover:brightness-110 disabled:opacity-60"
+      >
+        {{ enviando() ? 'Entrando…' : 'Entrar' }}
+      </button>
+    </form>
+  </section>
+</main>

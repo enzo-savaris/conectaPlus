@@ -1,0 +1,114 @@
+<div class="p-4 sm:p-8">
+  <div class="mx-auto max-w-4xl">
+    <header class="flex flex-wrap items-start justify-between gap-4">
+      <div>
+        <h1 class="text-2xl font-bold text-white sm:text-3xl">Equipe</h1>
+        <p class="mt-1 text-sm text-slate-400">Quem tem acesso à área administrativa e pode validar empresas.</p>
+      </div>
+      @if (!formularioAberto()) {
+        <button
+          type="button"
+          (click)="abrirFormulario()"
+          class="rounded-lg bg-gradient-to-r from-brand-300 to-brand-600 px-5 py-2.5 text-sm font-semibold text-ink-950 shadow-lg shadow-brand-500/20 transition hover:brightness-110"
+        >
+          + Adicionar membro
+        </button>
+      }
+    </header>
+
+    @if (formularioAberto()) {
+      <form
+        class="mt-6 rounded-2xl border border-brand-400/30 bg-brand-400/5 p-5"
+        [formGroup]="formulario"
+        (ngSubmit)="adicionar()"
+        novalidate
+        aria-labelledby="titulo-novo-membro"
+      >
+        <h2 id="titulo-novo-membro" class="text-sm font-semibold text-white">Novo membro da equipe</h2>
+        <p class="mt-1 text-xs text-slate-400">Passe a senha inicial para a pessoa por um canal seguro.</p>
+
+        <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <div>
+            <label for="membro-nome" class="field-label">Nome</label>
+            <input id="membro-nome" type="text" formControlName="nome" class="field-input mt-1.5" [attr.aria-invalid]="temErro('nome')" />
+          </div>
+          <div>
+            <label for="membro-email" class="field-label">E-mail</label>
+            <input id="membro-email" type="email" formControlName="email" class="field-input mt-1.5" [attr.aria-invalid]="temErro('email')" />
+          </div>
+          <div>
+            <label for="membro-senha" class="field-label">Senha inicial</label>
+            <input
+              id="membro-senha"
+              type="password"
+              autocomplete="new-password"
+              formControlName="senha"
+              placeholder="Mínimo 8 caracteres"
+              class="field-input mt-1.5"
+              [attr.aria-invalid]="temErro('senha')"
+            />
+          </div>
+        </div>
+
+        @if (erroFormulario()) {
+          <p class="field-error" role="alert">{{ erroFormulario() }}</p>
+        }
+
+        <div class="mt-4 flex gap-3">
+          <button
+            type="submit"
+            [disabled]="salvando()"
+            class="rounded-lg bg-gradient-to-r from-brand-300 to-brand-600 px-5 py-2 text-sm font-semibold text-ink-950 transition hover:brightness-110 disabled:opacity-60"
+          >
+            {{ salvando() ? 'Adicionando…' : 'Adicionar' }}
+          </button>
+          <button type="button" (click)="formularioAberto.set(false)" class="px-3 text-sm text-slate-400 hover:text-white">Cancelar</button>
+        </div>
+      </form>
+    }
+
+    @if (erro()) {
+      <p class="mt-6 rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200" role="alert">{{ erro() }}</p>
+    }
+
+    @if (carregando()) {
+      <p class="mt-8 text-sm text-slate-400">Carregando…</p>
+    } @else {
+      <ul class="mt-6 flex flex-col gap-3">
+        @for (membro of membros(); track membro.id) {
+          <li
+            class="flex flex-wrap items-center gap-4 rounded-2xl border border-white/10 bg-ink-900/60 p-4"
+            [class.opacity-60]="!membro.ativo"
+          >
+            <span class="flex size-10 shrink-0 items-center justify-center rounded-full bg-brand-400/15 font-bold text-brand-300">
+              {{ membro.nome.charAt(0).toUpperCase() }}
+            </span>
+            <div class="min-w-0 flex-1">
+              <p class="truncate text-sm font-semibold text-white">
+                {{ membro.nome }}
+                @if (membro.id === idLogado()) {
+                  <span class="ml-1 text-xs font-normal text-brand-300">(você)</span>
+                }
+              </p>
+              <p class="truncate text-xs text-slate-400">{{ membro.email }}</p>
+            </div>
+            <div class="text-right text-xs text-slate-500">
+              <p>{{ membro.totalDecisoes }} {{ membro.totalDecisoes === 1 ? 'decisão' : 'decisões' }}</p>
+              <p>{{ membro.ultimoAcesso ? 'Último acesso ' + formatarData(membro.ultimoAcesso) : 'Nunca entrou' }}</p>
+            </div>
+            @if (membro.id !== idLogado()) {
+              <button
+                type="button"
+                (click)="alternarAcesso(membro)"
+                class="rounded-lg border px-3 py-1.5 text-xs font-semibold transition"
+                [class]="membro.ativo ? 'border-white/12 text-slate-300 hover:border-rose-400/50 hover:text-rose-300' : 'border-emerald-400/40 text-emerald-300 hover:bg-emerald-400/10'"
+              >
+                {{ membro.ativo ? 'Desativar acesso' : 'Reativar acesso' }}
+              </button>
+            }
+          </li>
+        }
+      </ul>
+    }
+  </div>
+</div>

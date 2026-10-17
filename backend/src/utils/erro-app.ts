@@ -65,3 +65,14 @@ export function erroEmpresaNaoAtiva(): ErroApp {
     { situacao: 'NAO_ATIVA' }
   );
 }
+
+/**
+ * 403 — a equipe recusou o cadastro. `erros.situacao` = 'RECUSADA' e
+ * `erros.motivo` traz a explicação da equipe, mostrada na tela de login.
+ */
+export function erroEmpresaRecusada(motivo: string | null): ErroApp {
+  return new ErroApp(403, 'O cadastro da sua empresa não foi aprovado.', {
+    situacao: 'RECUSADA',
+    ...(motivo ? { motivo } : {})
+  });
+}

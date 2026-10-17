@@ -243,8 +243,15 @@ export class AcessibilidadeService {
       .pipe(map((resposta) => (resposta.preferencias ? { ...PADRAO, ...resposta.preferencias } : null)));
   }
 
-  private donoDa(sessao: Sessao): { idPcd: number } | { idEmpresa: number } {
-    return sessao.ambiente === 'usuario' ? { idPcd: sessao.perfil.id } : { idEmpresa: sessao.perfil.id };
+  private donoDa(sessao: Sessao): { idPcd: number } | { idEmpresa: number } | { idAdmin: number } {
+    switch (sessao.ambiente) {
+      case 'usuario':
+        return { idPcd: sessao.perfil.id };
+      case 'empresa':
+        return { idEmpresa: sessao.perfil.id };
+      case 'admin':
+        return { idAdmin: sessao.perfil.id };
+    }
   }
 
   private lerVisitante(): PreferenciasAcessibilidade {

@@ -1,0 +1,233 @@
+<div class="p-4 sm:p-8">
+  <div class="mx-auto max-w-6xl">
+    <a
+      routerLink="/admin/empresas"
+      [queryParams]="{ status: empresa()?.status ?? 'PENDENTE' }"
+      class="inline-flex items-center gap-1.5 rounded-full border border-white/12 bg-ink-800/60 px-4 py-1.5 text-xs font-medium text-slate-300 transition hover:border-white/25 hover:text-white"
+    >
+      <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <path d="M15 19l-7-7 7-7" stroke-linecap="round" stroke-linejoin="round" />
+      </svg>
+      Voltar para a lista
+    </a>
+
+    @if (erro()) {
+      <p class="mt-6 rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200" role="alert">{{ erro() }}</p>
+    }
+
+    @if (carregando()) {
+      <p class="mt-8 text-sm text-slate-400">Carregando…</p>
+    } @else if (empresa(); as e) {
+      <header class="mt-6 flex flex-wrap items-start justify-between gap-4">
+        <div class="min-w-0">
+          <h1 class="text-2xl font-bold text-white sm:text-3xl">{{ e.razaoSocial }}</h1>
+          <p class="mt-1 text-sm text-slate-400">
+            @if (e.nomeFantasia) {
+              {{ e.nomeFantasia }} ·
+            }
+            Cadastro em {{ formatarData(e.dataCadastro) }}
+            @if (e.dataAlteracao) {
+              · dados alterados em {{ formatarData(e.dataAlteracao) }}
+            }
+          </p>
+        </div>
+        <span class="rounded-full border px-3 py-1 text-sm font-semibold" [class]="classeStatus[e.status]">
+          {{ rotulo[e.status] }}
+          @if (e.status === 'PENDENTE') {
+            · {{ formatarEspera(e.dataAlteracao ?? e.dataCadastro) }}
+          }
+        </span>
+      </header>
+
+      @if (e.semelhantes.length > 0) {
+        <div class="mt-4 rounded-xl border border-amber-400/30 bg-amber-400/10 px-4 py-3 text-sm text-amber-200" role="note">
+          <p class="font-semibold">Atenção: outras empresas usam o mesmo e-mail ou telefone</p>
+          <ul class="mt-1 list-inside list-disc">
+            @for (outra of e.semelhantes; track outra.id) {
+              <li>
+                <a [routerLink]="['/admin/empresas', outra.id]" class="underline hover:text-white">{{ outra.razaoSocial }}</a>
+                — CNPJ {{ formatarCnpj(outra.cnpj) }} ({{ rotulo[outra.status] }})
+              </li>
+            }
+          </ul>
+        </div>
+      }
+
+      <div class="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
+        <!-- ============ DADOS ============ -->
+        <div class="flex flex-col gap-6">
+          <section class="rounded-2xl border border-white/10 bg-ink-900/60 p-5" aria-labelledby="titulo-identificacao">
+            <h2 id="titulo-identificacao" class="text-sm font-semibold text-white">Identificação</h2>
+            <dl class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div>
+                <dt class="text-xs text-slate-500">CNPJ</dt>
+                <dd class="mt-0.5 flex items-center gap-2 font-mono text-sm text-white">
+                  {{ formatarCnpj(e.cnpj) }}
+                  <button type="button" (click)="copiar(e.cnpj)" class="text-xs font-sans text-brand-300 hover:text-brand-200" aria-label="Copiar CNPJ">copiar</button>
+                </dd>
+              </div>
+              <div>
+                <dt class="text-xs text-slate-500">Razão social</dt>
+                <dd class="mt-0.5 text-sm text-white">{{ e.razaoSocial }}</dd>
+              </div>
+              <div>
+                <dt class="text-xs text-slate-500">Nome fantasia</dt>
+                <dd class="mt-0.5 text-sm text-white">{{ e.nomeFantasia || '—' }}</dd>
+              </div>
+            </dl>
+            <a
+              [href]="linkReceita"
+              target="_blank"
+              rel="noopener"
+              class="mt-4 inline-flex items-center gap-1.5 rounded-lg border border-white/12 bg-ink-800/60 px-3 py-1.5 text-xs font-medium text-brand-300 transition hover:border-brand-400/40"
+            >
+              Consultar CNPJ na Receita Federal
+              <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                <path d="M7 17 17 7M9 7h8v8" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+            </a>
+          </section>
+
+          <section class="rounded-2xl border border-white/10 bg-ink-900/60 p-5" aria-labelledby="titulo-contato">
+            <h2 id="titulo-contato" class="text-sm font-semibold text-white">Contato e endereço</h2>
+            <dl class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div>
+                <dt class="text-xs text-slate-500">E-mail</dt>
+                <dd class="mt-0.5 text-sm">
+                  @if (e.email) {
+                    <a [href]="'mailto:' + e.email" class="break-all text-brand-300 hover:text-brand-200">{{ e.email }}</a>
+                  } @else {
+                    <span class="text-slate-400">Não informado</span>
+                  }
+                </dd>
+              </div>
+              <div>
+                <dt class="text-xs text-slate-500">Telefone</dt>
+                <dd class="mt-0.5 text-sm text-white">{{ e.telefone ? formatarTelefone(e.telefone) : 'Não informado' }}</dd>
+              </div>
+              <div class="sm:col-span-2">
+                <dt class="text-xs text-slate-500">Endereço</dt>
+                <dd class="mt-0.5 text-sm text-white">
+                  @if (e.cep || e.cidade) {
+                    {{ e.numero ? 'Nº ' + e.numero : '' }}{{ e.complemento ? ' · ' + e.complemento : '' }}
+                    {{ e.bairro ? ' · ' + e.bairro : '' }}
+                    <br />
+                    {{ e.cidade }}{{ e.estado ? '/' + e.estado : '' }}{{ e.cep ? ' · CEP ' + formatarCep(e.cep) : '' }}
+                  } @else {
+                    <span class="text-slate-400">Não informado</span>
+                  }
+                </dd>
+              </div>
+            </dl>
+          </section>
+
+          <section class="rounded-2xl border border-white/10 bg-ink-900/60 p-5" aria-labelledby="titulo-atividade">
+            <h2 id="titulo-atividade" class="text-sm font-semibold text-white">Atividade na plataforma</h2>
+            <p class="mt-2 text-sm text-slate-300">
+              {{ e.totalVagas }} {{ e.totalVagas === 1 ? 'vaga publicada' : 'vagas publicadas' }} ·
+              {{ e.totalCursos }} {{ e.totalCursos === 1 ? 'curso cadastrado' : 'cursos cadastrados' }}
+            </p>
+          </section>
+        </div>
+
+        <!-- ============ DECISÃO ============ -->
+        <aside class="flex flex-col gap-6">
+          <section class="rounded-2xl border border-brand-400/30 bg-brand-400/5 p-5" aria-labelledby="titulo-decisao">
+            <h2 id="titulo-decisao" class="text-sm font-semibold text-white">Decisão da equipe</h2>
+
+            @if (e.status === 'PENDENTE') {
+              <p class="mt-2 text-xs text-slate-400">Antes de aprovar, confira:</p>
+              <ul class="mt-2 flex flex-col gap-1.5">
+                @for (item of checklist; track item) {
+                  <li class="flex items-start gap-2 text-xs text-slate-300">
+                    <span class="mt-0.5 size-1.5 shrink-0 rounded-full bg-brand-300" aria-hidden="true"></span>
+                    {{ item }}
+                  </li>
+                }
+              </ul>
+            }
+
+            @if (acaoAberta(); as config) {
+              <div class="mt-4 border-t border-white/10 pt-4">
+                <h3 class="text-sm font-semibold text-white">{{ config.titulo }}</h3>
+                <p class="mt-1 text-xs text-slate-400">{{ config.ajuda }}</p>
+
+                <label for="motivo-decisao" class="field-label mt-3">
+                  {{ config.exigeMotivo ? 'Motivo *' : 'Observação (opcional)' }}
+                </label>
+                <textarea
+                  id="motivo-decisao"
+                  rows="4"
+                  maxlength="500"
+                  [value]="motivo()"
+                  (input)="aoDigitarMotivo($event)"
+                  [placeholder]="config.exigeMotivo ? 'Ex: O CNPJ informado está baixado na Receita Federal.' : ''"
+                  class="field-input mt-1.5 resize-y"
+                ></textarea>
+
+                @if (erroAcao()) {
+                  <p class="field-error" role="alert">{{ erroAcao() }}</p>
+                }
+
+                <div class="mt-3 flex gap-2">
+                  <button
+                    type="button"
+                    (click)="confirmar()"
+                    [disabled]="salvando()"
+                    class="flex-1 rounded-lg px-4 py-2 text-sm font-semibold transition disabled:opacity-60"
+                    [class]="config.acao === 'APROVAR' ? 'bg-emerald-400 text-ink-950 hover:brightness-110' : 'bg-rose-500/80 text-white hover:bg-rose-500'"
+                  >
+                    {{ salvando() ? 'Salvando…' : config.botao }}
+                  </button>
+                  <button type="button" (click)="cancelarAcao()" class="px-3 text-sm text-slate-400 hover:text-white">Cancelar</button>
+                </div>
+              </div>
+            } @else {
+              <div class="mt-4 flex flex-col gap-2">
+                @for (config of acoesDisponiveis(); track config.titulo) {
+                  <button
+                    type="button"
+                    (click)="abrirAcao(config)"
+                    class="w-full rounded-lg px-4 py-2.5 text-sm font-semibold transition"
+                    [class]="
+                      config.acao === 'APROVAR'
+                        ? 'bg-gradient-to-r from-brand-300 to-brand-600 text-ink-950 shadow-lg shadow-brand-500/20 hover:brightness-110'
+                        : 'border border-white/12 text-slate-200 hover:border-rose-400/50 hover:text-rose-300'
+                    "
+                  >
+                    {{ config.titulo }}
+                  </button>
+                }
+              </div>
+            }
+          </section>
+
+          <section class="rounded-2xl border border-white/10 bg-ink-900/60 p-5" aria-labelledby="titulo-historico">
+            <h2 id="titulo-historico" class="text-sm font-semibold text-white">Histórico</h2>
+            @if (e.historico.length === 0) {
+              <p class="mt-2 text-xs text-slate-500">Nenhuma decisão registrada ainda.</p>
+            } @else {
+              <ol class="mt-3 flex flex-col gap-4 border-l border-white/10 pl-4">
+                @for (item of e.historico; track $index) {
+                  <li class="relative">
+                    <span class="absolute top-1.5 -left-[21px] size-2 rounded-full bg-brand-300" aria-hidden="true"></span>
+                    <p class="text-sm text-slate-200">
+                      <span class="rounded-full border px-2 py-0.5 text-[11px] font-semibold" [class]="classeStatus[item.statusNovo]">
+                        {{ rotulo[item.statusNovo] }}
+                      </span>
+                      <span class="ml-1 text-xs text-slate-400">por {{ item.nomeAdmin ?? 'membro removido' }}</span>
+                    </p>
+                    <p class="mt-1 text-xs text-slate-500">{{ formatarData(item.data) }}</p>
+                    @if (item.motivo) {
+                      <p class="mt-1 text-xs whitespace-pre-line text-slate-300">"{{ item.motivo }}"</p>
+                    }
+                  </li>
+                }
+              </ol>
+            }
+          </section>
+        </aside>
+      </div>
+    }
+  </div>
+</div>

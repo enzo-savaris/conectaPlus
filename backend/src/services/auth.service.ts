@@ -1,6 +1,7 @@
 import type { RowDataPacket } from 'mysql2';
 import pool from '../config/dataBase.ts';
-import { erroDeAutenticacao, erroEmpresaPendente } from '../utils/erro-app.ts';
+import { erroDeAutenticacao, erroEmpresaPendente, erroEmpresaRecusada } from '../utils/erro-app.ts';
+import { motivoAtual } from './admin.service.ts';
 import { senhaConfere } from '../utils/senha.ts';
 
 export interface PerfilUsuario {
@@ -60,6 +61,10 @@ async function autenticarEmpresa(cnpj: string, senha: string): Promise<Sessao> {
 
   if (empresa['STATUSEMP'] === 'PENDENTE') {
     throw erroEmpresaPendente();
+  }
+
+  if (empresa['STATUSEMP'] === 'RECUSADA') {
+    throw erroEmpresaRecusada(await motivoAtual(empresa['IDEMPRESA'] as number));
   }
 
   return {

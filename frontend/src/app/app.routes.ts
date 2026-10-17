@@ -58,6 +58,39 @@ export const routes: Routes = [
       )
   },
 
+  // Ambiente da equipe Conecta+: login próprio e layout próprio. As chamadas
+  // à API /admin levam um token assinado (tokenAdminInterceptor).
+  {
+    path: 'admin/login',
+    canActivate: [visitanteGuard],
+    title: 'Equipe | Conecta+',
+    loadComponent: () => import('./features/admin/login/admin-login').then((m) => m.AdminLogin)
+  },
+  {
+    path: 'admin',
+    canActivate: [ambienteGuard('admin')],
+    loadComponent: () => import('./features/admin/layout/admin-shell').then((m) => m.AdminShell),
+    children: [
+      { path: '', pathMatch: 'full', redirectTo: 'empresas' },
+      {
+        path: 'empresas',
+        title: 'Validação de empresas | Conecta+',
+        loadComponent: () => import('./features/admin/empresas/admin-empresas').then((m) => m.AdminEmpresas)
+      },
+      {
+        path: 'empresas/:id',
+        title: 'Análise de empresa | Conecta+',
+        loadComponent: () =>
+          import('./features/admin/empresa-detalhe/admin-empresa-detalhe').then((m) => m.AdminEmpresaDetalhe)
+      },
+      {
+        path: 'equipe',
+        title: 'Equipe | Conecta+',
+        loadComponent: () => import('./features/admin/equipe/admin-equipe').then((m) => m.AdminEquipe)
+      }
+    ]
+  },
+
   // Telas do sistema: compartilham a sidebar global via layout Shell.
   {
     path: '',

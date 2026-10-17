@@ -9,7 +9,8 @@
     "build": "tsc",
     "start": "node dist/server.js",
     "checar-tipos": "tsc --noEmit",
-    "popular-cidades": "node scripts/popular-cidades-ibge.ts"
+    "popular-cidades": "node scripts/popular-cidades-ibge.ts",
+    "criar-admin": "node scripts/criar-admin.ts"
   },
   "keywords": [],
   "author": "",

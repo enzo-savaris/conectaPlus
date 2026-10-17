@@ -1,0 +1,69 @@
+<div class="flex min-h-dvh bg-ink-950">
+  <aside class="sticky top-0 hidden h-dvh w-64 shrink-0 flex-col border-r border-white/10 bg-ink-900 md:flex">
+    <div class="px-5 py-5">
+      <app-logo />
+      <p class="mt-2 text-[11px] font-semibold tracking-widest text-brand-300 uppercase">Equipe Conecta+</p>
+    </div>
+
+    <nav class="flex flex-1 flex-col gap-1 px-3" aria-label="Menu da equipe">
+      <a
+        routerLink="/admin/empresas"
+        routerLinkActive="bg-white/10 text-brand-300"
+        class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-300 transition hover:bg-white/5 hover:text-white"
+      >
+        <svg class="size-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 21h19.5M4.5 21V6.75a1.5 1.5 0 0 1 1.5-1.5h3a1.5 1.5 0 0 1 1.5 1.5V21m4.5 0V3.75a1.5 1.5 0 0 1 1.5-1.5h1.5a1.5 1.5 0 0 1 1.5 1.5V21M7.5 9h1.5m-1.5 3.75h1.5m6-6h1.5m-1.5 3.75h1.5m-1.5 3.75h1.5" />
+        </svg>
+        Validação de empresas
+      </a>
+      <a
+        routerLink="/admin/equipe"
+        routerLinkActive="bg-white/10 text-brand-300"
+        class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-300 transition hover:bg-white/5 hover:text-white"
+      >
+        <svg class="size-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 0 0 3.741-.479 3 3 0 0 0-4.682-2.72m.94 3.198.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0 1 12 21c-2.17 0-4.207-.576-5.963-1.584a6.062 6.062 0 0 1-.037-.666c0-.202.011-.402.037-.666A11.944 11.944 0 0 1 12 12.75c2.17 0 4.207.576 5.963 1.584M15 6.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm6 3a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Zm-13.5 0a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Z" />
+        </svg>
+        Equipe
+      </a>
+    </nav>
+
+    <div class="flex flex-col gap-1 border-t border-white/10 px-3 py-4">
+      <p class="truncate px-3 pb-2 text-xs text-slate-500">Conectado como <span class="text-slate-300">{{ nome() }}</span></p>
+      <button
+        type="button"
+        (click)="acessibilidade.abrirPainel()"
+        aria-haspopup="dialog"
+        aria-keyshortcuts="Alt+A"
+        class="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-300 transition hover:bg-white/5 hover:text-brand-300"
+      >
+        <svg class="size-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+          <circle cx="12" cy="4.5" r="1.8" />
+          <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 8.5 12 10l7.5-1.5M12 10v4.5m0 0-3 6.5m3-6.5 3 6.5" />
+        </svg>
+        Acessibilidade
+      </button>
+      <button
+        type="button"
+        (click)="sair()"
+        class="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-300 transition hover:bg-white/5 hover:text-rose-300"
+      >
+        <svg class="size-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15M9 12h11.25m0 0-3.75-3.75M20.25 12l-3.75 3.75" />
+        </svg>
+        Sair
+      </button>
+    </div>
+  </aside>
+
+  <main class="min-w-0 flex-1">
+    <!-- Celular: menu no topo no lugar da barra lateral. -->
+    <nav class="flex items-center gap-2 overflow-x-auto border-b border-white/10 bg-ink-900 px-4 py-3 md:hidden" aria-label="Menu da equipe">
+      <a routerLink="/admin/empresas" routerLinkActive="bg-white/10 text-brand-300" class="shrink-0 rounded-lg px-3 py-1.5 text-sm text-slate-300">Empresas</a>
+      <a routerLink="/admin/equipe" routerLinkActive="bg-white/10 text-brand-300" class="shrink-0 rounded-lg px-3 py-1.5 text-sm text-slate-300">Equipe</a>
+      <button type="button" (click)="acessibilidade.abrirPainel()" class="shrink-0 rounded-lg px-3 py-1.5 text-sm text-slate-300">Acessibilidade</button>
+      <button type="button" (click)="sair()" class="ml-auto shrink-0 rounded-lg px-3 py-1.5 text-sm text-slate-300">Sair</button>
+    </nav>
+    <router-outlet />
+  </main>
+</div>

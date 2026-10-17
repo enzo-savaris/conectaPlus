@@ -85,6 +85,14 @@ export class Login {
       error: (erro: HttpErrorResponse) => {
         this.enviando.set(false);
 
+        if (erro.status === 403 && erro.error?.erros?.situacao === 'RECUSADA') {
+          const motivo = erro.error?.erros?.motivo as string | undefined;
+          this.erroFormulario.set(
+            `O cadastro da sua empresa não foi aprovado pela equipe Conecta+.${motivo ? ` Motivo: ${motivo}` : ''}`
+          );
+          return;
+        }
+
         if (erro.status === 403 && erro.error?.erros?.situacao === 'PENDENTE') {
           this.roteador.navigate(['/empresa/aguardando-confirmacao']);
           return;

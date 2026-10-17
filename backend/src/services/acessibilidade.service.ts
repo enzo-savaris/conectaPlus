@@ -26,10 +26,16 @@ const RECURSOS = [
 export type Preferencias = Record<(typeof RECURSOS)[number], boolean>;
 
 /** De quem são as preferências: um candidato PCD ou uma empresa. */
-export type DonoPreferencias = { tipo: 'usuario'; id: number } | { tipo: 'empresa'; id: number };
+export type DonoPreferencias =
+  | { tipo: 'usuario'; id: number }
+  | { tipo: 'empresa'; id: number }
+  | { tipo: 'admin'; id: number };
 
-function coluna(dono: DonoPreferencias): 'IDPCD' | 'IDEMPRESA' {
-  return dono.tipo === 'usuario' ? 'IDPCD' : 'IDEMPRESA';
+const COLUNA_DO_DONO = { usuario: 'IDPCD', empresa: 'IDEMPRESA', admin: 'IDADMIN' } as const;
+const TABELA_DO_DONO = { usuario: 'TBLCDSUSR0', empresa: 'TBLCDSEMP0', admin: 'TBLCDSADM0' } as const;
+
+function coluna(dono: DonoPreferencias): 'IDPCD' | 'IDEMPRESA' | 'IDADMIN' {
+  return COLUNA_DO_DONO[dono.tipo];
 }
 
 /** Só aceita os recursos conhecidos, com valor booleano; o que faltar fica desligado. */
@@ -55,9 +61,7 @@ export function validarPreferencias(valor: unknown): Preferencias {
 
 async function confirmarConta(dono: DonoPreferencias): Promise<void> {
   const [linhas] = await pool.query<RowDataPacket[]>(
-    dono.tipo === 'usuario'
-      ? 'SELECT IDPCD FROM TBLCDSUSR0 WHERE IDPCD = ?'
-      : 'SELECT IDEMPRESA FROM TBLCDSEMP0 WHERE IDEMPRESA = ?',
+    `SELECT ${coluna(dono)} FROM ${TABELA_DO_DONO[dono.tipo]} WHERE ${coluna(dono)} = ?`,
     [dono.id]
   );
 

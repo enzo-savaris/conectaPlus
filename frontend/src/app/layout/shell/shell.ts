@@ -43,6 +43,7 @@ export class Shell {
     }
 
     const ambienteDaRota = rota.data['ambiente'] as Ambiente | undefined;
-    return ambienteDaRota ?? this.authService.sessao()?.ambiente ?? 'usuario';
+    // A equipe (admin) tem layout próprio e nunca passa por este Shell.
+    return ambienteDaRota ?? (this.authService.sessao()?.ambiente === 'empresa' ? 'empresa' : 'usuario');
   }
 }
