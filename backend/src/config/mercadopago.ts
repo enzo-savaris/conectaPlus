@@ -100,6 +100,23 @@ export function consultarPagamentoMercadoPago(id: string): Promise<PagamentoMerc
   return chamar<PagamentoMercadoPago>(`/v1/payments/${encodeURIComponent(id)}`, { method: 'GET' });
 }
 
+/** Cancela um pagamento ainda não pago (ex.: Pix aberto quando o curso já foi pago no cartão). */
+export function cancelarPagamentoMercadoPago(id: string): Promise<PagamentoMercadoPago> {
+  return chamar<PagamentoMercadoPago>(`/v1/payments/${encodeURIComponent(id)}`, {
+    method: 'PUT',
+    body: JSON.stringify({ status: 'cancelled' })
+  });
+}
+
+/** Devolve o valor total de um pagamento aprovado (ex.: curso pago duas vezes). */
+export function reembolsarPagamentoMercadoPago(id: string): Promise<unknown> {
+  return chamar<unknown>(`/v1/payments/${encodeURIComponent(id)}/refunds`, {
+    method: 'POST',
+    body: JSON.stringify({}),
+    headers: { 'X-Idempotency-Key': `conectaplus-reembolso-${id}` }
+  });
+}
+
 /**
  * Confere a assinatura do webhook (cabeçalho x-signature), conforme a
  * documentação do Mercado Pago: HMAC-SHA256 do texto

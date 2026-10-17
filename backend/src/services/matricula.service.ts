@@ -1,8 +1,10 @@
 import type { PoolConnection, ResultSetHeader, RowDataPacket } from 'mysql2/promise';
 import pool from '../config/dataBase.ts';
 import {
+  cancelarPagamentoMercadoPago,
   consultarPagamentoMercadoPago,
   criarPagamentoMercadoPago,
+  reembolsarPagamentoMercadoPago,
   formatarDataMercadoPago,
   urlNotificacaoMercadoPago,
   type PagamentoMercadoPago
@@ -342,17 +344,41 @@ async function obterPagamento(idPagamento: number): Promise<Record<string, unkno
   return linhas[0]!;
 }
 
+/** O que fazer depois de gravar o status, fora da transação (são chamadas ao Mercado Pago). */
+type Pendencia = { tipo: 'cancelarOutros'; idMatricula: number } | { tipo: 'reembolsarDuplicado'; idExterno: string } | null;
+
 /**
  * Grava o que o Mercado Pago respondeu sobre o pagamento e, se aprovado,
  * ativa a matrícula. Também cobre o caminho inverso: um estorno (refunded /
  * charged_back) cancela a matrícula e bloqueia o conteúdo de novo.
+ *
+ * Proteção contra cobrança em dobro: quando um pagamento é aprovado, os
+ * outros ainda abertos da mesma matrícula (ex.: um Pix gerado antes de a
+ * pessoa decidir pagar no cartão) são cancelados no Mercado Pago. E se mesmo
+ * assim um segundo pagamento for aprovado (o Pix foi pago no mesmo instante),
+ * ele é devolvido automaticamente.
  */
 async function aplicarStatus(
   idPagamento: number,
   pagamento: PagamentoMercadoPago,
   dadosDeCriacao = false
 ): Promise<void> {
+  const pendencia = await gravarStatus(idPagamento, pagamento, dadosDeCriacao);
+
+  if (pendencia?.tipo === 'cancelarOutros') {
+    await cancelarOutrosPendentes(pendencia.idMatricula, idPagamento);
+  } else if (pendencia?.tipo === 'reembolsarDuplicado') {
+    await reembolsarDuplicado(idPagamento, pendencia.idExterno);
+  }
+}
+
+async function gravarStatus(
+  idPagamento: number,
+  pagamento: PagamentoMercadoPago,
+  dadosDeCriacao: boolean
+): Promise<Pendencia> {
   const conexao = await pool.getConnection();
+  let pendencia: Pendencia = null;
 
   try {
     await conexao.beginTransaction();
@@ -366,8 +392,9 @@ async function aplicarStatus(
     const atual = linhas[0];
     if (!atual) {
       await conexao.commit();
-      return;
+      return null;
     }
+    const jaEstavaAprovado = atual['STATUSPAGAMENTO'] === 'APROVADO';
 
     let status = statusDaPlataforma(pagamento.status);
 
@@ -396,24 +423,39 @@ async function aplicarStatus(
               pix?.qr_code_base64 ?? null,
               pagamento.date_of_expiration ? new Date(pagamento.date_of_expiration) : null,
               pagamento.payment_method_id === 'pix' ? null : pagamento.payment_method_id,
-              pagamento.card?.last_four_digits ?? null
+              // Só guarda o final se vierem 4 dígitos (em recusas o Mercado Pago às vezes manda mascarado).
+              /^\d{4}$/.test(pagamento.card?.last_four_digits ?? '') ? (pagamento.card?.last_four_digits ?? null) : null
             ]
           : []),
         idPagamento
       ]
     );
 
-    if (status === 'APROVADO' && atual['STATUSMATRICULA'] !== 'ATIVA') {
-      await conexao.execute(
-        "UPDATE TBLCDSMATR0 SET STATUSMATRICULA = 'ATIVA', DTATIVACAO = NOW() WHERE IDMATRICULA = ?",
-        [atual['IDMATRICULA']]
-      );
+    if (status === 'APROVADO' && !jaEstavaAprovado) {
+      if (atual['STATUSMATRICULA'] === 'ATIVA') {
+        // A matrícula já tinha sido paga por outro pagamento: este é duplicado.
+        pendencia = { tipo: 'reembolsarDuplicado', idExterno: String(pagamento.id) };
+      } else {
+        await conexao.execute(
+          "UPDATE TBLCDSMATR0 SET STATUSMATRICULA = 'ATIVA', DTATIVACAO = NOW() WHERE IDMATRICULA = ?",
+          [atual['IDMATRICULA']]
+        );
+        pendencia = { tipo: 'cancelarOutros', idMatricula: atual['IDMATRICULA'] as number };
+      }
     }
 
     if (status === 'ESTORNADO' && atual['STATUSMATRICULA'] === 'ATIVA') {
-      await conexao.execute("UPDATE TBLCDSMATR0 SET STATUSMATRICULA = 'CANCELADA' WHERE IDMATRICULA = ?", [
-        atual['IDMATRICULA']
-      ]);
+      // Só bloqueia o curso se não sobrou nenhum outro pagamento aprovado —
+      // devolver um pagamento duplicado não pode tirar o acesso de quem pagou.
+      const [outrosAprovados] = await conexao.query<RowDataPacket[]>(
+        "SELECT IDPAGAMENTO FROM TBLCDSPAG0 WHERE IDMATRICULA = ? AND IDPAGAMENTO <> ? AND STATUSPAGAMENTO = 'APROVADO' LIMIT 1",
+        [atual['IDMATRICULA'], idPagamento]
+      );
+      if (outrosAprovados.length === 0) {
+        await conexao.execute("UPDATE TBLCDSMATR0 SET STATUSMATRICULA = 'CANCELADA' WHERE IDMATRICULA = ?", [
+          atual['IDMATRICULA']
+        ]);
+      }
     }
 
     await conexao.commit();
@@ -422,6 +464,54 @@ async function aplicarStatus(
     throw erro;
   } finally {
     conexao.release();
+  }
+
+  return pendencia;
+}
+
+/** Cancela no Mercado Pago os outros pagamentos ainda abertos da matrícula que acabou de ser paga. */
+async function cancelarOutrosPendentes(idMatricula: number, idPagamentoAprovado: number): Promise<void> {
+  const [pendentes] = await pool.query<RowDataPacket[]>(
+    `SELECT IDPAGAMENTO, IDEXTERNO FROM TBLCDSPAG0
+     WHERE IDMATRICULA = ? AND IDPAGAMENTO <> ? AND STATUSPAGAMENTO = 'PENDENTE' AND IDEXTERNO IS NOT NULL`,
+    [idMatricula, idPagamentoAprovado]
+  );
+
+  for (const pendente of pendentes) {
+    try {
+      const cancelado = await cancelarPagamentoMercadoPago(String(pendente['IDEXTERNO']));
+      if (cancelado.status === 'approved') {
+        // Foi pago no exato instante: trata como duplicado.
+        await gravarStatus(pendente['IDPAGAMENTO'] as number, cancelado, false);
+        await reembolsarDuplicado(pendente['IDPAGAMENTO'] as number, String(pendente['IDEXTERNO']));
+        continue;
+      }
+      await pool.execute(
+        "UPDATE TBLCDSPAG0 SET STATUSPAGAMENTO = 'CANCELADO', DETALHESTATUS = 'cancelado_outro_pagamento_aprovado' WHERE IDPAGAMENTO = ?",
+        [pendente['IDPAGAMENTO']]
+      );
+    } catch (erro) {
+      // Não impede a matrícula de ser liberada; se esse Pix for pago depois,
+      // o webhook/consulta detecta como duplicado e devolve o dinheiro.
+      console.error(`Não foi possível cancelar o pagamento ${pendente['IDEXTERNO']} no Mercado Pago:`, erro);
+    }
+  }
+}
+
+/** Devolve um pagamento aprovado em duplicidade. Se falhar, deixa marcado para a equipe devolver pelo painel. */
+async function reembolsarDuplicado(idPagamento: number, idExterno: string): Promise<void> {
+  try {
+    await reembolsarPagamentoMercadoPago(idExterno);
+    await pool.execute(
+      "UPDATE TBLCDSPAG0 SET STATUSPAGAMENTO = 'ESTORNADO', DETALHESTATUS = 'reembolsado_pagamento_duplicado' WHERE IDPAGAMENTO = ?",
+      [idPagamento]
+    );
+    console.warn(`Pagamento ${idExterno} era duplicado e foi devolvido automaticamente.`);
+  } catch (erro) {
+    await pool.execute("UPDATE TBLCDSPAG0 SET DETALHESTATUS = 'duplicado_devolver_manual' WHERE IDPAGAMENTO = ?", [
+      idPagamento
+    ]);
+    console.error(`ATENÇÃO: pagamento ${idExterno} foi pago em duplicidade e precisa ser devolvido pelo painel do Mercado Pago.`, erro);
   }
 }
 
