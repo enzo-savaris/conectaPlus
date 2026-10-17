@@ -2,6 +2,8 @@ export type TipoConteudoCurso = 'LINK' | 'ARQUIVO';
 
 export type StatusCurso = 'ATIVO' | 'INATIVO';
 
+export type NivelCurso = 'INICIANTE' | 'INTERMEDIARIO' | 'AVANCADO';
+
 /** Uma aula dentro de um módulo — tem o próprio conteúdo (link ou vídeo anexado). */
 export interface CapituloCurso {
   id: number;
@@ -20,6 +22,8 @@ export interface CapituloCurso {
 export interface ModuloCurso {
   id: number;
   titulo: string;
+  /** Horas do módulo; `null` quando a empresa não informou. */
+  cargaHoraria: number | null;
   capitulos: CapituloCurso[];
 }
 
@@ -34,11 +38,77 @@ export interface Curso {
   preco: number | null;
   dataCadastro: string;
   status: StatusCurso;
+  nivel: NivelCurso | null;
+  certificado: boolean;
+  /** Média das notas (1 a 5), ou `null` sem nenhuma avaliação. */
+  avaliacaoMedia: number | null;
+  totalAvaliacoes: number;
 }
+
+export type StatusMatricula = 'PENDENTE' | 'ATIVA' | 'CANCELADA';
 
 /** Curso com os módulos e capítulos — usado na tela de detalhes e na edição. */
 export interface CursoDetalhado extends Curso {
+  aprendizados: string[];
+  skills: string[];
   modulos: ModuloCurso[];
+  /**
+   * Se os links/arquivos das aulas vieram na resposta: curso gratuito,
+   * matrícula ATIVA (pago) ou empresa dona. Sem isso, as aulas vêm só com o título.
+   */
+  conteudoLiberado: boolean;
+  /** Matrícula do candidato que pediu o curso (só quando consultado com o id dele). */
+  matricula: { id: number; status: StatusMatricula } | null;
+  minhaAvaliacao: { nota: number; comentario: string | null } | null;
+}
+
+export type MetodoPagamento = 'PIX' | 'CARTAO';
+
+export type StatusPagamento = 'PENDENTE' | 'APROVADO' | 'RECUSADO' | 'CANCELADO' | 'ESTORNADO';
+
+/** Uma tentativa de pagamento da matrícula, como devolvida pela API. */
+export interface PagamentoCurso {
+  id: number;
+  metodo: MetodoPagamento;
+  valor: number;
+  parcelas: number;
+  status: StatusPagamento;
+  /** Motivo do Mercado Pago (ex.: cc_rejected_insufficient_amount). */
+  detalheStatus: string | null;
+  pixCopiaECola: string | null;
+  /** Imagem do QR Code em base64 (PNG). */
+  pixQrCodeBase64: string | null;
+  pixExpiracao: string | null;
+  cartaoBandeira: string | null;
+  cartaoFinal: string | null;
+  statusMatricula: StatusMatricula;
+}
+
+/** Matrícula do candidato num curso, com os dados usados no fluxo de matrícula. */
+export interface MatriculaCurso {
+  id: number;
+  idCurso: number;
+  tituloCurso: string;
+  nomeEmpresa: string;
+  cargaHoraria: number | null;
+  nivel: NivelCurso | null;
+  certificado: boolean;
+  valor: number;
+  status: StatusMatricula;
+  necessidades: string[];
+  observacao: string | null;
+  pagamento: PagamentoCurso | null;
+}
+
+/** Dados do pagamento com cartão: o cartão em si já virou `token` no navegador, direto com o Mercado Pago. */
+export interface PagamentoCartao {
+  token: string;
+  bandeira: string;
+  idEmissor: string | null;
+  parcelas: number;
+  email: string;
+  tipoDocumento: string;
+  numeroDocumento: string;
 }
 
 /**
@@ -62,6 +132,7 @@ export interface NovoCapitulo {
 
 export interface NovoModulo {
   titulo: string;
+  cargaHoraria: number | null;
   capitulos: NovoCapitulo[];
 }
 
@@ -71,5 +142,9 @@ export interface NovoCurso {
   descricao: string | null;
   cargaHoraria: number | null;
   preco: number | null;
+  nivel: NivelCurso | null;
+  certificado: boolean;
+  aprendizados: string[];
+  skills: string[];
   modulos: NovoModulo[];
 }

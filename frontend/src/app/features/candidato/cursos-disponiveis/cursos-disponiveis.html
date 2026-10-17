@@ -60,7 +60,18 @@
             </svg>
           </span>
 
-          <h2 class="mt-3 text-base font-semibold text-white">{{ curso.titulo }}</h2>
+          <div class="mt-3 flex items-start justify-between gap-2">
+            <h2 class="text-base font-semibold text-white">{{ curso.titulo }}</h2>
+            @if (matriculas().get(curso.id) === 'ATIVA') {
+              <span class="shrink-0 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-2 py-0.5 text-[11px] font-semibold text-emerald-300">
+                Matriculado
+              </span>
+            } @else if (matriculas().get(curso.id) === 'PENDENTE') {
+              <span class="shrink-0 rounded-full border border-amber-400/30 bg-amber-400/10 px-2 py-0.5 text-[11px] font-semibold text-amber-300">
+                Pagamento pendente
+              </span>
+            }
+          </div>
           <p class="mt-0.5 text-sm text-brand-300">{{ curso.nomeEmpresa }}</p>
 
           @if (curso.descricao) {
@@ -84,6 +95,15 @@
               </svg>
               {{ formatarPreco(curso) }}
             </span>
+
+            @if (curso.avaliacaoMedia !== null) {
+              <span class="inline-flex items-center gap-1" [attr.aria-label]="'Avaliação ' + curso.avaliacaoMedia + ' de 5'">
+                <svg class="h-3.5 w-3.5 text-amber-300" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                  <path d="m12 3 2.6 5.9 6.4.6-4.8 4.3 1.4 6.3L12 17l-5.6 3.1 1.4-6.3L3 9.5l6.4-.6L12 3Z" />
+                </svg>
+                {{ curso.avaliacaoMedia.toFixed(1).replace('.', ',') }}
+              </span>
+            }
           </div>
 
           <a

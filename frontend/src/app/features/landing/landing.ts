@@ -9,6 +9,8 @@ import {
   formatarSalarioVaga,
   formatarTipoContratacao
 } from '../../shared/utils/vaga-format';
+import { AcessibilidadeService } from '../../shared/services/acessibilidade.service';
+import { Logo } from '../../shared/components/logo/logo';
 
 const ID_SECAO_VAGAS = 'vagas-abertas';
 
@@ -19,16 +21,27 @@ const ID_SECAO_VAGAS = 'vagas-abertas';
  */
 @Component({
   selector: 'app-landing',
-  imports: [RouterLink],
+  imports: [RouterLink, Logo],
   templateUrl: './landing.html',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class Landing {
+  protected readonly acessibilidade = inject(AcessibilidadeService);
+
   private readonly vagaService = inject(VagaService);
   private readonly authService = inject(AuthService);
   private readonly roteador = inject(Router);
 
   protected readonly anoAtual = new Date().getFullYear();
+
+  /** Painel de quem já está logado (ex.: marcou "Lembrar de mim"); `null` para visitantes. */
+  protected readonly rotaDoPainel = computed(() => {
+    const sessao = this.authService.sessao();
+    if (!sessao) {
+      return null;
+    }
+    return sessao.ambiente === 'empresa' ? '/empresa/painel' : '/painel';
+  });
 
   protected readonly vagas = signal<Vaga[]>([]);
   protected readonly minhasCandidaturas = signal<MinhaCandidatura[]>([]);

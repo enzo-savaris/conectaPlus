@@ -6,7 +6,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { AuthService } from '../../../shared/services/auth.service';
 import { CursoService } from '../../../shared/services/curso.service';
 import { ToastService } from '../../../shared/services/toast.service';
-import { NovoCurso, NovoModulo, TipoConteudoCurso } from '../../../shared/types/curso';
+import { NivelCurso, NovoCurso, NovoModulo, TipoConteudoCurso } from '../../../shared/types/curso';
 
 const REGEX_URL = /^https?:\/\/.+/i;
 
@@ -28,6 +28,8 @@ interface CapituloEmEdicao {
 
 interface ModuloEmEdicao {
   titulo: string;
+  /** Horas do módulo, como texto do input (vazio = não informado). */
+  cargaHoraria: string;
   capitulos: CapituloEmEdicao[];
 }
 
@@ -47,7 +49,7 @@ function criarCapituloVazio(): CapituloEmEdicao {
 }
 
 function criarModuloVazio(): ModuloEmEdicao {
-  return { titulo: '', capitulos: [criarCapituloVazio()] };
+  return { titulo: '', cargaHoraria: '', capitulos: [criarCapituloVazio()] };
 }
 
 /** Extrai o nome do arquivo a partir da URL pronta que a API devolve (.../uploads/cursos/<nome>). */
@@ -77,6 +79,10 @@ export class CursoRegister {
 
   protected readonly modulos = signal<ModuloEmEdicao[]>([criarModuloVazio()]);
 
+  /** Listas da tela de detalhes do curso: "O que você vai aprender" e "Skills". */
+  protected readonly aprendizados = signal<string[]>([]);
+  protected readonly skills = signal<string[]>([]);
+
   /**
    * Só empresa ATIVA pode cadastrar/editar cursos; PENDENTE (ex.: depois de
    * mudar CNPJ/razão social) ou INATIVA só pode visualizar os já cadastrados.
@@ -93,7 +99,9 @@ export class CursoRegister {
     }),
     cargaHoraria: new FormControl<number | null>(null),
     preco: new FormControl<number | null>(null),
-    descricao: new FormControl('', { nonNullable: true })
+    descricao: new FormControl('', { nonNullable: true }),
+    nivel: new FormControl<NivelCurso | ''>('', { nonNullable: true }),
+    certificado: new FormControl(false, { nonNullable: true })
   });
 
   constructor() {
@@ -133,7 +141,7 @@ export class CursoRegister {
     this.carregandoCurso.set(true);
     this.erroFormulario.set(null);
 
-    this.cursoService.obterPorId(idCurso).subscribe({
+    this.cursoService.obterPorId(idCurso, { idEmpresa: this.idEmpresaLogada() }).subscribe({
       next: (detalhado) => {
         this.carregandoCurso.set(false);
 
@@ -141,12 +149,18 @@ export class CursoRegister {
           titulo: detalhado.titulo,
           cargaHoraria: detalhado.cargaHoraria,
           preco: detalhado.preco,
-          descricao: detalhado.descricao ?? ''
+          descricao: detalhado.descricao ?? '',
+          nivel: detalhado.nivel ?? '',
+          certificado: detalhado.certificado
         });
+
+        this.aprendizados.set(detalhado.aprendizados);
+        this.skills.set(detalhado.skills);
 
         this.modulos.set(
           detalhado.modulos.map((modulo) => ({
             titulo: modulo.titulo,
+            cargaHoraria: modulo.cargaHoraria !== null ? String(modulo.cargaHoraria) : '',
             capitulos: modulo.capitulos.map((capitulo) => ({
               titulo: capitulo.titulo,
               descricao: capitulo.descricao ?? '',
@@ -188,6 +202,29 @@ export class CursoRegister {
     this.modulos.update((lista) =>
       lista.map((modulo, i) => (i === indiceModulo ? { ...modulo, titulo: valor } : modulo))
     );
+  }
+
+  protected atualizarCargaHorariaModulo(indiceModulo: number, valor: string): void {
+    this.modulos.update((lista) =>
+      lista.map((modulo, i) => (i === indiceModulo ? { ...modulo, cargaHoraria: valor } : modulo))
+    );
+  }
+
+  // ============ LISTAS (APRENDIZADOS E SKILLS) ============
+
+  protected adicionarItem(lista: 'aprendizados' | 'skills', entrada: HTMLInputElement): void {
+    const valor = entrada.value.trim();
+    if (!valor) {
+      return;
+    }
+
+    this[lista].update((itens) => (itens.includes(valor) ? itens : [...itens, valor]));
+    entrada.value = '';
+    entrada.focus();
+  }
+
+  protected removerItem(lista: 'aprendizados' | 'skills', indice: number): void {
+    this[lista].update((itens) => itens.filter((_, i) => i !== indice));
   }
 
   // ============ CAPÍTULOS (AULAS) ============
@@ -323,6 +360,7 @@ export class CursoRegister {
 
     const modulos: NovoModulo[] = this.modulos().map((modulo) => ({
       titulo: modulo.titulo,
+      cargaHoraria: modulo.cargaHoraria.trim() ? Number(modulo.cargaHoraria) : null,
       capitulos: modulo.capitulos.map((capitulo) => ({
         titulo: capitulo.titulo,
         descricao: capitulo.descricao.trim() || null,
@@ -340,6 +378,10 @@ export class CursoRegister {
       descricao: valores.descricao || null,
       cargaHoraria: valores.cargaHoraria,
       preco: valores.preco,
+      nivel: valores.nivel || null,
+      certificado: valores.certificado,
+      aprendizados: this.aprendizados(),
+      skills: this.skills(),
       modulos
     };
 

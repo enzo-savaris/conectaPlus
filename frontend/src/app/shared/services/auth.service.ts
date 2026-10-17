@@ -8,8 +8,14 @@ import { PerfilEmpresa, Sessao } from '../types/sessao';
 const CHAVE_ARMAZENAMENTO = 'conecta+:sessao';
 
 /**
- * Guarda a sessão autenticada em memória (signal) e, quando o usuário marca
- * "lembrar de mim", também no localStorage, para sobreviver a um F5.
+ * Guarda a sessão autenticada em memória (signal) e também no navegador, para
+ * sobreviver a um F5 — sem isso, atualizar a página (ex.: para ver vagas
+ * novas) jogava a pessoa de volta para o login.
+ *
+ * Onde fica guardada depende do "lembrar de mim":
+ * - marcado: localStorage — continua logado mesmo fechando o navegador;
+ * - desmarcado: sessionStorage — sobrevive ao F5 e à navegação, mas some ao
+ *   fechar a aba, então ninguém herda a sessão num computador compartilhado.
  */
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -24,15 +30,10 @@ export class AuthService {
     return this.http.post<Sessao>(`${URL_BASE_API}/auth/login`, { documento, senha }).pipe(
       tap((sessao) => {
         this.sessaoSignal.set(sessao);
-
-        if (lembrarDeMim) {
-          this.salvarSessao(sessao);
-        } else {
-          // Sem isso, um login anterior com "lembrar de mim" marcado deixaria
-          // a sessão salva no localStorage, e um F5 voltaria a logar como
-          // aquela sessão antiga mesmo com a caixa desmarcada agora.
-          this.limparSessaoSalva();
-        }
+        // Limpa os dois antes: sem isso, um login anterior com "lembrar de
+        // mim" deixaria a sessão antiga no localStorage, e ela voltaria num F5.
+        this.limparSessaoSalva();
+        this.salvarSessao(sessao, lembrarDeMim ? this.armazenamentoLocal() : this.armazenamentoDaAba());
       })
     );
   }
@@ -56,37 +57,51 @@ export class AuthService {
     const atualizada: Sessao = { ambiente: 'empresa', perfil: { ...atual.perfil, ...dados } };
     this.sessaoSignal.set(atualizada);
 
-    if (typeof localStorage !== 'undefined' && localStorage.getItem(CHAVE_ARMAZENAMENTO)) {
-      this.salvarSessao(atualizada);
+    // Regrava no mesmo lugar onde a sessão já estava (localStorage ou sessionStorage).
+    for (const armazenamento of [this.armazenamentoLocal(), this.armazenamentoDaAba()]) {
+      if (armazenamento?.getItem(CHAVE_ARMAZENAMENTO)) {
+        this.salvarSessao(atualizada, armazenamento);
+      }
     }
   }
 
+  /** "Lembrar de mim" (localStorage) tem prioridade; senão, a sessão só desta aba. */
   private lerSessaoSalva(): Sessao | null {
-    if (typeof localStorage === 'undefined') {
-      return null;
+    for (const armazenamento of [this.armazenamentoLocal(), this.armazenamentoDaAba()]) {
+      const bruto = armazenamento?.getItem(CHAVE_ARMAZENAMENTO);
+      if (!bruto) {
+        continue;
+      }
+
+      try {
+        return JSON.parse(bruto) as Sessao;
+      } catch {
+        armazenamento?.removeItem(CHAVE_ARMAZENAMENTO);
+      }
     }
 
-    const bruto = localStorage.getItem(CHAVE_ARMAZENAMENTO);
-    if (!bruto) {
-      return null;
-    }
-
-    try {
-      return JSON.parse(bruto) as Sessao;
-    } catch {
-      return null;
-    }
+    return null;
   }
 
-  private salvarSessao(sessao: Sessao): void {
-    if (typeof localStorage !== 'undefined') {
-      localStorage.setItem(CHAVE_ARMAZENAMENTO, JSON.stringify(sessao));
+  private salvarSessao(sessao: Sessao, armazenamento: Storage | null): void {
+    try {
+      armazenamento?.setItem(CHAVE_ARMAZENAMENTO, JSON.stringify(sessao));
+    } catch {
+      // Armazenamento bloqueado (ex.: navegação privada restrita): a sessão vale até o F5.
     }
   }
 
   private limparSessaoSalva(): void {
-    if (typeof localStorage !== 'undefined') {
-      localStorage.removeItem(CHAVE_ARMAZENAMENTO);
-    }
+    this.armazenamentoLocal()?.removeItem(CHAVE_ARMAZENAMENTO);
+    this.armazenamentoDaAba()?.removeItem(CHAVE_ARMAZENAMENTO);
+  }
+
+  /** `null` no servidor (SSR/prerender), onde não existe armazenamento do navegador. */
+  private armazenamentoLocal(): Storage | null {
+    return typeof localStorage !== 'undefined' ? localStorage : null;
+  }
+
+  private armazenamentoDaAba(): Storage | null {
+    return typeof sessionStorage !== 'undefined' ? sessionStorage : null;
   }
 }

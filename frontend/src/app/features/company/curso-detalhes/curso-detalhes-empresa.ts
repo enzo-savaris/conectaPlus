@@ -37,11 +37,17 @@ export class CursoDetalhesEmpresa {
     this.carregar(Number(this.rota.snapshot.paramMap.get('id')));
   }
 
+  /** Garantido pelo ambienteGuard('empresa'): só entra aqui quem está logado como empresa. */
+  private idEmpresaLogada(): number {
+    const sessao = this.authService.sessao();
+    return sessao?.ambiente === 'empresa' ? sessao.perfil.id : 0;
+  }
+
   private carregar(idCurso: number): void {
     this.carregando.set(true);
     this.erro.set(null);
 
-    this.cursoService.obterPorId(idCurso).subscribe({
+    this.cursoService.obterPorId(idCurso, { idEmpresa: this.idEmpresaLogada() }).subscribe({
       next: (curso) => {
         this.curso.set(curso);
         this.carregando.set(false);

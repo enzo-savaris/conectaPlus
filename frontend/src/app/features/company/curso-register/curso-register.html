@@ -99,6 +99,108 @@
                 class="field-input mt-1.5 resize-none"
               ></textarea>
             </div>
+
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label for="nivel" class="field-label">Nível</label>
+                <select id="nivel" formControlName="nivel" class="field-input mt-1.5">
+                  <option value="">Não informado</option>
+                  <option value="INICIANTE">Iniciante</option>
+                  <option value="INTERMEDIARIO">Intermediário</option>
+                  <option value="AVANCADO">Avançado</option>
+                </select>
+              </div>
+
+              <label class="mt-6 flex cursor-pointer items-center gap-3 text-sm text-slate-300">
+                <input type="checkbox" formControlName="certificado" class="size-4 accent-brand-400" />
+                Emite certificado de conclusão
+              </label>
+            </div>
+
+            <div>
+              <p class="field-label">O que o aluno vai aprender</p>
+              <p class="mt-1 text-xs text-slate-500">Um item por tópico. Ex: Hooks avançados (useState, useEffect).</p>
+              <div class="mt-2 flex gap-2">
+                <input
+                  #aprInput
+                  type="text"
+                  maxlength="255"
+                  placeholder="Digite e clique em adicionar"
+                  [disabled]="!empresaAtiva()"
+                  class="field-input"
+                  (keydown.enter)="$event.preventDefault(); adicionarItem('aprendizados', aprInput)"
+                />
+                <button
+                  type="button"
+                  (click)="adicionarItem('aprendizados', aprInput)"
+                  [disabled]="!empresaAtiva()"
+                  class="shrink-0 rounded-lg border border-white/12 bg-ink-800/60 px-4 py-2.5 text-sm font-medium text-slate-200 transition hover:border-white/25 hover:bg-ink-700/70 disabled:opacity-50"
+                >
+                  + Adicionar
+                </button>
+              </div>
+              @if (aprendizados().length > 0) {
+                <ul class="mt-3 flex flex-wrap gap-2">
+                  @for (item of aprendizados(); track $index) {
+                    <li class="inline-flex items-center gap-2 rounded-full border border-brand-400/30 bg-brand-400/10 px-3 py-1.5 text-xs font-medium text-brand-200">
+                      {{ item }}
+                      <button
+                        type="button"
+                        (click)="removerItem('aprendizados', $index)"
+                        class="text-brand-300/70 transition hover:text-rose-300"
+                        aria-label="Remover item"
+                      >
+                        <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                          <path d="m6 6 12 12M18 6 6 18" stroke-linecap="round" />
+                        </svg>
+                      </button>
+                    </li>
+                  }
+                </ul>
+              }
+            </div>
+            <div>
+              <p class="field-label">Skills desenvolvidas</p>
+              <p class="mt-1 text-xs text-slate-500">Etiquetas curtas. Ex: React, TypeScript, Testing.</p>
+              <div class="mt-2 flex gap-2">
+                <input
+                  #skillInput
+                  type="text"
+                  maxlength="60"
+                  placeholder="Digite e clique em adicionar"
+                  [disabled]="!empresaAtiva()"
+                  class="field-input"
+                  (keydown.enter)="$event.preventDefault(); adicionarItem('skills', skillInput)"
+                />
+                <button
+                  type="button"
+                  (click)="adicionarItem('skills', skillInput)"
+                  [disabled]="!empresaAtiva()"
+                  class="shrink-0 rounded-lg border border-white/12 bg-ink-800/60 px-4 py-2.5 text-sm font-medium text-slate-200 transition hover:border-white/25 hover:bg-ink-700/70 disabled:opacity-50"
+                >
+                  + Adicionar
+                </button>
+              </div>
+              @if (skills().length > 0) {
+                <ul class="mt-3 flex flex-wrap gap-2">
+                  @for (item of skills(); track $index) {
+                    <li class="inline-flex items-center gap-2 rounded-full border border-brand-400/30 bg-brand-400/10 px-3 py-1.5 text-xs font-medium text-brand-200">
+                      {{ item }}
+                      <button
+                        type="button"
+                        (click)="removerItem('skills', $index)"
+                        class="text-brand-300/70 transition hover:text-rose-300"
+                        aria-label="Remover item"
+                      >
+                        <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                          <path d="m6 6 12 12M18 6 6 18" stroke-linecap="round" />
+                        </svg>
+                      </button>
+                    </li>
+                  }
+                </ul>
+              }
+            </div>
           </div>
         </fieldset>
 
@@ -125,6 +227,17 @@
                     placeholder="Título do módulo"
                     aria-label="Título do módulo"
                     class="field-input flex-1"
+                  />
+                  <input
+                    type="number"
+                    min="1"
+                    [value]="modulo.cargaHoraria"
+                    (input)="atualizarCargaHorariaModulo(indiceModulo, $any($event.target).value)"
+                    [disabled]="!empresaAtiva()"
+                    placeholder="Horas"
+                    aria-label="Carga horária do módulo, em horas"
+                    title="Carga horária do módulo (horas)"
+                    class="field-input w-24 shrink-0"
                   />
                   <button
                     type="button"

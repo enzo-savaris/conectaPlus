@@ -1,0 +1,182 @@
+<!-- Link "Pular para o conteúdo": invisível até receber foco pelo teclado (primeiro Tab da página). -->
+<a
+  href="#conteudo"
+  (click)="pularParaConteudo($event)"
+  class="a11y-ignorar sr-only z-[200] rounded-lg bg-brand-300 px-4 py-2 text-sm font-semibold text-ink-950 focus:not-sr-only focus:fixed focus:top-3 focus:left-3"
+>
+  Pular para o conteúdo
+</a>
+
+<!-- ============ PAINEL DE ACESSIBILIDADE ============ -->
+@if (servico.painelAberto()) {
+  <div class="a11y-ignorar fixed inset-0 z-[150] flex items-center justify-center overflow-y-auto bg-ink-950/80 p-4 backdrop-blur-sm">
+    <!-- Clicar fora fecha (sem salvar). -->
+    <div class="absolute inset-0" (click)="servico.fecharPainel()" aria-hidden="true"></div>
+
+    <section
+      #painel
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="a11y-titulo"
+      aria-describedby="a11y-descricao"
+      (keydown)="aoTeclarNoPainel($event)"
+      class="relative w-full max-w-3xl rounded-3xl border border-white/10 bg-ink-900 p-5 shadow-2xl shadow-black/50 sm:p-7"
+    >
+      <header class="flex items-start justify-between gap-4">
+        <div>
+          <h2 id="a11y-titulo" class="text-2xl font-bold text-white">Acessibilidade</h2>
+          <p id="a11y-descricao" class="mt-1 text-sm text-slate-400">
+            Personalize sua experiência de navegação e as opções de leitura.
+          </p>
+        </div>
+        <button
+          type="button"
+          (click)="servico.fecharPainel()"
+          aria-label="Fechar sem salvar"
+          class="flex size-9 shrink-0 items-center justify-center rounded-full border border-white/12 text-slate-300 transition hover:border-white/30 hover:text-white"
+        >
+          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="m6 6 12 12M18 6 6 18" stroke-linecap="round" />
+          </svg>
+        </button>
+      </header>
+
+      <ul class="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+        @for (opcao of opcoes; track opcao.rotulo) {
+          <li>
+            <button
+              type="button"
+              (click)="acionar(opcao)"
+              [attr.aria-pressed]="opcao.recurso ? ativo(opcao) : null"
+              [attr.aria-describedby]="'a11y-desc-' + $index"
+              [disabled]="opcao.recurso === 'leitorTexto' && !leituraDisponivel"
+              class="flex h-full min-h-28 w-full flex-col items-center justify-center gap-3 rounded-2xl border p-3 text-center transition disabled:cursor-not-allowed disabled:opacity-40"
+              [class]="
+                ativo(opcao)
+                  ? 'border-brand-400 bg-brand-400/10 text-brand-300'
+                  : 'border-white/10 bg-ink-800/40 text-slate-300 hover:border-white/25 hover:text-white'
+              "
+            >
+              <span
+                class="flex size-9 items-center justify-center rounded-lg"
+                [class]="ativo(opcao) ? 'bg-brand-400/20' : 'bg-white/5'"
+              >
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.7" aria-hidden="true">
+                  <path [attr.d]="opcao.icone" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+              </span>
+              <span class="text-xs font-semibold">{{ opcao.rotulo }}</span>
+              <span [id]="'a11y-desc-' + $index" class="sr-only">{{ opcao.descricao }}</span>
+            </button>
+          </li>
+        }
+      </ul>
+
+      <footer class="mt-6 flex flex-wrap items-center justify-between gap-3">
+        <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500">
+          <button type="button" (click)="servico.restaurarPadrao()" class="text-slate-400 underline-offset-2 hover:text-white hover:underline">
+            Restaurar padrão
+          </button>
+          <span>Atalho: <kbd class="rounded border border-white/15 px-1.5 py-0.5 text-slate-300">Alt</kbd> + <kbd class="rounded border border-white/15 px-1.5 py-0.5 text-slate-300">A</kbd></span>
+          @if (servico.alterado()) {
+            <span class="text-amber-300" role="status">Alterações não salvas</span>
+          }
+        </div>
+        <div class="flex flex-col items-end gap-1">
+          <button
+            type="button"
+            (click)="servico.salvar()"
+            [disabled]="servico.salvando()"
+            class="rounded-lg bg-gradient-to-r from-brand-300 to-brand-600 px-6 py-2.5 text-sm font-semibold text-ink-950 shadow-lg shadow-brand-500/20 transition hover:brightness-110 disabled:opacity-60"
+          >
+            {{ servico.salvando() ? 'Salvando…' : 'Salvar preferências' }}
+          </button>
+          <span class="text-[11px] text-slate-500">
+            {{ servico.salvaNaConta() ? 'Salvas na sua conta, valem em qualquer computador.' : 'Salvas só neste navegador. Entre na sua conta para guardá-las.' }}
+          </span>
+        </div>
+      </footer>
+
+      @if (servico.erroAoSalvar()) {
+        <p class="mt-3 rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-2 text-sm text-rose-200" role="alert">
+          {{ servico.erroAoSalvar() }}
+        </p>
+      }
+    </section>
+  </div>
+}
+
+<!-- ============ LEITOR DE TEXTO: botão de parar ============ -->
+@if (lendo()) {
+  <button
+    type="button"
+    (click)="pararLeitura()"
+    class="a11y-ignorar fixed bottom-4 left-1/2 z-[140] inline-flex -translate-x-1/2 items-center gap-2 rounded-full bg-brand-300 px-5 py-2.5 text-sm font-semibold text-ink-950 shadow-xl"
+  >
+    <span class="size-2 animate-pulse rounded-full bg-ink-950" aria-hidden="true"></span>
+    Lendo… clique para parar
+  </button>
+}
+
+<!-- ============ AMPLIADOR DE TEXTO ============ -->
+@if (textoAmpliado(); as texto) {
+  <div
+    class="a11y-ignorar pointer-events-none fixed z-[140] max-w-[min(30rem,calc(100vw-2rem))] rounded-xl border-2 border-brand-300 bg-ink-950 px-4 py-3 text-2xl leading-snug font-semibold text-white shadow-2xl"
+    [style.left.px]="posicaoAmpliador().x"
+    [style.top.px]="posicaoAmpliador().y"
+    aria-hidden="true"
+  >
+    {{ texto }}
+  </div>
+}
+
+<!-- ============ TECLADO VIRTUAL ============ -->
+@if (campoAtivo()) {
+  <div
+    class="a11y-ignorar fixed inset-x-0 bottom-0 z-[145] border-t border-white/10 bg-ink-900/95 p-3 shadow-2xl backdrop-blur-sm"
+    role="group"
+    aria-label="Teclado virtual"
+    (mousedown)="$event.preventDefault()"
+  >
+    <div class="mx-auto flex max-w-3xl flex-col gap-1.5">
+      @for (linha of linhasTeclado; track $index) {
+        <div class="flex justify-center gap-1.5">
+          @for (tecla of linha; track tecla) {
+            <button
+              type="button"
+              tabindex="-1"
+              (click)="digitar(teclaVisivel(tecla))"
+              class="h-10 min-w-0 flex-1 rounded-lg border border-white/10 bg-ink-800 text-base font-medium text-white transition hover:border-brand-400/60 active:bg-brand-400/20 sm:max-w-14"
+            >
+              {{ teclaVisivel(tecla) }}
+            </button>
+          }
+        </div>
+      }
+      <div class="flex justify-center gap-1.5">
+        <button
+          type="button"
+          tabindex="-1"
+          (click)="maiusculas.set(!maiusculas())"
+          [attr.aria-pressed]="maiusculas()"
+          class="h-10 rounded-lg border px-3 text-sm font-medium transition"
+          [class]="maiusculas() ? 'border-brand-400 bg-brand-400/20 text-brand-200' : 'border-white/10 bg-ink-800 text-white'"
+        >
+          ⇧ Maiúsc.
+        </button>
+        <button type="button" tabindex="-1" (click)="digitar(' ')" class="h-10 flex-1 rounded-lg border border-white/10 bg-ink-800 text-sm text-slate-300 sm:max-w-xs">
+          espaço
+        </button>
+        <button type="button" tabindex="-1" (click)="apagar()" class="h-10 rounded-lg border border-white/10 bg-ink-800 px-3 text-sm text-white" aria-label="Apagar">
+          ⌫ Apagar
+        </button>
+        <button type="button" tabindex="-1" (click)="proximoCampo()" class="h-10 rounded-lg border border-white/10 bg-ink-800 px-3 text-sm text-white">
+          Próximo ⇥
+        </button>
+        <button type="button" tabindex="-1" (click)="fecharTeclado()" class="h-10 rounded-lg border border-white/10 bg-ink-800 px-3 text-sm text-slate-400" aria-label="Fechar teclado virtual">
+          ✕
+        </button>
+      </div>
+    </div>
+  </div>
+}

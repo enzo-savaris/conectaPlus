@@ -13,12 +13,13 @@ import {
   validadorCnpj,
   validadorTelefone
 } from '../../../shared/validators/br-validators';
+import { Logo } from '../../../shared/components/logo/logo';
 
 type CampoComMascara = 'cnpj' | 'telefone' | 'cep';
 
 @Component({
   selector: 'app-company-register',
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, Logo],
   templateUrl: './company-register.html',
   changeDetection: ChangeDetectionStrategy.OnPush
 })

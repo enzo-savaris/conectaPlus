@@ -1,15 +1,22 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 
 import { AuthService } from '../../../shared/services/auth.service';
 import { CursoService } from '../../../shared/services/curso.service';
+import { ToastService } from '../../../shared/services/toast.service';
 import { CapituloCurso, CursoDetalhado } from '../../../shared/types/curso';
-import { formatarCargaHorariaCurso, formatarPrecoCurso } from '../../../shared/utils/curso-format';
+import {
+  formatarCargaHorariaCurso,
+  formatarMoeda,
+  formatarNivelCurso,
+  formatarPrecoCurso
+} from '../../../shared/utils/curso-format';
 
 /**
- * Tela do candidato PCD: módulos e aulas do curso, todos abertos — sem
- * bloqueio progressivo, qualquer PCD logado acessa qualquer aula de
- * qualquer módulo a qualquer momento.
+ * Detalhes do curso para o candidato PCD: o que se aprende, a grade de
+ * módulos e o preço. As aulas só abrem quando o conteúdo está liberado —
+ * curso gratuito, ou pago com a matrícula ATIVA (pagamento aprovado); quem
+ * ainda não pagou vê a grade com cadeado e o botão "Matricular-se".
  */
 @Component({
   selector: 'app-curso-detalhes',
@@ -21,34 +28,52 @@ export class CursoDetalhes {
   private readonly rota = inject(ActivatedRoute);
   private readonly cursoService = inject(CursoService);
   private readonly authService = inject(AuthService);
+  private readonly toastService = inject(ToastService);
 
   protected readonly curso = signal<CursoDetalhado | null>(null);
   protected readonly carregando = signal(true);
   protected readonly erro = signal<string | null>(null);
 
-  /** Candidato vê o curso vindo de "Cursos Disponíveis"; empresa vê vindo da própria gestão de cursos. */
-  protected readonly rotaCursos: string =
-    this.authService.sessao()?.ambiente === 'empresa' ? '/cursos' : '/cursos-disponiveis';
-
-  /** Ids dos módulos abertos (acordeão) — o primeiro já começa expandido. */
+  /** Ids dos módulos abertos (acordeão). */
   private readonly modulosAbertos = signal<ReadonlySet<number>>(new Set());
 
+  // Avaliação (só para quem está matriculado).
+  protected readonly notaEscolhida = signal(0);
+  protected readonly comentario = signal('');
+  protected readonly enviandoAvaliacao = signal(false);
+
+  protected readonly estrelas = [1, 2, 3, 4, 5];
+
+  protected readonly pago = computed(() => (this.curso()?.preco ?? 0) > 0);
+  protected readonly matriculado = computed(() => this.curso()?.matricula?.status === 'ATIVA');
+  protected readonly aguardandoPagamento = computed(() => this.curso()?.matricula?.status === 'PENDENTE');
+
+  private readonly idCurso = Number(this.rota.snapshot.paramMap.get('id'));
+
   constructor() {
-    const idCurso = Number(this.rota.snapshot.paramMap.get('id'));
-    this.carregar(idCurso);
+    this.carregar();
   }
 
-  private carregar(idCurso: number): void {
-    this.carregando.set(true);
-    this.erro.set(null);
+  private idCandidatoLogado(): number {
+    const sessao = this.authService.sessao();
+    // Garantido pelo ambienteGuard('usuario').
+    return sessao?.ambiente === 'usuario' ? sessao.perfil.id : 0;
+  }
 
-    this.cursoService.obterPorId(idCurso).subscribe({
+  private carregar(): void {
+    this.cursoService.obterPorId(this.idCurso, { idPcd: this.idCandidatoLogado() }).subscribe({
       next: (curso) => {
         this.curso.set(curso);
         this.carregando.set(false);
 
+        if (curso.minhaAvaliacao) {
+          this.notaEscolhida.set(curso.minhaAvaliacao.nota);
+          this.comentario.set(curso.minhaAvaliacao.comentario ?? '');
+        }
+
+        // Quem já pode assistir encontra o primeiro módulo aberto.
         const primeiroModulo = curso.modulos[0];
-        if (primeiroModulo) {
+        if (curso.conteudoLiberado && primeiroModulo) {
           this.modulosAbertos.set(new Set([primeiroModulo.id]));
         }
       },
@@ -79,15 +104,51 @@ export class CursoDetalhes {
     return capitulo.tipoConteudo === 'LINK' ? capitulo.linkCapitulo : capitulo.arquivoCapituloUrl;
   }
 
-  protected totalAulas(curso: CursoDetalhado): number {
-    return curso.modulos.reduce((total, modulo) => total + modulo.capitulos.length, 0);
+  protected numeroModulo(indice: number): string {
+    return String(indice + 1).padStart(2, '0');
   }
 
-  protected formatarCargaHoraria(curso: CursoDetalhado): string {
-    return formatarCargaHorariaCurso(curso.cargaHoraria);
+  protected formatarCargaHoraria(horas: number | null): string {
+    return formatarCargaHorariaCurso(horas);
   }
 
   protected formatarPreco(curso: CursoDetalhado): string {
     return formatarPrecoCurso(curso.preco);
+  }
+
+  protected formatarNivel(curso: CursoDetalhado): string {
+    return formatarNivelCurso(curso.nivel);
+  }
+
+  /** Simulação sem juros só para referência; as parcelas reais (com ou sem juros) vêm do Mercado Pago no pagamento. */
+  protected formatarParcela(curso: CursoDetalhado): string {
+    return formatarMoeda((curso.preco ?? 0) / 12);
+  }
+
+  protected aoDigitarComentario(evento: Event): void {
+    this.comentario.set((evento.target as HTMLTextAreaElement).value);
+  }
+
+  protected enviarAvaliacao(): void {
+    const curso = this.curso();
+    if (!curso || this.notaEscolhida() === 0) {
+      return;
+    }
+
+    this.enviandoAvaliacao.set(true);
+    this.cursoService
+      .avaliar(curso.id, this.idCandidatoLogado(), this.notaEscolhida(), this.comentario().trim())
+      .subscribe({
+        next: () => {
+          this.enviandoAvaliacao.set(false);
+          this.toastService.sucesso('Obrigado pela sua avaliação!');
+          // Recarrega para atualizar a média exibida em "Informações gerais".
+          this.carregar();
+        },
+        error: () => {
+          this.enviandoAvaliacao.set(false);
+          this.toastService.erro('Não foi possível enviar sua avaliação. Tente novamente.');
+        }
+      });
   }
 }

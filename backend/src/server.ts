@@ -6,11 +6,14 @@ import multer from 'multer';
 
 import { PASTA_UPLOADS_AVATARES_PCD, PASTA_UPLOADS_CURRICULOS_PCD, PASTA_UPLOADS_CURSOS } from './config/upload.ts';
 import { testarConexao } from './config/dataBase.ts';
+import rotasAcessibilidade from './routes/acessibilidade.routes.ts';
 import rotasAuth from './routes/auth.routes.ts';
 import rotasCandidatura from './routes/candidatura.routes.ts';
 import rotasCidade from './routes/cidade.routes.ts';
 import rotasCurso from './routes/curso.routes.ts';
 import rotasEmpresa from './routes/empresa.routes.ts';
+import rotasMatricula from './routes/matricula.routes.ts';
+import rotasPagamento from './routes/pagamento.routes.ts';
 import rotasUsuario from './routes/usuario.routes.ts';
 import rotasVaga from './routes/vaga.routes.ts';
 
@@ -26,11 +29,14 @@ app.get('/', (_requisicao: Request, resposta: Response) => {
   resposta.json({ mensagem: 'API do Conecta+ funcionando' });
 });
 
+app.use('/acessibilidade', rotasAcessibilidade);
 app.use('/auth', rotasAuth);
 app.use('/candidaturas', rotasCandidatura);
 app.use('/cidades', rotasCidade);
 app.use('/cursos', rotasCurso);
 app.use('/empresas', rotasEmpresa);
+app.use('/matriculas', rotasMatricula);
+app.use('/pagamentos', rotasPagamento);
 app.use('/usuarios', rotasUsuario);
 app.use('/vagas', rotasVaga);
 

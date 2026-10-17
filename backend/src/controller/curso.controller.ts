@@ -84,11 +84,20 @@ export const listarCursos = async (requisicao: Request, resposta: Response): Pro
   }
 };
 
-/** GET /cursos/:id — busca um curso com seus módulos e capítulos. */
+/**
+ * GET /cursos/:id — busca um curso com seus módulos e capítulos. Com
+ * ?idEmpresa= (empresa dona) ou ?idPcd= (candidato), a resposta diz se o
+ * conteúdo das aulas está liberado pra quem pediu e já o inclui — ver
+ * `cursoService.obterDetalhado`.
+ */
 export const obterCurso = async (requisicao: Request, resposta: Response): Promise<void> => {
   try {
     const id = validarId(requisicao.params['id']);
-    const curso = await cursoService.obterDetalhado(id);
+    const { idEmpresa, idPcd } = requisicao.query;
+    const curso = await cursoService.obterDetalhado(id, {
+      ...(idEmpresa !== undefined ? { idEmpresa: validarId(idEmpresa) } : {}),
+      ...(idPcd !== undefined ? { idPcd: validarId(idPcd) } : {})
+    });
 
     resposta.json(curso);
   } catch (erro) {

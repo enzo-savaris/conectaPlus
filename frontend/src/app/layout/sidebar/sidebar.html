@@ -3,15 +3,23 @@
   [class.w-64]="aberta()"
   [class.w-20]="!aberta()"
 >
-  <div class="flex items-center gap-2 px-4 py-5">
-    @if (aberta()) {
+  <div class="flex items-center gap-2 px-4 py-5" [class.flex-col]="!aberta()">
+    @if (!aberta()) {
+      <!-- Recolhida: só o símbolo, com o botão de expandir logo abaixo. -->
+      <img src="logo-conectaplus.svg" alt="Conecta+" class="size-8" />
+    } @else if (ambiente() === 'empresa') {
+      <!-- Empresa: símbolo da plataforma + nome da empresa logada. -->
+      <img src="logo-conectaplus.svg" alt="Conecta+" class="size-7 shrink-0" />
       <span class="truncate text-lg font-bold tracking-wide text-white">{{ nomeExibido() }}</span>
+    } @else {
+      <app-logo />
     }
 
     <button
       type="button"
       (click)="alternar()"
-      class="ml-auto flex size-8 shrink-0 items-center justify-center rounded-lg text-slate-300 transition hover:bg-white/5 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-300"
+      [class.ml-auto]="aberta()"
+      class="flex size-8 shrink-0 items-center justify-center rounded-lg text-slate-300 transition hover:bg-white/5 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-300"
       [attr.aria-label]="aberta() ? 'Recolher menu' : 'Expandir menu'"
     >
       <svg
@@ -177,7 +185,37 @@
     }
   </nav>
 
-  <div class="border-t border-white/10 px-3 py-4">
+  <div class="flex flex-col gap-1 border-t border-white/10 px-3 py-4">
+    <button
+      type="button"
+      (click)="acessibilidade.abrirPainel()"
+      aria-haspopup="dialog"
+      aria-keyshortcuts="Alt+A"
+      class="relative flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-300 transition hover:bg-white/5 hover:text-brand-300"
+      [attr.title]="!aberta() ? 'Acessibilidade (Alt + A)' : 'Atalho: Alt + A'"
+    >
+      <svg class="size-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+        <circle cx="12" cy="4.5" r="1.8" />
+        <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 8.5 12 10l7.5-1.5M12 10v4.5m0 0-3 6.5m3-6.5 3 6.5" />
+      </svg>
+      @if (aberta()) {
+        <span class="truncate">Acessibilidade</span>
+      } @else {
+        <span class="sr-only">Acessibilidade</span>
+      }
+      @if (acessibilidade.totalAtivos() > 0) {
+        <span
+          class="ml-auto flex size-5 items-center justify-center rounded-full bg-brand-400 text-[10px] font-bold text-ink-950"
+          [class.absolute]="!aberta()"
+          [class.top-1]="!aberta()"
+          [class.right-1]="!aberta()"
+          [attr.aria-label]="acessibilidade.totalAtivos() + ' recursos ativos'"
+        >
+          {{ acessibilidade.totalAtivos() }}
+        </span>
+      }
+    </button>
+
     <button
       type="button"
       (click)="sair()"

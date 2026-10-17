@@ -56,3 +56,148 @@ body {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ============================================================
+   ACESSIBILIDADE — classes ligadas no <html> pelo
+   AcessibilidadeService (painel aberto pelo menu ou Alt + A).
+   ============================================================ */
+
+/* Navegação de teclado: foco grosso e impossível de perder. */
+html.a11y-teclado *:focus-visible {
+  outline: 3px solid #facc15 !important;
+  outline-offset: 3px !important;
+  box-shadow: 0 0 0 6px rgb(0 0 0 / 0.85) !important;
+  border-radius: 6px;
+}
+
+/* Lupa: aumenta toda a tela. */
+html.a11y-lupa {
+  zoom: 1.3;
+}
+
+/* Monocromático. */
+html.a11y-monocromatico {
+  filter: grayscale(1);
+}
+
+/* Destacar links. */
+html.a11y-links a[href] {
+  text-decoration: underline !important;
+  text-decoration-thickness: 2px !important;
+  text-underline-offset: 3px !important;
+  outline: 2px dashed #facc15 !important;
+  outline-offset: 2px;
+  background-color: rgb(250 204 21 / 0.15) !important;
+}
+
+/* Destacar cabeçalhos: contorno + etiqueta com o nível. */
+html.a11y-cabecalhos :is(h1, h2, h3, h4, h5, h6) {
+  outline: 2px solid #38bdf8 !important;
+  outline-offset: 4px;
+  border-radius: 4px;
+}
+html.a11y-cabecalhos :is(h1, h2, h3, h4, h5, h6)::before {
+  display: inline-block;
+  margin-right: 0.5em;
+  padding: 0 0.4em;
+  border-radius: 4px;
+  background: #38bdf8;
+  color: #0a161c;
+  font: 700 0.65rem/1.6 ui-monospace, monospace;
+  vertical-align: middle;
+}
+html.a11y-cabecalhos h1::before { content: 'H1'; }
+html.a11y-cabecalhos h2::before { content: 'H2'; }
+html.a11y-cabecalhos h3::before { content: 'H3'; }
+html.a11y-cabecalhos h4::before { content: 'H4'; }
+html.a11y-cabecalhos h5::before { content: 'H5'; }
+html.a11y-cabecalhos h6::before { content: 'H6'; }
+
+/* Descrições de imagem: legenda com o alt, inserida pelo serviço. */
+.a11y-descricao-imagem {
+  display: block;
+  margin-top: 0.25rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 6px;
+  background: #facc15;
+  color: #0a161c;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.4;
+  width: max-content;
+  max-width: 100%;
+}
+
+/*
+ * Alto contraste: troca as cores de TODOS os elementos (o visual da
+ * plataforma usa muitos degradês e tons parecidos, que é justamente o que
+ * atrapalha quem tem baixa visão). Imagens continuam como estão.
+ */
+html.a11y-contraste-escuro,
+html.a11y-contraste-escuro body {
+  background: #000 !important;
+}
+html.a11y-contraste-escuro *:not(img):not(svg):not(svg *) {
+  background-color: transparent !important;
+  background-image: none !important;
+  color: #fff !important;
+  border-color: rgb(255 255 255 / 0.6) !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+html.a11y-contraste-escuro :is(aside, header, section, dialog, [role='dialog'], li, main) {
+  background-color: #000 !important;
+}
+html.a11y-contraste-escuro a[href],
+html.a11y-contraste-escuro a[href] * {
+  color: #facc15 !important;
+}
+html.a11y-contraste-escuro :is(button, input, select, textarea, [role='button']) {
+  border: 2px solid #fff !important;
+  background-color: #000 !important;
+}
+html.a11y-contraste-escuro :is([aria-pressed='true'], [aria-checked='true'], [aria-current]) {
+  background-color: #facc15 !important;
+  color: #000 !important;
+}
+html.a11y-contraste-escuro :is([aria-pressed='true'], [aria-checked='true'], [aria-current]) * {
+  color: #000 !important;
+}
+html.a11y-contraste-escuro ::placeholder {
+  color: #d4d4d4 !important;
+}
+
+html.a11y-contraste-claro,
+html.a11y-contraste-claro body {
+  background: #fff !important;
+  color-scheme: light;
+}
+html.a11y-contraste-claro *:not(img):not(svg):not(svg *) {
+  background-color: transparent !important;
+  background-image: none !important;
+  color: #000 !important;
+  border-color: rgb(0 0 0 / 0.55) !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+html.a11y-contraste-claro :is(aside, header, section, dialog, [role='dialog'], li, main) {
+  background-color: #fff !important;
+}
+html.a11y-contraste-claro a[href],
+html.a11y-contraste-claro a[href] * {
+  color: #0033a0 !important;
+}
+html.a11y-contraste-claro :is(button, input, select, textarea, [role='button']) {
+  border: 2px solid #000 !important;
+  background-color: #fff !important;
+}
+html.a11y-contraste-claro :is([aria-pressed='true'], [aria-checked='true'], [aria-current]) {
+  background-color: #000 !important;
+  color: #fff !important;
+}
+html.a11y-contraste-claro :is([aria-pressed='true'], [aria-checked='true'], [aria-current]) * {
+  color: #fff !important;
+}
+html.a11y-contraste-claro ::placeholder {
+  color: #404040 !important;
+}

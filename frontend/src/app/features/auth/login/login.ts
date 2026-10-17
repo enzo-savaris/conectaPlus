@@ -7,10 +7,14 @@ import { Landing } from '../../landing/landing';
 import { AuthService } from '../../../shared/services/auth.service';
 import { formatarCpfOuCnpj } from '../../../shared/utils/masks';
 import { validadorCpfOuCnpj } from '../../../shared/validators/br-validators';
+import { Logo } from '../../../shared/components/logo/logo';
+
+/** CPF/CNPJ de quem marcou "Lembrar de mim", para já vir preenchido no próximo login. */
+const CHAVE_DOCUMENTO_LEMBRADO = 'conecta+:documento-lembrado';
 
 @Component({
   selector: 'app-login',
-  imports: [ReactiveFormsModule, RouterLink, Landing],
+  imports: [ReactiveFormsModule, RouterLink, Landing, Logo],
   templateUrl: './login.html',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
@@ -29,6 +33,13 @@ export class Login {
     }),
     lembrarDeMim: new FormControl(false, { nonNullable: true })
   });
+
+  constructor() {
+    const lembrado = this.lerDocumentoLembrado();
+    if (lembrado) {
+      this.formulario.patchValue({ documento: formatarCpfOuCnpj(lembrado), lembrarDeMim: true });
+    }
+  }
 
   protected readonly senhaVisivel = signal(false);
   protected readonly enviando = signal(false);
@@ -67,6 +78,7 @@ export class Login {
     this.authService.entrar(documento, senha, lembrarDeMim).subscribe({
       next: (sessao) => {
         this.enviando.set(false);
+        this.lembrarDocumento(lembrarDeMim ? documento : null);
         const destino = sessao.ambiente === 'empresa' ? '/empresa/painel' : '/painel';
         this.roteador.navigate([destino]);
       },
@@ -85,5 +97,26 @@ export class Login {
         );
       }
     });
+  }
+
+  private lerDocumentoLembrado(): string | null {
+    try {
+      return typeof localStorage !== 'undefined' ? localStorage.getItem(CHAVE_DOCUMENTO_LEMBRADO) : null;
+    } catch {
+      return null;
+    }
+  }
+
+  /** Marcado: guarda o CPF/CNPJ (só os dígitos). Desmarcado: esquece. */
+  private lembrarDocumento(documento: string | null): void {
+    try {
+      if (documento) {
+        localStorage.setItem(CHAVE_DOCUMENTO_LEMBRADO, documento.replace(/\D/g, ''));
+      } else {
+        localStorage.removeItem(CHAVE_DOCUMENTO_LEMBRADO);
+      }
+    } catch {
+      // Armazenamento bloqueado: só não pré-preenche da próxima vez.
+    }
   }
 }

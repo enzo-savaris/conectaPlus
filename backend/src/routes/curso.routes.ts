@@ -6,6 +6,7 @@ import {
   listarCursos,
   obterCurso
 } from '../controller/curso.controller.ts';
+import { avaliarCurso, matricularNoCurso } from '../controller/matricula.controller.ts';
 
 const rotasCurso = Router();
 
@@ -14,6 +15,8 @@ const rotasCurso = Router();
 rotasCurso.post('/', uploadVideoCurso.any(), cadastrarCurso);
 rotasCurso.get('/', listarCursos);
 rotasCurso.get('/:id', obterCurso);
+rotasCurso.post('/:id/matriculas', matricularNoCurso);
+rotasCurso.post('/:id/avaliacoes', avaliarCurso);
 rotasCurso.put('/:id', uploadVideoCurso.any(), atualizarCurso);
 
 export default rotasCurso;

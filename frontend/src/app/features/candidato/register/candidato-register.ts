@@ -8,6 +8,7 @@ import { UsuarioService } from '../../../shared/services/usuario.service';
 import { NovoCandidato, TipoDeficiencia } from '../../../shared/types/candidato';
 import { formatarCpf, formatarTelefone } from '../../../shared/utils/masks';
 import { validadorCpf, validadorTelefone } from '../../../shared/validators/br-validators';
+import { Logo } from '../../../shared/components/logo/logo';
 
 type CampoComMascara = 'cpf' | 'telefone';
 
@@ -34,7 +35,7 @@ const RECURSOS_DISPONIVEIS = [
 /** Cadastro do candidato PCD em duas etapas: dados da conta, depois acessibilidade e interesses. */
 @Component({
   selector: 'app-candidato-register',
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, RouterLink, Logo],
   templateUrl: './candidato-register.html',
   changeDetection: ChangeDetectionStrategy.OnPush
 })

@@ -7,8 +7,10 @@ import { erroDeValidacao } from './erro-app.ts';
  */
 
 const TIPOS_CONTEUDO = ['LINK', 'ARQUIVO'] as const;
+const NIVEIS = ['INICIANTE', 'INTERMEDIARIO', 'AVANCADO'] as const;
 
 export type TipoConteudoCurso = (typeof TIPOS_CONTEUDO)[number];
+export type NivelCurso = (typeof NIVEIS)[number];
 
 /**
  * Um capítulo (aula) já validado. `arquivoNovo`/`materialNovo` vêm do multer
@@ -28,6 +30,8 @@ export interface DadosCapitulo {
 
 export interface DadosModulo {
   titulo: string;
+  /** Horas do módulo, mostradas no "Conteúdo do curso"; opcional. */
+  cargaHoraria: number | null;
   capitulos: DadosCapitulo[];
 }
 
@@ -37,6 +41,12 @@ export interface DadosCurso {
   descricao: string | null;
   cargaHoraria: number | null;
   preco: number | null;
+  nivel: NivelCurso | null;
+  certificado: boolean;
+  /** Itens de "O que você vai aprender". */
+  aprendizados: string[];
+  /** Skills que o aluno vai desenvolver (etiquetas curtas). */
+  skills: string[];
   modulos: DadosModulo[];
 }
 
@@ -83,6 +93,31 @@ function validarPreco(valor: unknown, erros: Record<string, string>): number | n
   }
 
   return numero;
+}
+
+/** Cada item vira uma linha na tabela filha; itens vazios são descartados. Aceita array ou string JSON (multipart). */
+function listaDeTextos(valor: unknown, limite: number, campo: string, erros: Record<string, string>): string[] {
+  let lista: unknown = valor;
+
+  if (typeof valor === 'string') {
+    try {
+      lista = JSON.parse(valor);
+    } catch {
+      erros[campo] = 'Lista inválida.';
+      return [];
+    }
+  }
+
+  if (!Array.isArray(lista)) {
+    return [];
+  }
+
+  const itens = lista.map((item) => texto(item)).filter((item) => item.length > 0);
+  if (itens.some((item) => item.length > limite)) {
+    erros[campo] = `Cada item deve ter no máximo ${limite} caracteres.`;
+  }
+
+  return itens;
 }
 
 function validarCapitulo(
@@ -138,7 +173,9 @@ function validarModulo(entrada: unknown, indice: number, erros: Record<string, s
     validarCapitulo(capitulo, `${caminhoModulo}.capitulos[${indiceCapitulo}]`, erros)
   );
 
-  return { titulo, capitulos };
+  const cargaHoraria = validarInteiroPositivo(objeto['cargaHoraria'], `${caminhoModulo}.cargaHoraria`, erros);
+
+  return { titulo, cargaHoraria, capitulos };
 }
 
 /**
@@ -168,6 +205,20 @@ export function validarCurso(corpo: unknown): DadosCurso {
   const cargaHoraria = validarInteiroPositivo(entrada['cargaHoraria'], 'cargaHoraria', erros);
   const preco = validarPreco(entrada['preco'], erros);
 
+  const nivelBruto = texto(entrada['nivel']).toUpperCase();
+  let nivel: NivelCurso | null = null;
+  if (nivelBruto !== '') {
+    if ((NIVEIS as readonly string[]).includes(nivelBruto)) {
+      nivel = nivelBruto as NivelCurso;
+    } else {
+      erros['nivel'] = 'Selecione um nível válido.';
+    }
+  }
+
+  const certificado = entrada['certificado'] === true || entrada['certificado'] === 'true';
+  const aprendizados = listaDeTextos(entrada['aprendizados'], 255, 'aprendizados', erros);
+  const skills = listaDeTextos(entrada['skills'], 60, 'skills', erros);
+
   const modulosBrutos = Array.isArray(entrada['modulos']) ? entrada['modulos'] : [];
   if (modulosBrutos.length === 0) {
     erros['modulos'] = 'Cadastre ao menos um módulo.';
@@ -179,5 +230,5 @@ export function validarCurso(corpo: unknown): DadosCurso {
     throw erroDeValidacao(erros);
   }
 
-  return { titulo, descricao, cargaHoraria, preco, modulos };
+  return { titulo, descricao, cargaHoraria, preco, nivel, certificado, aprendizados, skills, modulos };
 }

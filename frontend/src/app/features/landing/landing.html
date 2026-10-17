@@ -2,29 +2,46 @@
   <!-- ============ CABEÇALHO ============ -->
   <header class="border-b border-white/10">
     <div class="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 sm:px-6">
-      <div class="flex items-center gap-2">
-        <svg class="h-7 w-7 text-brand-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
-          <path d="M12 2C9 2 6.5 4.5 6.5 7.5C6.5 11.5 12 16 12 16C12 16 17.5 11.5 17.5 7.5C17.5 4.5 15 2 12 2Z" transform="rotate(0 12 12) translate(0 -1)" />
-          <path d="M12 2C9 2 6.5 4.5 6.5 7.5C6.5 11.5 12 16 12 16C12 16 17.5 11.5 17.5 7.5C17.5 4.5 15 2 12 2Z" transform="rotate(90 12 12) translate(0 -1)" />
-          <path d="M12 2C9 2 6.5 4.5 6.5 7.5C6.5 11.5 12 16 12 16C12 16 17.5 11.5 17.5 7.5C17.5 4.5 15 2 12 2Z" transform="rotate(180 12 12) translate(0 -1)" />
-          <path d="M12 2C9 2 6.5 4.5 6.5 7.5C6.5 11.5 12 16 12 16C12 16 17.5 11.5 17.5 7.5C17.5 4.5 15 2 12 2Z" transform="rotate(270 12 12) translate(0 -1)" />
-        </svg>
-        <span class="text-lg font-extrabold tracking-tight text-white">CONECTA <span class="text-brand-300">+</span></span>
-      </div>
+      <app-logo classeSimbolo="size-8" />
 
       <nav class="flex items-center gap-3">
-        <a
-          routerLink="/login"
-          class="rounded-lg border border-white/15 px-4 py-2 text-sm font-medium text-slate-200 transition hover:border-white/30 hover:bg-white/5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-400"
+        <button
+          type="button"
+          (click)="acessibilidade.abrirPainel()"
+          aria-haspopup="dialog"
+          aria-keyshortcuts="Alt+A"
+          title="Acessibilidade (Alt + A)"
+          class="inline-flex items-center gap-2 rounded-lg border border-white/15 px-3 py-2 text-sm font-medium text-slate-200 transition hover:border-white/30 hover:bg-white/5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-400"
         >
-          Entrar
-        </a>
-        <a
-          routerLink="/cadastro"
-          class="rounded-lg bg-gradient-to-r from-brand-300 to-brand-600 px-4 py-2 text-sm font-semibold text-ink-950 shadow-lg shadow-brand-500/20 transition hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-300"
-        >
-          Criar conta
-        </a>
+          <svg class="size-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+        <circle cx="12" cy="4.5" r="1.8" />
+        <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 8.5 12 10l7.5-1.5M12 10v4.5m0 0-3 6.5m3-6.5 3 6.5" />
+      </svg>
+          <span class="hidden sm:inline">Acessibilidade</span>
+          <span class="sr-only sm:hidden">Acessibilidade</span>
+        </button>
+        @if (rotaDoPainel(); as rota) {
+          <!-- Já logado (ex.: "Lembrar de mim"): não faz sentido pedir login de novo. -->
+          <a
+            [routerLink]="rota"
+            class="rounded-lg bg-gradient-to-r from-brand-300 to-brand-600 px-4 py-2 text-sm font-semibold text-ink-950 shadow-lg shadow-brand-500/20 transition hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-300"
+          >
+            Ir para o meu painel
+          </a>
+        } @else {
+          <a
+            routerLink="/login"
+            class="rounded-lg border border-white/15 px-4 py-2 text-sm font-medium text-slate-200 transition hover:border-white/30 hover:bg-white/5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-400"
+          >
+            Entrar
+          </a>
+          <a
+            routerLink="/cadastro"
+            class="rounded-lg bg-gradient-to-r from-brand-300 to-brand-600 px-4 py-2 text-sm font-semibold text-ink-950 shadow-lg shadow-brand-500/20 transition hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-300"
+          >
+            Criar conta
+          </a>
+        }
       </nav>
     </div>
   </header>
@@ -225,7 +242,10 @@
     <div
       class="mx-auto flex max-w-6xl flex-col items-center justify-between gap-2 px-4 py-6 text-xs text-slate-500 sm:flex-row sm:px-6"
     >
-      <p>© {{ anoAtual }} Conecta+. Todos os direitos reservados.</p>
+      <p class="inline-flex items-center gap-2">
+        <img src="logo-conectaplus.svg" alt="" class="size-4" />
+        © {{ anoAtual }} Conecta+. Todos os direitos reservados.
+      </p>
       <p>Termos de uso · Política de privacidade</p>
     </div>
   </footer>

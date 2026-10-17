@@ -1,0 +1,420 @@
+<div class="min-h-dvh bg-ink-950 p-4 sm:p-8">
+  <div class="mx-auto max-w-6xl">
+    <a
+      [routerLink]="['/cursos-disponiveis', curso()?.id ?? '']"
+      class="inline-flex items-center gap-1.5 text-xs text-slate-400 transition hover:text-white"
+    >
+      <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <path d="M19 12H5m6-6-6 6 6 6" stroke-linecap="round" stroke-linejoin="round" />
+      </svg>
+      Voltar para detalhes do curso
+    </a>
+
+    @if (erro()) {
+      <p class="mt-6 rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200" role="alert">
+        {{ erro() }}
+      </p>
+    }
+
+    @if (carregando()) {
+      <p class="mt-8 text-sm text-slate-400">Carregando…</p>
+    } @else if (curso(); as c) {
+      @if (etapa() !== 3) {
+        <!-- ============ CABEÇALHO + ETAPAS ============ -->
+        <header class="mt-4 flex flex-wrap items-start justify-between gap-4">
+          <div class="min-w-0">
+            <h1 class="text-2xl font-bold text-white sm:text-3xl">{{ c.titulo }}</h1>
+            <p class="mt-1 text-sm text-slate-400">Matrícula · {{ c.nomeEmpresa }}</p>
+          </div>
+          <div class="rounded-xl border border-white/10 bg-ink-900/60 px-4 py-2 text-right">
+            <p class="text-[11px] text-slate-400">{{ pago() ? 'Valor do curso' : 'Curso' }}</p>
+            <p class="text-lg font-bold text-white">{{ pago() ? formatarMoeda(valor()) : 'Gratuito' }}</p>
+          </div>
+        </header>
+
+        <ol class="mt-6 flex items-center gap-3 text-xs" aria-label="Etapas da matrícula">
+          <li class="inline-flex items-center gap-2" [attr.aria-current]="etapa() === 1 ? 'step' : null">
+            <span
+              class="flex size-6 items-center justify-center rounded-full text-[11px] font-bold"
+              [class]="etapa() === 1 ? 'bg-brand-400 text-ink-950' : 'border border-brand-400/70 text-brand-300'"
+            >
+              @if (etapa() > 1) { ✓ } @else { 1 }
+            </span>
+            <span [class]="etapa() === 1 ? 'font-semibold text-white' : 'text-slate-400'">Dados da matrícula</span>
+          </li>
+          @if (pago()) {
+            <li class="h-px w-8 bg-white/15 sm:w-16" aria-hidden="true"></li>
+            <li class="inline-flex items-center gap-2" [attr.aria-current]="etapa() === 2 ? 'step' : null">
+              <span
+                class="flex size-6 items-center justify-center rounded-full text-[11px] font-bold"
+                [class]="etapa() === 2 ? 'bg-brand-400 text-ink-950' : 'border border-white/15 text-slate-500'"
+              >2</span>
+              <span [class]="etapa() === 2 ? 'font-semibold text-white' : 'text-slate-500'">Pagamento seguro</span>
+            </li>
+          }
+          <li class="h-px w-8 bg-white/15 sm:w-16" aria-hidden="true"></li>
+          <li class="inline-flex items-center gap-2">
+            <span class="flex size-6 items-center justify-center rounded-full border border-white/15 text-[11px] font-bold text-slate-500">
+              {{ pago() ? 3 : 2 }}
+            </span>
+            <span class="text-slate-500">Confirmação</span>
+          </li>
+        </ol>
+      }
+
+      <!-- ============ ETAPA 1: DADOS DA MATRÍCULA ============ -->
+      @if (etapa() === 1) {
+        @if (perfil(); as p) {
+          <div class="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
+            <section class="rounded-2xl border border-white/10 bg-ink-900/60 p-5" aria-labelledby="titulo-dados">
+              <div class="flex items-center justify-between gap-3">
+                <h2 id="titulo-dados" class="text-sm font-semibold text-white">Dados pessoais</h2>
+                <a routerLink="/perfil" class="text-xs text-brand-300 hover:text-brand-200">Editar no perfil</a>
+              </div>
+              <dl class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div class="sm:col-span-2">
+                  <dt class="field-label">Nome completo</dt>
+                  <dd class="field-input mt-1.5 text-slate-300">{{ p.nome }}</dd>
+                </div>
+                <div>
+                  <dt class="field-label">CPF</dt>
+                  <dd class="field-input mt-1.5 text-slate-300">{{ formatarCpf(p.cpf) }}</dd>
+                </div>
+                <div>
+                  <dt class="field-label">Telefone</dt>
+                  <dd class="field-input mt-1.5 text-slate-300">{{ formatarTelefone(p.telefone) }}</dd>
+                </div>
+                <div class="sm:col-span-2">
+                  <dt class="field-label">E-mail</dt>
+                  <dd class="field-input mt-1.5 truncate text-slate-300">{{ p.email || 'Não informado' }}</dd>
+                </div>
+              </dl>
+              @if (pago() && !p.email) {
+                <p class="field-error">Cadastre um e-mail no seu perfil: o comprovante de pagamento é enviado para ele.</p>
+              }
+            </section>
+
+            <section class="rounded-2xl border border-white/10 bg-ink-900/60 p-5" aria-labelledby="titulo-necessidades">
+              <h2 id="titulo-necessidades" class="text-sm font-semibold text-white">Necessidades de acessibilidade</h2>
+              <p class="mt-1 text-xs text-slate-400">
+                Marque o que você precisa para acompanhar o curso. A empresa recebe essas informações.
+              </p>
+
+              <fieldset class="mt-4 flex flex-col gap-2.5">
+                <legend class="sr-only">Necessidades</legend>
+                @for (opcao of opcoesNecessidades; track opcao) {
+                  <label class="flex cursor-pointer items-start gap-3 text-sm text-slate-300">
+                    <input
+                      type="checkbox"
+                      [checked]="necessidades().has(opcao)"
+                      (change)="alternarNecessidade(opcao)"
+                      class="mt-0.5 size-4 shrink-0 accent-brand-400"
+                    />
+                    {{ opcao }}
+                  </label>
+                }
+              </fieldset>
+
+              <label for="obs-acessibilidade" class="field-label mt-4">Outra necessidade (opcional)</label>
+              <textarea
+                id="obs-acessibilidade"
+                rows="2"
+                maxlength="500"
+                [value]="observacao()"
+                (input)="aoDigitarObservacao($event)"
+                placeholder="Descreva qualquer outra adaptação que ajude você."
+                class="field-input mt-1.5 resize-y"
+              ></textarea>
+            </section>
+          </div>
+
+          @if (erroMatricula()) {
+            <p class="mt-4 rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200" role="alert">
+              {{ erroMatricula() }}
+            </p>
+          }
+
+          <div class="mt-6 flex flex-wrap items-center justify-between gap-4">
+            <p class="text-xs text-slate-500">Seus dados são usados apenas para a matrícula e o pagamento deste curso.</p>
+            <button
+              type="button"
+              (click)="confirmarDados()"
+              [disabled]="salvandoMatricula() || (pago() && !p.email)"
+              class="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-brand-300 to-brand-600 px-6 py-2.5 text-sm font-semibold text-ink-950 shadow-lg shadow-brand-500/20 transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {{ salvandoMatricula() ? 'Salvando…' : pago() ? 'Continuar para pagamento' : 'Confirmar matrícula' }}
+              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <path d="M5 12h14M13 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+            </button>
+          </div>
+        }
+      }
+
+      <!-- ============ ETAPA 2: PAGAMENTO ============ -->
+      @if (etapa() === 2) {
+        <div class="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+          <div class="flex flex-col gap-6">
+            @if (!pagamentosHabilitados()) {
+              <p class="rounded-xl border border-amber-400/30 bg-amber-400/10 px-4 py-3 text-sm text-amber-200" role="alert">
+                O pagamento online ainda não foi configurado na plataforma. Tente novamente mais tarde.
+              </p>
+            } @else {
+              <section class="rounded-2xl border border-white/10 bg-ink-900/60 p-5" aria-labelledby="titulo-forma">
+                <h2 id="titulo-forma" class="text-sm font-semibold text-white">Forma de pagamento</h2>
+                <div class="mt-3 grid grid-cols-2 gap-3" role="radiogroup" aria-label="Forma de pagamento">
+                  <button
+                    type="button"
+                    role="radio"
+                    [attr.aria-checked]="metodo() === 'CARTAO'"
+                    (click)="escolherMetodo('CARTAO')"
+                    class="flex items-center justify-center gap-2 rounded-xl border px-3 py-3 text-sm font-medium transition"
+                    [class]="metodo() === 'CARTAO' ? 'border-brand-400 bg-brand-400/10 text-brand-200' : 'border-white/10 text-slate-300 hover:border-white/25'"
+                  >
+                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                      <rect x="2.5" y="5.5" width="19" height="13" rx="2" />
+                      <path d="M2.5 10h19M6 15h4" stroke-linecap="round" />
+                    </svg>
+                    Cartão de crédito
+                  </button>
+                  <button
+                    type="button"
+                    role="radio"
+                    [attr.aria-checked]="metodo() === 'PIX'"
+                    (click)="escolherMetodo('PIX')"
+                    class="flex flex-col items-center justify-center rounded-xl border px-3 py-2 text-sm font-medium transition"
+                    [class]="metodo() === 'PIX' ? 'border-brand-400 bg-brand-400/10 text-brand-200' : 'border-white/10 text-slate-300 hover:border-white/25'"
+                  >
+                    Pix
+                    <span class="text-[11px] font-normal text-slate-400">aprovação imediata</span>
+                  </button>
+                </div>
+              </section>
+
+              @if (metodo() === 'CARTAO') {
+                <!-- Os campos com fundo próprio (número, validade, CVV) são iframes do Mercado Pago. -->
+                <form id="form-cartao" class="rounded-2xl border border-white/10 bg-ink-900/60 p-5" aria-labelledby="titulo-cartao">
+                  <h2 id="titulo-cartao" class="text-sm font-semibold text-white">Dados do cartão de crédito</h2>
+
+                  @if (erroCartao()) {
+                    <p class="mt-3 text-sm text-rose-300" role="alert">{{ erroCartao() }}</p>
+                  } @else if (!cartaoPronto()) {
+                    <p class="mt-3 text-xs text-slate-400" aria-live="polite">Carregando ambiente seguro do Mercado Pago…</p>
+                  }
+
+                  <div class="mt-4 grid grid-cols-2 gap-4" [class.invisible]="!cartaoPronto()">
+                    <div class="col-span-2">
+                      <label for="cartao-numero" class="field-label">Número do cartão</label>
+                      <div id="cartao-numero" class="field-input mt-1.5 h-10.5 py-0"></div>
+                    </div>
+                    <div class="col-span-2">
+                      <label for="cartao-nome" class="field-label">Nome impresso no cartão</label>
+                      <input id="cartao-nome" type="text" autocomplete="cc-name" class="field-input mt-1.5" />
+                    </div>
+                    <div>
+                      <label for="cartao-validade" class="field-label">Validade</label>
+                      <div id="cartao-validade" class="field-input mt-1.5 h-10.5 py-0"></div>
+                    </div>
+                    <div>
+                      <label for="cartao-cvv" class="field-label">CVV</label>
+                      <div id="cartao-cvv" class="field-input mt-1.5 h-10.5 py-0"></div>
+                    </div>
+                    <div>
+                      <label for="cartao-tipo-documento" class="field-label">Documento do titular</label>
+                      <select id="cartao-tipo-documento" class="field-input mt-1.5"></select>
+                    </div>
+                    <div>
+                      <label for="cartao-documento" class="field-label">Número do documento</label>
+                      <input id="cartao-documento" type="text" inputmode="numeric" class="field-input mt-1.5" />
+                    </div>
+                    <div class="col-span-2">
+                      <label for="cartao-email" class="field-label">E-mail do titular</label>
+                      <input id="cartao-email" type="email" autocomplete="email" class="field-input mt-1.5" />
+                    </div>
+                    <div>
+                      <label for="cartao-emissor" class="field-label">Banco emissor</label>
+                      <select id="cartao-emissor" class="field-input mt-1.5"></select>
+                    </div>
+                    <div>
+                      <label for="cartao-parcelas" class="field-label">Parcelamento</label>
+                      <select id="cartao-parcelas" class="field-input mt-1.5"></select>
+                    </div>
+                  </div>
+
+                  @if (erroPagamento()) {
+                    <p class="mt-4 rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200" role="alert">
+                      {{ erroPagamento() }}
+                    </p>
+                  }
+                  @if (pagamento()?.metodo === 'CARTAO' && pagamento()?.status === 'PENDENTE') {
+                    <p class="mt-4 rounded-xl border border-amber-400/30 bg-amber-400/10 px-4 py-3 text-sm text-amber-200" role="status">
+                      Pagamento em análise pelo banco emissor. Assim que for aprovado, sua matrícula é liberada automaticamente.
+                    </p>
+                  }
+
+                  <button
+                    type="submit"
+                    [disabled]="!cartaoPronto() || processando()"
+                    class="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-brand-300 to-brand-600 px-6 py-2.5 text-sm font-semibold text-ink-950 shadow-lg shadow-brand-500/20 transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {{ processando() ? 'Processando pagamento…' : 'Pagar ' + formatarMoeda(valor()) + ' e finalizar matrícula' }}
+                  </button>
+                </form>
+              } @else {
+                <section class="rounded-2xl border border-white/10 bg-ink-900/60 p-5" aria-labelledby="titulo-pix">
+                  <h2 id="titulo-pix" class="text-sm font-semibold text-white">Pagamento com Pix</h2>
+
+                  @if (pixPendente() && tempoRestantePix(); as restante) {
+                    <div class="mt-4 flex flex-col items-center gap-4 sm:flex-row sm:items-start">
+                      @if (pagamento()?.pixQrCodeBase64; as qr) {
+                        <img
+                          [src]="'data:image/png;base64,' + qr"
+                          alt="QR Code do Pix para pagamento do curso"
+                          class="size-48 shrink-0 rounded-xl bg-white p-2"
+                        />
+                      }
+                      <div class="min-w-0 flex-1">
+                        <ol class="list-inside list-decimal space-y-1 text-sm text-slate-300">
+                          <li>Abra o app do seu banco e escolha pagar com Pix.</li>
+                          <li>Leia o QR Code ou use o código "copia e cola".</li>
+                          <li>Confirme o pagamento — a matrícula é liberada sozinha.</li>
+                        </ol>
+
+                        <label for="pix-codigo" class="field-label mt-4">Pix copia e cola</label>
+                        <div class="mt-1.5 flex gap-2">
+                          <input id="pix-codigo" type="text" readonly [value]="pagamento()?.pixCopiaECola" class="field-input min-w-0 text-xs" />
+                          <button
+                            type="button"
+                            (click)="copiarPix()"
+                            class="shrink-0 rounded-lg border border-white/12 bg-ink-800/60 px-3 text-xs font-semibold text-brand-300 transition hover:border-brand-400/40"
+                          >
+                            {{ copiado() ? 'Copiado!' : 'Copiar' }}
+                          </button>
+                        </div>
+
+                        <p class="mt-4 inline-flex items-center gap-2 text-sm text-brand-300" role="status" aria-live="polite">
+                          <span class="size-2 animate-pulse rounded-full bg-brand-300" aria-hidden="true"></span>
+                          Aguardando pagamento · expira em {{ restante }}
+                        </p>
+                      </div>
+                    </div>
+                  } @else {
+                    <p class="mt-2 text-sm text-slate-400">
+                      Gere um QR Code e pague pelo app do seu banco. A aprovação é imediata e o curso é liberado automaticamente.
+                    </p>
+
+                    @if (erroPagamento()) {
+                      <p class="mt-4 rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200" role="alert">
+                        {{ erroPagamento() }}
+                      </p>
+                    }
+
+                    <button
+                      type="button"
+                      (click)="gerarPix()"
+                      [disabled]="processando()"
+                      class="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-brand-300 to-brand-600 px-6 py-2.5 text-sm font-semibold text-ink-950 shadow-lg shadow-brand-500/20 transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {{ processando() ? 'Gerando…' : 'Gerar QR Code Pix' }}
+                    </button>
+                  }
+                </section>
+              }
+            }
+
+            <button type="button" (click)="voltarParaDados()" class="self-start text-sm text-slate-400 transition hover:text-white">
+              ← Voltar para dados da matrícula
+            </button>
+          </div>
+
+          <!-- Resumo do pedido -->
+          <aside class="flex flex-col gap-4">
+            <section class="rounded-2xl border border-white/10 bg-ink-900/60 p-5" aria-labelledby="titulo-resumo">
+              <h2 id="titulo-resumo" class="text-sm font-semibold text-white">Resumo do pedido</h2>
+              <p class="mt-3 text-xs text-slate-400">Curso selecionado</p>
+              <p class="text-sm font-semibold text-white">{{ c.titulo }}</p>
+              <dl class="mt-4 flex flex-col gap-2 border-t border-white/10 pt-4 text-sm">
+                <div class="flex justify-between">
+                  <dt class="text-slate-400">Valor do curso</dt>
+                  <dd class="text-slate-200">{{ formatarMoeda(valor()) }}</dd>
+                </div>
+                <div class="flex justify-between border-t border-white/10 pt-2">
+                  <dt class="font-semibold text-white">Total a pagar</dt>
+                  <dd class="text-lg font-bold text-white">{{ formatarMoeda(valor()) }}</dd>
+                </div>
+              </dl>
+              <p class="mt-4 flex items-start gap-2 rounded-lg bg-brand-400/5 p-3 text-xs text-slate-400">
+                <svg class="mt-0.5 h-4 w-4 shrink-0 text-brand-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                  <rect x="5" y="11" width="14" height="9" rx="2" />
+                  <path d="M8 11V8a4 4 0 1 1 8 0v3" stroke-linecap="round" />
+                </svg>
+                Pagamento processado pelo Mercado Pago. Os dados do seu cartão não ficam armazenados na Conecta+.
+              </p>
+            </section>
+          </aside>
+        </div>
+      }
+
+      <!-- ============ ETAPA 3: CONFIRMAÇÃO ============ -->
+      @if (etapa() === 3) {
+        <section class="mx-auto mt-10 max-w-xl text-center" role="status">
+          <span class="mx-auto flex size-16 items-center justify-center rounded-full border-2 border-brand-400/70 text-brand-300">
+            <svg class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
+              <path d="m5 12 4.5 4.5L19 7" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </span>
+          <h1 class="mt-5 text-2xl font-bold text-white sm:text-3xl">Matrícula realizada com sucesso!</h1>
+          <p class="mt-2 text-sm text-slate-400">
+            {{ pago() ? 'Pagamento aprovado.' : '' }} Todas as aulas já estão liberadas para você.
+          </p>
+
+          <div class="mt-6 rounded-2xl border border-white/10 bg-ink-900/60 p-5 text-left">
+            <p class="text-xs font-semibold tracking-widest text-brand-300 uppercase">Curso confirmado</p>
+            <p class="mt-1 text-lg font-semibold text-white">{{ c.titulo }}</p>
+            <dl class="mt-4 grid grid-cols-3 gap-3 text-sm">
+              <div>
+                <dt class="text-xs text-slate-500">Duração</dt>
+                <dd class="font-semibold text-white">{{ c.cargaHoraria ? formatarCargaHoraria(c.cargaHoraria) : '—' }}</dd>
+              </div>
+              <div>
+                <dt class="text-xs text-slate-500">Nível</dt>
+                <dd class="font-semibold text-white">{{ formatarNivel(c) }}</dd>
+              </div>
+              <div>
+                <dt class="text-xs text-slate-500">Certificado</dt>
+                <dd class="font-semibold text-white">{{ c.certificado ? 'Sim' : 'Não' }}</dd>
+              </div>
+            </dl>
+
+            @if (pagamento(); as pg) {
+              @if (pg.status === 'APROVADO') {
+                <p class="mt-4 border-t border-white/10 pt-3 text-xs text-slate-400">Pagamento: {{ descreverPagamento(pg) }}</p>
+              }
+            }
+
+            @if (necessidades().size > 0) {
+              <p class="mt-4 flex items-start gap-2 rounded-lg bg-brand-400/5 p-3 text-xs text-slate-300">
+                <svg class="mt-0.5 h-4 w-4 shrink-0 text-brand-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                  <path d="m5 12 4.5 4.5L19 7" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+                Suas necessidades de acessibilidade foram enviadas para {{ c.nomeEmpresa }}.
+              </p>
+            }
+          </div>
+
+          <div class="mt-6 flex flex-wrap items-center justify-center gap-4">
+            <a
+              [routerLink]="['/cursos-disponiveis', c.id]"
+              class="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-brand-300 to-brand-600 px-6 py-2.5 text-sm font-semibold text-ink-950 shadow-lg shadow-brand-500/20 transition hover:brightness-110"
+            >
+              Acessar curso →
+            </a>
+            <a routerLink="/cursos-disponiveis" class="text-sm font-medium text-slate-300 transition hover:text-white">
+              Voltar para cursos
+            </a>
+          </div>
+        </section>
+      }
+    }
+  </div>
+</div>

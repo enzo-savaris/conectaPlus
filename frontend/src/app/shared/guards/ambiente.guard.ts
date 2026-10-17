@@ -34,3 +34,14 @@ export function ambienteGuard(ambiente: Ambiente): CanActivateFn {
     return roteador.createUrlTree(['/login']);
   };
 }
+
+/**
+ * Telas de quem ainda não entrou (landing, login e cadastros). Quem já tem
+ * sessão — por exemplo, marcou "Lembrar de mim" e voltou dias depois — vai
+ * direto para a tela Início do seu ambiente, em vez de ver a página pública
+ * ou o formulário de login de novo.
+ */
+export const visitanteGuard: CanActivateFn = () => {
+  const sessao = inject(AuthService).sessao();
+  return sessao ? inject(Router).createUrlTree([ROTA_INICIAL[sessao.ambiente]]) : true;
+};

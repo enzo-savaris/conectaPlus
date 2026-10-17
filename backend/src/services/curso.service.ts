@@ -13,8 +13,28 @@ import type { DadosCurso } from '../utils/validacao-curso.ts';
  * quem oferece cada curso, igual a busca de vagas já faz com NOMEEMPRESA.
  */
 const COLUNAS = `c.IDCURSO, c.IDEMPRESA, c.TITULO, c.DESCRICAO, c.CARGAHORARIA, c.PRECO,
-                 c.DTCAD, c.STATUSCURSO,
-                 COALESCE(emp.FANTASIA, emp.RAZAO) AS NOMEEMPRESA`;
+                 c.DTCAD, c.STATUSCURSO, c.NIVEL, c.CERTIFICADO,
+                 COALESCE(emp.FANTASIA, emp.RAZAO) AS NOMEEMPRESA,
+                 (SELECT ROUND(AVG(a.NOTA), 1) FROM TBLCDSCURSOAVAL0 a WHERE a.IDCURSO = c.IDCURSO) AS AVALIACAOMEDIA,
+                 (SELECT COUNT(*) FROM TBLCDSCURSOAVAL0 a WHERE a.IDCURSO = c.IDCURSO) AS TOTALAVALIACOES`;
+
+/** Listas de itens do curso, uma linha por item (mesmo padrão da vaga). */
+const TABELAS_DE_ITENS = {
+  aprendizados: { tabela: 'TBLCDSCURSOAPR0', coluna: 'IDAPRENDIZADO' },
+  skills: { tabela: 'TBLCDSCURSOSKILL0', coluna: 'IDSKILL' }
+} as const;
+
+type ChaveDeItens = keyof typeof TABELAS_DE_ITENS;
+
+/**
+ * Quem está pedindo o curso: a empresa dona (vê tudo, inclusive para editar)
+ * ou um candidato (vê o conteúdo das aulas só se o curso for gratuito ou se
+ * tiver matrícula ATIVA — ou seja, pagamento aprovado).
+ */
+export interface AcessoCurso {
+  idEmpresa?: number;
+  idPcd?: number;
+}
 const TABELA_COM_EMPRESA = `TBLCDSCURSO0 c LEFT JOIN TBLCDSEMP0 emp ON emp.IDEMPRESA = c.IDEMPRESA`;
 
 /**
@@ -81,7 +101,7 @@ async function listarCapitulos(idModulo: number): Promise<RowDataPacket[]> {
 /** Módulos do curso (com seus capítulos aninhados), na ordem em que foram cadastrados. */
 async function listarModulos(idCurso: number): Promise<RowDataPacket[]> {
   const [modulos] = await pool.query<RowDataPacket[]>(
-    'SELECT IDMODULO, TITULO FROM TBLCDSCURSOMOD0 WHERE IDCURSO = ? ORDER BY IDMODULO',
+    'SELECT IDMODULO, TITULO, CARGAHORARIA FROM TBLCDSCURSOMOD0 WHERE IDCURSO = ? ORDER BY IDMODULO',
     [idCurso]
   );
 
@@ -95,12 +115,99 @@ async function listarModulos(idCurso: number): Promise<RowDataPacket[]> {
   return comCapitulos;
 }
 
-/** Curso com os módulos e capítulos, usado na tela de detalhes (candidato) e na edição (empresa). */
-export async function obterDetalhado(id: number): Promise<Record<string, unknown>> {
-  const curso = await obterPorId(id);
-  const modulos = await listarModulos(id);
+async function listarItens(chave: ChaveDeItens, idCurso: number): Promise<string[]> {
+  const { tabela, coluna } = TABELAS_DE_ITENS[chave];
+  const [linhas] = await pool.query<RowDataPacket[]>(
+    `SELECT DESCRICAO FROM ${tabela} WHERE IDCURSO = ? ORDER BY ${coluna}`,
+    [idCurso]
+  );
 
-  return { ...curso, modulos };
+  return linhas.map((linha) => linha['DESCRICAO'] as string);
+}
+
+async function regravarItens(
+  conexao: PoolConnection,
+  chave: ChaveDeItens,
+  idCurso: number,
+  itens: string[]
+): Promise<void> {
+  const { tabela } = TABELAS_DE_ITENS[chave];
+  await conexao.query(`DELETE FROM ${tabela} WHERE IDCURSO = ?`, [idCurso]);
+
+  if (itens.length > 0) {
+    await conexao.query(`INSERT INTO ${tabela} (IDCURSO, DESCRICAO) VALUES ?`, [itens.map((item) => [idCurso, item])]);
+  }
+}
+
+/** Curso pago é aquele com preço maior que zero; sem preço ou com 0, é gratuito. */
+export function ehPago(curso: RowDataPacket): boolean {
+  return Number(curso['PRECO'] ?? 0) > 0;
+}
+
+/**
+ * Curso com módulos, capítulos e as listas de itens — usado na tela de
+ * detalhes (candidato) e na edição (empresa).
+ *
+ * Os links e arquivos das aulas só vão na resposta pra quem pode assistir:
+ * a empresa dona do curso, ou o candidato com matrícula ATIVA (curso
+ * gratuito ou pagamento aprovado). Os demais veem a grade do curso (módulos,
+ * títulos e horas), mas não o conteúdo — é isso que impede assistir um curso
+ * pago sem ter pago. `CONTEUDOLIBERADO` diz qual dos dois casos é.
+ */
+export async function obterDetalhado(id: number, acesso: AcessoCurso = {}): Promise<Record<string, unknown>> {
+  const curso = await obterPorId(id);
+
+  const [modulos, aprendizados, skills, matricula, minhaAvaliacao] = await Promise.all([
+    listarModulos(id),
+    listarItens('aprendizados', id),
+    listarItens('skills', id),
+    acesso.idPcd !== undefined ? buscarMatricula(id, acesso.idPcd) : Promise.resolve(null),
+    acesso.idPcd !== undefined ? buscarAvaliacao(id, acesso.idPcd) : Promise.resolve(null)
+  ]);
+
+  const ehDona = acesso.idEmpresa !== undefined && acesso.idEmpresa === curso['IDEMPRESA'];
+  const matriculaAtiva = matricula?.['STATUSMATRICULA'] === 'ATIVA';
+  const conteudoLiberado = ehDona || matriculaAtiva || !ehPago(curso);
+
+  const modulosVisiveis = conteudoLiberado
+    ? modulos
+    : modulos.map((modulo) => ({
+        ...modulo,
+        capitulos: (modulo['capitulos'] as RowDataPacket[]).map((capitulo) => ({
+          ...capitulo,
+          LINKCAPITULO: null,
+          ARQUIVOCAPITULO: null,
+          MATERIAL: null
+        }))
+      }));
+
+  return {
+    ...curso,
+    aprendizados,
+    skills,
+    modulos: modulosVisiveis,
+    CONTEUDOLIBERADO: conteudoLiberado,
+    MATRICULA: matricula,
+    MINHAAVALIACAO: minhaAvaliacao
+  };
+}
+
+async function buscarMatricula(idCurso: number, idPcd: number): Promise<RowDataPacket | null> {
+  const [linhas] = await pool.query<RowDataPacket[]>(
+    'SELECT IDMATRICULA, STATUSMATRICULA, DTCAD, DTATIVACAO FROM TBLCDSMATR0 WHERE IDCURSO = ? AND IDPCD = ?',
+    [idCurso, idPcd]
+  );
+
+  return linhas[0] ?? null;
+}
+
+async function buscarAvaliacao(idCurso: number, idPcd: number): Promise<RowDataPacket | null> {
+  const [linhas] = await pool.query<RowDataPacket[]>(
+    'SELECT NOTA, COMENTARIO, DTCAD FROM TBLCDSCURSOAVAL0 WHERE IDCURSO = ? AND IDPCD = ?',
+    [idCurso, idPcd]
+  );
+
+  return linhas[0] ?? null;
 }
 
 async function removerArquivo(nomeArquivo: string | null): Promise<void> {
@@ -133,8 +240,8 @@ async function inserirModulos(
     const modulo = modulos[indiceModulo]!;
 
     const [resultadoModulo] = await conexao.execute<ResultSetHeader>(
-      'INSERT INTO TBLCDSCURSOMOD0 (IDCURSO, TITULO) VALUES (?, ?)',
-      [idCurso, modulo.titulo]
+      'INSERT INTO TBLCDSCURSOMOD0 (IDCURSO, TITULO, CARGAHORARIA) VALUES (?, ?, ?)',
+      [idCurso, modulo.titulo, modulo.cargaHoraria]
     );
     const idModulo = resultadoModulo.insertId;
 
@@ -186,17 +293,20 @@ export async function cadastrar(
     await conexao.beginTransaction();
 
     const [resultado] = await conexao.execute<ResultSetHeader>(
-      `INSERT INTO TBLCDSCURSO0 (IDEMPRESA, TITULO, DESCRICAO, CARGAHORARIA, PRECO)
-       VALUES (?, ?, ?, ?, ?)`,
-      [idEmpresa, dados.titulo, dados.descricao, dados.cargaHoraria, dados.preco]
+      `INSERT INTO TBLCDSCURSO0 (IDEMPRESA, TITULO, DESCRICAO, CARGAHORARIA, PRECO, NIVEL, CERTIFICADO)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [idEmpresa, dados.titulo, dados.descricao, dados.cargaHoraria, dados.preco, dados.nivel, dados.certificado]
     );
     const idCurso = resultado.insertId;
+
+    await regravarItens(conexao, 'aprendizados', idCurso, dados.aprendizados);
+    await regravarItens(conexao, 'skills', idCurso, dados.skills);
 
     await inserirModulos(conexao, idCurso, dados.modulos, arquivosPorChave);
 
     await conexao.commit();
 
-    return await obterDetalhado(idCurso);
+    return await obterDetalhado(idCurso, { idEmpresa });
   } catch (erro) {
     await conexao.rollback();
     // Os arquivos já enviados pro disco nesta tentativa não têm mais curso que os referencie.
@@ -267,9 +377,13 @@ export async function atualizar(
     }
 
     await conexao.execute(
-      `UPDATE TBLCDSCURSO0 SET TITULO = ?, DESCRICAO = ?, CARGAHORARIA = ?, PRECO = ? WHERE IDCURSO = ?`,
-      [dados.titulo, dados.descricao, dados.cargaHoraria, dados.preco, id]
+      `UPDATE TBLCDSCURSO0 SET TITULO = ?, DESCRICAO = ?, CARGAHORARIA = ?, PRECO = ?, NIVEL = ?, CERTIFICADO = ?
+       WHERE IDCURSO = ?`,
+      [dados.titulo, dados.descricao, dados.cargaHoraria, dados.preco, dados.nivel, dados.certificado, id]
     );
+
+    await regravarItens(conexao, 'aprendizados', id, dados.aprendizados);
+    await regravarItens(conexao, 'skills', id, dados.skills);
 
     // TBLCDSCURSOCAP0 vai junto por ON DELETE CASCADE.
     await conexao.query('DELETE FROM TBLCDSCURSOMOD0 WHERE IDCURSO = ?', [id]);
@@ -298,7 +412,7 @@ export async function atualizar(
       }
     }
 
-    return await obterDetalhado(id);
+    return await obterDetalhado(id, { idEmpresa });
   } catch (erro) {
     await conexao.rollback();
     for (const nomeArquivo of arquivosPorChave.values()) {

@@ -1,14 +1,16 @@
 import { Routes } from '@angular/router';
 
-import { ambienteGuard } from './shared/guards/ambiente.guard';
+import { ambienteGuard, visitanteGuard } from './shared/guards/ambiente.guard';
 
 export const routes: Routes = [
   // Landing page pública: qualquer visitante vê as vagas abertas sem precisar
   // se cadastrar. Fora do Shell de propósito — quem chega aqui ainda não tem
-  // sessão, então não faz sentido mostrar a sidebar.
+  // sessão, então não faz sentido mostrar a sidebar. Quem já está logado
+  // (ex.: "Lembrar de mim") e volta à plataforma vai direto para o seu Início.
   {
     path: '',
     pathMatch: 'full',
+    canActivate: [visitanteGuard],
     title: 'Conecta+',
     loadComponent: () => import('./features/landing/landing').then((m) => m.Landing)
   },
@@ -19,11 +21,13 @@ export const routes: Routes = [
   },
   {
     path: 'login',
+    canActivate: [visitanteGuard],
     title: 'Entrar | Conecta+',
     loadComponent: () => import('./features/auth/login/login').then((m) => m.Login)
   },
   {
     path: 'cadastro',
+    canActivate: [visitanteGuard],
     title: 'Criar conta | Conecta+',
     loadComponent: () =>
       import('./features/auth/register-choice/register-choice').then((m) => m.RegisterChoice)
@@ -33,12 +37,14 @@ export const routes: Routes = [
   // não faz sentido mostrar a sidebar nessas telas.
   {
     path: 'candidato/cadastro',
+    canActivate: [visitanteGuard],
     title: 'Cadastro de Candidato | Conecta+',
     loadComponent: () =>
       import('./features/candidato/register/candidato-register').then((m) => m.CandidatoRegister)
   },
   {
     path: 'empresa/cadastro',
+    canActivate: [visitanteGuard],
     title: 'Cadastro de Empresa | Conecta+',
     loadComponent: () =>
       import('./features/company/register/company-register').then((m) => m.CompanyRegister)
@@ -120,6 +126,13 @@ export const routes: Routes = [
           import('./features/candidato/cursos-disponiveis/cursos-disponiveis').then(
             (m) => m.CursosDisponiveis
           )
+      },
+      {
+        path: 'cursos-disponiveis/:id/matricula',
+        title: 'Matrícula | Conecta+',
+        canActivate: [ambienteGuard('usuario')],
+        loadComponent: () =>
+          import('./features/candidato/matricula-curso/matricula-curso').then((m) => m.MatriculaCursoPagina)
       },
       {
         path: 'cursos-disponiveis/:id',
