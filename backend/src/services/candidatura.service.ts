@@ -20,14 +20,22 @@ import type { DadosEtapaCandidatura } from '../utils/validacao-etapa-candidatura
 export const COLUNAS_PROCESSO = `c.STATUSCANDIDATURA, c.DTCAD AS DTCANDIDATURA,
   c.DTENTREVISTA, c.FORMATOENTREVISTA, c.LOCALENTREVISTA, c.OBSENTREVISTA,
   DATE_FORMAT(c.DTINICIO, '%Y-%m-%d') AS DTINICIO, c.MENSAGEMEMPRESA,
+  c.COMPARECEU, c.PROPOSTASALARIO, c.PROPOSTADETALHES,
+  DATE_FORMAT(c.PROPOSTAVALIDADE, '%Y-%m-%d') AS PROPOSTAVALIDADE,
+  c.RESPOSTACANDIDATO, c.DTRESPOSTA,
   c.ENTREVISTAREMOTA, c.TEMPOESTENDIDO, c.INTERPRETELIBRAS, c.INICIOIMEDIATO`;
 
-/** De quais etapas cada ação pode partir. */
+/**
+ * De quais etapas cada ação pode partir. Reagendar continua possível depois
+ * de registrar a entrevista (ex.: o candidato não compareceu), e a proposta
+ * pode sair direto da análise quando a empresa dispensa a entrevista.
+ */
 const ETAPAS_DE_ORIGEM: Record<DadosEtapaCandidatura['acao'], string[]> = {
   INICIAR_ANALISE: ['PENDENTE'],
-  AGENDAR_ENTREVISTA: ['EM_ANALISE', 'ENTREVISTA'],
-  CONTRATAR: ['EM_ANALISE', 'ENTREVISTA'],
-  REPROVAR: ['PENDENTE', 'EM_ANALISE', 'ENTREVISTA']
+  AGENDAR_ENTREVISTA: ['EM_ANALISE', 'ENTREVISTA', 'ENTREVISTA_REALIZADA'],
+  REGISTRAR_ENTREVISTA: ['ENTREVISTA'],
+  ENVIAR_PROPOSTA: ['EM_ANALISE', 'ENTREVISTA_REALIZADA'],
+  REPROVAR: ['PENDENTE', 'EM_ANALISE', 'ENTREVISTA', 'ENTREVISTA_REALIZADA', 'PROPOSTA']
 };
 
 /** Data/hora em que a candidatura entrou em cada etapa, na ordem em que aconteceu. */
@@ -59,7 +67,7 @@ export async function registrarHistorico(
  */
 export async function obterParaEmpresa(idCandidatura: number, idEmpresa: number): Promise<Record<string, unknown>> {
   const [linhas] = await pool.query<RowDataPacket[]>(
-    `SELECT c.IDCANDIDATURA, c.IDVAGA, ${COLUNAS_PROCESSO}, c.CARTAAPRESENTACAO,
+    `SELECT c.IDCANDIDATURA, c.IDVAGA, ${COLUNAS_PROCESSO}, c.NOTASENTREVISTA, c.CARTAAPRESENTACAO,
             COALESCE(c.CURRICULOPDF, u.CURRICULOPDF) AS CURRICULOPDF,
             v.TITULO, v.MODELOTRABALHO,
             u.IDPCD, u.NOME, u.EMAIL, u.TELEFONE, u.TIPODEF, u.CIDADE, u.ESTADO,
@@ -147,11 +155,29 @@ export async function alterarEtapa(
         );
         break;
 
-      case 'CONTRATAR':
-        novoStatus = 'APROVADO';
+      case 'REGISTRAR_ENTREVISTA':
+        novoStatus = 'ENTREVISTA_REALIZADA';
         await conexao.execute(
-          'UPDATE TBLCDSCAND0 SET STATUSCANDIDATURA = ?, DTINICIO = ?, MENSAGEMEMPRESA = ? WHERE IDCANDIDATURA = ?',
-          [novoStatus, dados.dataInicio, dados.mensagem, idCandidatura]
+          'UPDATE TBLCDSCAND0 SET STATUSCANDIDATURA = ?, COMPARECEU = ?, NOTASENTREVISTA = ? WHERE IDCANDIDATURA = ?',
+          [novoStatus, dados.compareceu, dados.notas, idCandidatura]
+        );
+        break;
+
+      case 'ENVIAR_PROPOSTA':
+        novoStatus = 'PROPOSTA';
+        await conexao.execute(
+          `UPDATE TBLCDSCAND0 SET STATUSCANDIDATURA = ?, PROPOSTASALARIO = ?, DTINICIO = ?, PROPOSTADETALHES = ?,
+             PROPOSTAVALIDADE = ?, MENSAGEMEMPRESA = ?, RESPOSTACANDIDATO = NULL, DTRESPOSTA = NULL
+           WHERE IDCANDIDATURA = ?`,
+          [
+            novoStatus,
+            dados.proposta.salario,
+            dados.proposta.dataInicio,
+            dados.proposta.detalhes,
+            dados.proposta.validade,
+            dados.proposta.mensagem,
+            idCandidatura
+          ]
         );
         break;
 
@@ -177,4 +203,55 @@ export async function alterarEtapa(
   }
 
   return obterParaEmpresa(idCandidatura, dados.idEmpresa);
+}
+
+/**
+ * O candidato responde à proposta recebida pela plataforma: aceitar conclui
+ * a contratação (APROVADO); recusar encerra o processo do lado dele (DESISTIU),
+ * com o motivo, se quiser contar. Só vale enquanto a proposta está aberta e
+ * dentro do prazo que a empresa deu.
+ */
+export async function responderProposta(
+  idPcd: number,
+  idVaga: number,
+  resposta: { aceitar: boolean; motivo: string | null }
+): Promise<void> {
+  const conexao = await pool.getConnection();
+
+  try {
+    await conexao.beginTransaction();
+
+    const [linhas] = await conexao.query<RowDataPacket[]>(
+      `SELECT IDCANDIDATURA, STATUSCANDIDATURA, PROPOSTAVALIDADE < CURDATE() AS EXPIRADA
+       FROM TBLCDSCAND0 WHERE IDPCD = ? AND IDVAGA = ? FOR UPDATE`,
+      [idPcd, idVaga]
+    );
+    const candidatura = linhas[0];
+
+    if (!candidatura) {
+      throw erroNaoEncontrado('Candidatura não encontrada.');
+    }
+    if (candidatura['STATUSCANDIDATURA'] !== 'PROPOSTA') {
+      throw erroDeConflito('Não há proposta aguardando a sua resposta.');
+    }
+    if (Number(candidatura['EXPIRADA']) === 1) {
+      throw erroDeConflito('O prazo para responder esta proposta terminou. Fale com a empresa.');
+    }
+
+    const novoStatus = resposta.aceitar ? 'APROVADO' : 'DESISTIU';
+    const idCandidatura = candidatura['IDCANDIDATURA'] as number;
+
+    await conexao.execute(
+      'UPDATE TBLCDSCAND0 SET STATUSCANDIDATURA = ?, RESPOSTACANDIDATO = ?, DTRESPOSTA = NOW() WHERE IDCANDIDATURA = ?',
+      [novoStatus, resposta.aceitar ? null : resposta.motivo, idCandidatura]
+    );
+    await registrarHistorico(conexao, idCandidatura, novoStatus);
+
+    await conexao.commit();
+  } catch (erro) {
+    await conexao.rollback();
+    throw erro;
+  } finally {
+    conexao.release();
+  }
 }

@@ -22,6 +22,12 @@ export interface ProcessoSeletivoDaApi {
   OBSENTREVISTA: string | null;
   DTINICIO: string | null;
   MENSAGEMEMPRESA: string | null;
+  COMPARECEU: number | null;
+  PROPOSTASALARIO: string | null;
+  PROPOSTADETALHES: string | null;
+  PROPOSTAVALIDADE: string | null;
+  RESPOSTACANDIDATO: string | null;
+  DTRESPOSTA: string | null;
   historico: { STATUSCANDIDATURA: StatusCandidatura; DTCAD: string }[];
 }
 
@@ -38,8 +44,19 @@ export function paraProcessoSeletivo(processo: ProcessoSeletivoDaApi): ProcessoS
             observacoes: processo.OBSENTREVISTA
           }
         : null,
+    compareceu: processo.COMPARECEU === null || processo.COMPARECEU === undefined ? null : Boolean(processo.COMPARECEU),
     dataInicio: processo.DTINICIO,
+    proposta: processo.PROPOSTADETALHES
+      ? {
+          salario: processo.PROPOSTASALARIO !== null ? Number(processo.PROPOSTASALARIO) : null,
+          dataInicio: processo.DTINICIO,
+          detalhes: processo.PROPOSTADETALHES,
+          validade: processo.PROPOSTAVALIDADE
+        }
+      : null,
     mensagemEmpresa: processo.MENSAGEMEMPRESA,
+    respostaCandidato: processo.RESPOSTACANDIDATO,
+    dataResposta: processo.DTRESPOSTA,
     historico: processo.historico.map((item) => ({ status: item.STATUSCANDIDATURA, data: item.DTCAD }))
   };
 }
@@ -51,6 +68,7 @@ interface CandidaturaGestaoDaApi extends ProcessoSeletivoDaApi {
   TITULO: string;
   MODELOTRABALHO: ModeloTrabalho;
   CARTAAPRESENTACAO: string | null;
+  NOTASENTREVISTA: string | null;
   CURRICULOPDF: string | null;
   ENTREVISTAREMOTA: number;
   TEMPOESTENDIDO: number;
@@ -86,6 +104,7 @@ function paraCandidaturaGestao(c: CandidaturaGestaoDaApi): CandidaturaGestao {
       avatarUrl: c.AVATAR ? `${URL_BASE_API}/uploads/avatares/${c.AVATAR}` : null,
       tituloProfissional: c.TITULOPROFISSIONAL
     },
+    notasEntrevista: c.NOTASENTREVISTA,
     cartaApresentacao: c.CARTAAPRESENTACAO,
     curriculoPdfUrl: c.CURRICULOPDF ? `${URL_BASE_API}/uploads/curriculos/${c.CURRICULOPDF}` : null,
     adaptacoes: {

@@ -277,6 +277,16 @@ export class VagaService {
       .pipe(map(() => undefined));
   }
 
+  /** O candidato aceita ou recusa a proposta de contratação; devolve o acompanhamento atualizado. */
+  responderProposta(idPcd: number, idVaga: number, aceitar: boolean, motivo: string): Observable<AcompanhamentoCandidatura> {
+    return this.http
+      .post<AcompanhamentoCandidaturaDaApi>(`${URL_BASE_API}/usuarios/${idPcd}/candidaturas/${idVaga}/proposta`, {
+        aceitar,
+        motivo
+      })
+      .pipe(map(paraAcompanhamento));
+  }
+
   /** Candidatura do candidato logado a uma vaga, para a tela de acompanhamento. */
   obterMinhaCandidatura(idPcd: number, idVaga: number): Observable<AcompanhamentoCandidatura> {
     return this.http

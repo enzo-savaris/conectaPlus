@@ -22,6 +22,7 @@ export class CursosDisponiveis {
 
   /** Status da matrícula do candidato em cada curso (id do curso → status). */
   protected readonly matriculas = signal<ReadonlyMap<number, StatusMatricula>>(new Map());
+  protected readonly concluidos = signal<ReadonlySet<number>>(new Set());
 
   protected readonly cursos = signal<Curso[]>([]);
   protected readonly carregando = signal(true);
@@ -59,6 +60,7 @@ export class CursosDisponiveis {
       next: ({ cursos, matriculas }) => {
         this.cursos.set(cursos);
         this.matriculas.set(new Map(matriculas.map((item) => [item.idCurso, item.status])));
+        this.concluidos.set(new Set(matriculas.filter((item) => item.concluido).map((item) => item.idCurso)));
         this.carregando.set(false);
       },
       error: () => {

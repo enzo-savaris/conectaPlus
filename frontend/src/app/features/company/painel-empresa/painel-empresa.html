@@ -103,9 +103,11 @@
       } @else {
         <ul class="mt-4 flex flex-col gap-3">
           @for (vaga of vagasRecentes(); track vaga.id) {
-            <li
-              class="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-ink-900/60 p-5 transition hover:border-brand-400/40"
-            >
+            <li>
+              <a
+                [routerLink]="['/empresa/vagas', vaga.id]"
+                class="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-ink-900/60 p-5 transition hover:border-brand-400/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-400"
+              >
               <div class="min-w-0">
                 <p class="truncate text-sm font-semibold text-white">{{ vaga.titulo }}</p>
                 <p class="mt-1 truncate text-xs text-slate-400">
@@ -113,9 +115,15 @@
                 </p>
               </div>
 
-              @if (formatarSalario(vaga); as salario) {
-                <span class="shrink-0 text-sm font-semibold text-brand-300">{{ salario }}</span>
-              }
+              <span class="flex shrink-0 items-center gap-3">
+                @if (formatarSalario(vaga); as salario) {
+                  <span class="text-sm font-semibold text-brand-300">{{ salario }}</span>
+                }
+                <svg class="h-4 w-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                  <path d="m9 5 7 7-7 7" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+              </span>
+              </a>
             </li>
           }
         </ul>

@@ -1,6 +1,7 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 
+import { ROTA_INICIAL } from '../../shared/guards/ambiente.guard';
 import { AuthService } from '../../shared/services/auth.service';
 import { VagaService } from '../../shared/services/vaga.service';
 import { CursoRecomendado, VagaDetalhada } from '../../shared/types/vaga';
@@ -26,6 +27,12 @@ export class VagaPublica {
   private readonly roteador = inject(Router);
   private readonly vagaService = inject(VagaService);
   private readonly authService = inject(AuthService);
+
+  /** Início de quem está vendo: a landing para visitantes, o painel para quem está logado. */
+  protected readonly rotaInicio = computed(() => {
+    const sessao = this.authService.sessao();
+    return sessao ? ROTA_INICIAL[sessao.ambiente] : '/';
+  });
 
   protected readonly vaga = signal<VagaDetalhada | null>(null);
   protected readonly carregando = signal(true);

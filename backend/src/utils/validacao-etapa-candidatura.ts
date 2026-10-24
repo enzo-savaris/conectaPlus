@@ -5,13 +5,16 @@ import { validarId } from './validacao.ts';
  * Validação das ações da empresa sobre uma candidatura (tela "Gerenciar
  * candidatura"). Cada ação leva a candidatura para uma etapa do processo:
  *
- * - INICIAR_ANALISE    → EM_ANALISE
- * - AGENDAR_ENTREVISTA → ENTREVISTA (também usada para reagendar)
- * - CONTRATAR          → APROVADO
- * - REPROVAR           → REPROVADO
+ * - INICIAR_ANALISE      → EM_ANALISE
+ * - AGENDAR_ENTREVISTA   → ENTREVISTA (também usada para reagendar)
+ * - REGISTRAR_ENTREVISTA → ENTREVISTA_REALIZADA (como foi; anotações internas)
+ * - ENVIAR_PROPOSTA      → PROPOSTA (o candidato aceita ou recusa pela plataforma)
+ * - REPROVAR             → REPROVADO
+ *
+ * A contratação (APROVADO) acontece quando o candidato aceita a proposta.
  */
 
-const ACOES = ['INICIAR_ANALISE', 'AGENDAR_ENTREVISTA', 'CONTRATAR', 'REPROVAR'] as const;
+const ACOES = ['INICIAR_ANALISE', 'AGENDAR_ENTREVISTA', 'REGISTRAR_ENTREVISTA', 'ENVIAR_PROPOSTA', 'REPROVAR'] as const;
 const FORMATOS_ENTREVISTA = ['REMOTA', 'PRESENCIAL'] as const;
 
 export type AcaoCandidatura = (typeof ACOES)[number];
@@ -25,11 +28,28 @@ export interface DadosEntrevista {
   observacoes: string | null;
 }
 
+export interface DadosProposta {
+  salario: number | null;
+  /** "AAAA-MM-DD" */
+  dataInicio: string;
+  detalhes: string;
+  /** Até quando o candidato pode aceitar ("AAAA-MM-DD"); `null` = sem prazo. */
+  validade: string | null;
+  mensagem: string | null;
+}
+
 export type DadosEtapaCandidatura =
   | { idEmpresa: number; acao: 'INICIAR_ANALISE' }
   | { idEmpresa: number; acao: 'AGENDAR_ENTREVISTA'; entrevista: DadosEntrevista }
-  | { idEmpresa: number; acao: 'CONTRATAR'; dataInicio: string | null; mensagem: string | null }
+  | { idEmpresa: number; acao: 'REGISTRAR_ENTREVISTA'; compareceu: boolean; notas: string | null }
+  | { idEmpresa: number; acao: 'ENVIAR_PROPOSTA'; proposta: DadosProposta }
   | { idEmpresa: number; acao: 'REPROVAR'; mensagem: string | null };
+
+/** Resposta do candidato à proposta recebida. */
+export interface RespostaProposta {
+  aceitar: boolean;
+  motivo: string | null;
+}
 
 const LIMITE_MENSAGEM = 2000;
 
@@ -42,12 +62,12 @@ function textoOuNulo(valor: unknown): string | null {
   return limpo === '' ? null : limpo;
 }
 
-function validarMensagem(valor: unknown, erros: Record<string, string>): string | null {
-  const mensagem = textoOuNulo(valor);
-  if (mensagem !== null && mensagem.length > LIMITE_MENSAGEM) {
-    erros['mensagem'] = `A mensagem deve ter no máximo ${LIMITE_MENSAGEM} caracteres.`;
+function textoLimitado(valor: unknown, campo: string, erros: Record<string, string>): string | null {
+  const limpo = textoOuNulo(valor);
+  if (limpo !== null && limpo.length > LIMITE_MENSAGEM) {
+    erros[campo] = `Use no máximo ${LIMITE_MENSAGEM} caracteres.`;
   }
-  return mensagem;
+  return limpo;
 }
 
 /** Aceita o valor de um <input type="datetime-local"> ("AAAA-MM-DDTHH:MM"). */
@@ -71,14 +91,14 @@ function validarDataEntrevista(valor: unknown, erros: Record<string, string>): s
 }
 
 /** Aceita o valor de um <input type="date"> ("AAAA-MM-DD"); vazio vira `null`. */
-function validarDataInicio(valor: unknown, erros: Record<string, string>): string | null {
+function validarData(valor: unknown, campo: string, erros: Record<string, string>): string | null {
   const bruto = texto(valor);
   if (bruto === '') {
     return null;
   }
 
   if (!/^\d{4}-\d{2}-\d{2}$/.test(bruto) || Number.isNaN(new Date(`${bruto}T00:00:00`).getTime())) {
-    erros['dataInicio'] = 'Data de início inválida.';
+    erros[campo] = 'Data inválida.';
     return null;
   }
 
@@ -122,30 +142,69 @@ export function validarEtapaCandidatura(corpo: unknown): DadosEtapaCandidatura {
         erros['localEntrevista'] = 'Use no máximo 500 caracteres.';
       }
 
-      const observacoes = textoOuNulo(entrada['observacoesEntrevista']);
-      if (observacoes !== null && observacoes.length > LIMITE_MENSAGEM) {
-        erros['observacoesEntrevista'] = `As observações devem ter no máximo ${LIMITE_MENSAGEM} caracteres.`;
-      }
-
       dados = {
         idEmpresa,
         acao: 'AGENDAR_ENTREVISTA',
-        entrevista: { data, formato: formato as FormatoEntrevista, local, observacoes }
+        entrevista: {
+          data,
+          formato: formato as FormatoEntrevista,
+          local,
+          observacoes: textoLimitado(entrada['observacoesEntrevista'], 'observacoesEntrevista', erros)
+        }
       };
       break;
     }
 
-    case 'CONTRATAR':
+    case 'REGISTRAR_ENTREVISTA':
       dados = {
         idEmpresa,
-        acao: 'CONTRATAR',
-        dataInicio: validarDataInicio(entrada['dataInicio'], erros),
-        mensagem: validarMensagem(entrada['mensagem'], erros)
+        acao: 'REGISTRAR_ENTREVISTA',
+        compareceu: entrada['compareceu'] !== false,
+        notas: textoLimitado(entrada['notas'], 'notas', erros)
       };
       break;
 
+    case 'ENVIAR_PROPOSTA': {
+      let salario: number | null = null;
+      if (entrada['salario'] !== null && entrada['salario'] !== undefined && entrada['salario'] !== '') {
+        salario = Number(entrada['salario']);
+        if (!Number.isFinite(salario) || salario <= 0) {
+          erros['salario'] = 'Informe um salário válido (ou deixe em branco).';
+        }
+      }
+
+      const dataInicio = validarData(entrada['dataInicio'], 'dataInicio', erros);
+      if (dataInicio === null && !erros['dataInicio']) {
+        erros['dataInicio'] = 'Informe a data prevista de início.';
+      }
+
+      const detalhes = textoLimitado(entrada['detalhes'], 'detalhes', erros);
+      if (!detalhes) {
+        erros['detalhes'] = 'Descreva a proposta (cargo, jornada, benefícios…).';
+      }
+
+      const validade = validarData(entrada['validade'], 'validade', erros);
+      const hoje = new Date().toISOString().slice(0, 10);
+      if (validade !== null && validade < hoje) {
+        erros['validade'] = 'O prazo para resposta não pode estar no passado.';
+      }
+
+      dados = {
+        idEmpresa,
+        acao: 'ENVIAR_PROPOSTA',
+        proposta: {
+          salario,
+          dataInicio: dataInicio ?? '',
+          detalhes: detalhes ?? '',
+          validade,
+          mensagem: textoLimitado(entrada['mensagem'], 'mensagem', erros)
+        }
+      };
+      break;
+    }
+
     case 'REPROVAR':
-      dados = { idEmpresa, acao: 'REPROVAR', mensagem: validarMensagem(entrada['mensagem'], erros) };
+      dados = { idEmpresa, acao: 'REPROVAR', mensagem: textoLimitado(entrada['mensagem'], 'mensagem', erros) };
       break;
   }
 
@@ -154,4 +213,20 @@ export function validarEtapaCandidatura(corpo: unknown): DadosEtapaCandidatura {
   }
 
   return dados;
+}
+
+export function validarRespostaProposta(corpo: unknown): RespostaProposta {
+  const entrada = (typeof corpo === 'object' && corpo !== null ? corpo : {}) as Record<string, unknown>;
+  const erros: Record<string, string> = {};
+
+  if (typeof entrada['aceitar'] !== 'boolean') {
+    throw erroDeValidacao({ aceitar: 'Informe se aceita ou recusa a proposta.' });
+  }
+
+  const motivo = textoLimitado(entrada['motivo'], 'motivo', erros);
+  if (Object.keys(erros).length > 0) {
+    throw erroDeValidacao(erros);
+  }
+
+  return { aceitar: entrada['aceitar'], motivo };
 }

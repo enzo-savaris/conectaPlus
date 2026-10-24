@@ -62,7 +62,7 @@
       </header>
 
       <!-- ============ LINHA DO TEMPO ============ -->
-      <ol class="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4" aria-label="Etapas do processo seletivo">
+      <ol class="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-5" aria-label="Etapas do processo seletivo">
         @for (etapa of linhaDoTempo(); track $index) {
           <li
             class="rounded-xl border p-3"
@@ -114,46 +114,57 @@
       <div class="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
         <!-- ============ COLUNA PRINCIPAL ============ -->
         <div class="flex flex-col gap-6">
-          <!-- Próxima ação -->
+          <!-- Próximo passo -->
           <section class="rounded-2xl border border-white/10 bg-ink-900/60 p-5" aria-labelledby="titulo-acao">
             <h2 id="titulo-acao" class="text-sm font-semibold text-white">
               @switch (c.status) {
                 @case ('APROVADO') { Candidato contratado }
                 @case ('REPROVADO') { Candidatura encerrada }
-                @default { Próxima ação }
+                @case ('DESISTIU') { O candidato recusou a proposta }
+                @default { Próximo passo }
               }
             </h2>
 
+            @if (proximoPasso(); as passo) {
+              <p class="mt-1 text-sm text-slate-400">{{ passo.texto }}</p>
+            }
+
             @switch (c.status) {
-              @case ('PENDENTE') {
-                <p class="mt-1 text-sm text-slate-400">
-                  Candidatura nova. Ao iniciar a análise, o candidato vê no portal que o currículo está sendo avaliado.
-                </p>
-              }
-              @case ('EM_ANALISE') {
-                <p class="mt-1 text-sm text-slate-400">
-                  Currículo em análise. Agende uma entrevista acessível, contrate direto ou encerre o processo.
-                </p>
-              }
               @case ('APROVADO') {
                 <p class="mt-1 text-sm text-slate-400">
+                  Proposta aceita{{ c.dataResposta ? ' em ' + formatarDataHora(c.dataResposta) : '' }}.
                   @if (c.dataInicio) {
                     Início previsto em <span class="font-semibold text-emerald-300">{{ formatarDataSimples(c.dataInicio) }}</span>.
-                  } @else {
-                    Data de início ainda não informada.
                   }
                 </p>
               }
               @case ('REPROVADO') {
                 <p class="mt-1 text-sm text-slate-400">O candidato foi avisado pelo portal que o processo foi encerrado.</p>
               }
+              @case ('DESISTIU') {
+                <p class="mt-1 text-sm text-slate-400">
+                  Resposta enviada{{ c.dataResposta ? ' em ' + formatarDataHora(c.dataResposta) : '' }}.
+                </p>
+                @if (c.respostaCandidato) {
+                  <div class="mt-3 border-l-2 border-white/15 pl-3">
+                    <p class="text-xs font-semibold text-slate-400">Motivo informado pelo candidato</p>
+                    <p class="mt-1 text-sm whitespace-pre-line text-slate-300">{{ c.respostaCandidato }}</p>
+                  </div>
+                }
+              }
             }
 
-            <!-- Entrevista agendada -->
-            @if (c.entrevista && (c.status === 'ENTREVISTA' || c.status === 'APROVADO' || c.status === 'REPROVADO')) {
+            <!-- Entrevista -->
+            @if (c.entrevista && c.status !== 'EM_ANALISE' && c.status !== 'PENDENTE') {
               <div class="mt-4 rounded-xl border border-sky-400/30 bg-sky-400/5 p-4">
                 <p class="text-xs font-semibold tracking-widest text-sky-300 uppercase">
-                  {{ c.status === 'ENTREVISTA' ? 'Entrevista agendada' : 'Entrevista' }}
+                  @if (c.status === 'ENTREVISTA') {
+                    Entrevista agendada
+                  } @else if (c.compareceu === false) {
+                    Entrevista — candidato não compareceu
+                  } @else {
+                    Entrevista realizada
+                  }
                 </p>
                 <p class="mt-1 text-base font-semibold text-white">{{ formatarDataEntrevista(c.entrevista.data) }}</p>
                 <p class="mt-1 text-sm text-slate-300">
@@ -167,24 +178,57 @@
                 @if (c.entrevista.observacoes) {
                   <p class="mt-2 text-xs whitespace-pre-line text-slate-400">{{ c.entrevista.observacoes }}</p>
                 }
+                @if (c.notasEntrevista) {
+                  <div class="mt-3 border-t border-white/10 pt-3">
+                    <p class="text-xs font-semibold text-slate-400">Suas anotações (o candidato não vê)</p>
+                    <p class="mt-1 text-sm whitespace-pre-line text-slate-300">{{ c.notasEntrevista }}</p>
+                  </div>
+                }
               </div>
             }
 
-            @if (c.mensagemEmpresa && (c.status === 'APROVADO' || c.status === 'REPROVADO')) {
+            <!-- Proposta -->
+            @if (c.proposta && (c.status === 'PROPOSTA' || c.status === 'APROVADO' || c.status === 'DESISTIU')) {
+              <div class="mt-4 rounded-xl border border-fuchsia-400/30 bg-fuchsia-400/5 p-4">
+                <p class="text-xs font-semibold tracking-widest text-fuchsia-300 uppercase">Proposta de contratação</p>
+                <dl class="mt-2 grid grid-cols-2 gap-3 text-sm">
+                  <div>
+                    <dt class="text-xs text-slate-500">Salário</dt>
+                    <dd class="font-semibold text-white">{{ c.proposta.salario !== null ? formatarSalario(c.proposta.salario) : 'A combinar' }}</dd>
+                  </div>
+                  <div>
+                    <dt class="text-xs text-slate-500">Início</dt>
+                    <dd class="font-semibold text-white">{{ c.proposta.dataInicio ? formatarDataSimples(c.proposta.dataInicio) : '—' }}</dd>
+                  </div>
+                  @if (c.proposta.validade && c.status === 'PROPOSTA') {
+                    <div class="col-span-2">
+                      <dt class="text-xs text-slate-500">Prazo para resposta</dt>
+                      <dd class="text-white">até {{ formatarDataSimples(c.proposta.validade) }}</dd>
+                    </div>
+                  }
+                </dl>
+                <p class="mt-3 text-sm whitespace-pre-line text-slate-300">{{ c.proposta.detalhes }}</p>
+                @if (c.mensagemEmpresa) {
+                  <p class="mt-2 text-xs whitespace-pre-line text-slate-400">"{{ c.mensagemEmpresa }}"</p>
+                }
+              </div>
+            }
+
+            @if (c.mensagemEmpresa && c.status === 'REPROVADO') {
               <div class="mt-4 border-l-2 border-white/15 pl-3">
                 <p class="text-xs font-semibold text-slate-400">Mensagem enviada ao candidato</p>
                 <p class="mt-1 text-sm whitespace-pre-line text-slate-300">{{ c.mensagemEmpresa }}</p>
               </div>
             }
 
-            @if (!empresaAtiva() && c.status !== 'APROVADO' && c.status !== 'REPROVADO') {
+            @if (!empresaAtiva() && !encerrado()) {
               <p class="mt-4 rounded-xl border border-amber-400/30 bg-amber-400/10 px-4 py-3 text-xs text-amber-200">
                 Seu cadastro está em análise ou inativo. Você pode visualizar a candidatura, mas não avançar o processo até a aprovação.
               </p>
             }
 
-            <!-- Botões de ação (escondidos enquanto um formulário está aberto) -->
-            @if (empresaAtiva() && painel() === null && c.status !== 'APROVADO' && c.status !== 'REPROVADO') {
+            <!-- Botões do próximo passo (escondidos enquanto um formulário está aberto) -->
+            @if (empresaAtiva() && painel() === null && proximoPasso(); as passo) {
               @if (erroAcao()) {
                 <p class="mt-4 rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200" role="alert">
                   {{ erroAcao() }}
@@ -192,38 +236,29 @@
               }
 
               <div class="mt-4 flex flex-wrap gap-3">
-                @if (c.status === 'PENDENTE') {
+                @if (passo.principal; as principal) {
                   <button
                     type="button"
-                    (click)="iniciarAnalise()"
+                    (click)="acionar(principal.painel)"
                     [disabled]="salvando()"
                     class="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-brand-300 to-brand-600 px-5 py-2 text-sm font-semibold text-ink-950 shadow-lg shadow-brand-500/20 transition hover:brightness-110 disabled:opacity-60"
                   >
-                    {{ salvando() ? 'Salvando…' : 'Iniciar análise' }}
-                  </button>
-                } @else {
-                  <button
-                    type="button"
-                    (click)="abrirPainel('entrevista')"
-                    class="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-brand-300 to-brand-600 px-5 py-2 text-sm font-semibold text-ink-950 shadow-lg shadow-brand-500/20 transition hover:brightness-110"
-                  >
-                    {{ c.status === 'ENTREVISTA' ? 'Reagendar entrevista' : 'Agendar entrevista' }}
-                  </button>
-                  <button
-                    type="button"
-                    (click)="abrirPainel('contratar')"
-                    class="rounded-lg border border-emerald-400/40 bg-emerald-400/10 px-5 py-2 text-sm font-semibold text-emerald-300 transition hover:bg-emerald-400/20"
-                  >
-                    Contratar
+                    {{ salvando() ? 'Salvando…' : principal.rotulo }}
+                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                      <path d="M5 12h14M13 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
                   </button>
                 }
-                <button
-                  type="button"
-                  (click)="abrirPainel('reprovar')"
-                  class="rounded-lg border border-white/12 px-5 py-2 text-sm font-medium text-slate-300 transition hover:border-rose-400/40 hover:text-rose-300"
-                >
-                  Encerrar candidatura
-                </button>
+                @for (secundaria of passo.secundarias; track secundaria.rotulo) {
+                  <button
+                    type="button"
+                    (click)="acionar(secundaria.painel)"
+                    class="rounded-lg border px-5 py-2 text-sm font-medium transition"
+                    [class]="secundaria.painel === 'reprovar' ? 'border-white/12 text-slate-300 hover:border-rose-400/40 hover:text-rose-300' : 'border-white/12 text-slate-200 hover:border-brand-400/40 hover:text-brand-200'"
+                  >
+                    {{ secundaria.rotulo }}
+                  </button>
+                }
               </div>
             }
 
@@ -333,35 +368,36 @@
               </form>
             }
 
-            <!-- Formulário: contratar -->
-            @if (painel() === 'contratar') {
-              <form class="mt-5 flex flex-col gap-4 border-t border-white/10 pt-5" (submit)="$event.preventDefault(); contratar()" novalidate>
-                <h3 class="text-sm font-semibold text-white">Contratar {{ c.candidato.nome }}</h3>
+            <!-- Formulário: registrar entrevista realizada -->
+            @if (painel() === 'registro') {
+              <form class="mt-5 flex flex-col gap-4 border-t border-white/10 pt-5" (submit)="$event.preventDefault(); registrarEntrevista()" novalidate>
+                <h3 class="text-sm font-semibold text-white">Como foi a entrevista?</h3>
 
-                <div class="sm:max-w-xs">
-                  <label for="data-inicio" class="field-label">Data prevista de início</label>
-                  <input
-                    id="data-inicio"
-                    type="date"
-                    [value]="dataInicio()"
-                    (input)="dataInicio.set(valorDe($event))"
-                    [attr.aria-invalid]="!!errosCampos()['dataInicio']"
-                    class="field-input mt-1.5"
-                  />
-                  @if (errosCampos()['dataInicio']; as msg) {
-                    <p class="field-error">{{ msg }}</p>
-                  }
-                </div>
+                <fieldset>
+                  <legend class="field-label">O candidato compareceu?</legend>
+                  <div class="mt-1.5 flex gap-2">
+                    @for (opcao of [true, false]; track opcao) {
+                      <label
+                        class="flex flex-1 cursor-pointer items-center justify-center rounded-lg border px-3 py-2.5 text-sm transition"
+                        [class]="compareceu() === opcao ? 'border-brand-400 bg-brand-400/10 text-brand-200' : 'border-white/10 text-slate-300 hover:border-white/25'"
+                      >
+                        <input type="radio" name="compareceu" class="sr-only" [checked]="compareceu() === opcao" (change)="compareceu.set(opcao)" />
+                        {{ opcao ? 'Sim, a entrevista aconteceu' : 'Não compareceu' }}
+                      </label>
+                    }
+                  </div>
+                </fieldset>
 
                 <div>
-                  <label for="mensagem-contratacao" class="field-label">Mensagem para o candidato</label>
+                  <label for="notas-entrevista" class="field-label">Anotações da equipe (opcional)</label>
+                  <p class="mt-0.5 text-xs text-slate-500">Ficam só para a empresa: o candidato não vê.</p>
                   <textarea
-                    id="mensagem-contratacao"
-                    rows="3"
+                    id="notas-entrevista"
+                    rows="4"
                     maxlength="2000"
-                    [value]="mensagem()"
-                    (input)="mensagem.set(valorDe($event))"
-                    placeholder="Ex: Parabéns! Nosso RH vai entrar em contato por e-mail com os documentos de admissão."
+                    [value]="notasEntrevista()"
+                    (input)="notasEntrevista.set(valorDe($event))"
+                    placeholder="Ex: boa comunicação, domina as ferramentas pedidas; pediu home office às sextas."
                     class="field-input mt-1.5 resize-y"
                   ></textarea>
                 </div>
@@ -374,9 +410,112 @@
                   <button
                     type="submit"
                     [disabled]="salvando()"
-                    class="rounded-lg bg-emerald-400 px-5 py-2 text-sm font-semibold text-ink-950 transition hover:brightness-110 disabled:opacity-60"
+                    class="rounded-lg bg-gradient-to-r from-brand-300 to-brand-600 px-5 py-2 text-sm font-semibold text-ink-950 transition hover:brightness-110 disabled:opacity-60"
                   >
-                    {{ salvando() ? 'Salvando…' : 'Confirmar contratação' }}
+                    {{ salvando() ? 'Salvando…' : 'Salvar registro' }}
+                  </button>
+                  <button type="button" (click)="fecharPainel()" class="px-3 text-sm text-slate-400 hover:text-white">Cancelar</button>
+                </div>
+              </form>
+            }
+
+            <!-- Formulário: proposta de contratação -->
+            @if (painel() === 'proposta') {
+              <form class="mt-5 flex flex-col gap-4 border-t border-white/10 pt-5" (submit)="$event.preventDefault(); enviarProposta()" novalidate>
+                <h3 class="text-sm font-semibold text-white">Proposta de contratação para {{ c.candidato.nome }}</h3>
+                <p class="-mt-2 text-xs text-slate-400">O candidato recebe a proposta no portal e aceita ou recusa por lá. Ao aceitar, a contratação é concluída.</p>
+
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                  <div>
+                    <label for="salario-proposta" class="field-label">Salário (R$)</label>
+                    <input
+                      id="salario-proposta"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      [value]="salarioProposta()"
+                      (input)="salarioProposta.set(valorDe($event))"
+                      placeholder="Em branco = a combinar"
+                      [attr.aria-invalid]="!!errosCampos()['salario']"
+                      class="field-input mt-1.5"
+                    />
+                    @if (errosCampos()['salario']; as msg) {
+                      <p class="field-error">{{ msg }}</p>
+                    }
+                  </div>
+                  <div>
+                    <label for="inicio-proposta" class="field-label">Início previsto *</label>
+                    <input
+                      id="inicio-proposta"
+                      type="date"
+                      [min]="hoje"
+                      [value]="dataInicio()"
+                      (input)="dataInicio.set(valorDe($event))"
+                      [attr.aria-invalid]="!!errosCampos()['dataInicio']"
+                      class="field-input mt-1.5"
+                    />
+                    @if (errosCampos()['dataInicio']; as msg) {
+                      <p class="field-error">{{ msg }}</p>
+                    }
+                  </div>
+                  <div>
+                    <label for="validade-proposta" class="field-label">Responder até</label>
+                    <input
+                      id="validade-proposta"
+                      type="date"
+                      [min]="hoje"
+                      [value]="validadeProposta()"
+                      (input)="validadeProposta.set(valorDe($event))"
+                      [attr.aria-invalid]="!!errosCampos()['validade']"
+                      class="field-input mt-1.5"
+                    />
+                    @if (errosCampos()['validade']; as msg) {
+                      <p class="field-error">{{ msg }}</p>
+                    }
+                  </div>
+                </div>
+
+                <div>
+                  <label for="detalhes-proposta" class="field-label">Detalhes da proposta *</label>
+                  <textarea
+                    id="detalhes-proposta"
+                    rows="4"
+                    maxlength="2000"
+                    [value]="detalhesProposta()"
+                    (input)="detalhesProposta.set(valorDe($event))"
+                    placeholder="Ex: CLT, 40h semanais (seg. a sex.), modelo híbrido, vale-refeição de R$ 30/dia e plano de saúde."
+                    [attr.aria-invalid]="!!errosCampos()['detalhes']"
+                    class="field-input mt-1.5 resize-y"
+                  ></textarea>
+                  @if (errosCampos()['detalhes']; as msg) {
+                    <p class="field-error">{{ msg }}</p>
+                  }
+                </div>
+
+                <div>
+                  <label for="mensagem-proposta" class="field-label">Mensagem para o candidato (opcional)</label>
+                  <textarea
+                    id="mensagem-proposta"
+                    rows="2"
+                    maxlength="2000"
+                    [value]="mensagem()"
+                    (input)="mensagem.set(valorDe($event))"
+                    placeholder="Ex: Adoramos conversar com você! Esperamos você no time."
+                    class="field-input mt-1.5 resize-y"
+                  ></textarea>
+                </div>
+
+                @if (erroAcao()) {
+                  <p class="rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200" role="alert">{{ erroAcao() }}</p>
+                }
+
+                <div class="flex gap-3">
+                  <button
+                    type="submit"
+                    [disabled]="salvando()"
+                    class="rounded-lg bg-gradient-to-r from-brand-300 to-brand-600 px-5 py-2 text-sm font-semibold text-ink-950 transition hover:brightness-110 disabled:opacity-60"
+                  >
+                    {{ salvando() ? 'Enviando…' : 'Enviar proposta' }}
                   </button>
                   <button type="button" (click)="fecharPainel()" class="px-3 text-sm text-slate-400 hover:text-white">Cancelar</button>
                 </div>
@@ -386,7 +525,9 @@
             <!-- Formulário: encerrar -->
             @if (painel() === 'reprovar') {
               <form class="mt-5 flex flex-col gap-4 border-t border-white/10 pt-5" (submit)="$event.preventDefault(); reprovar()" novalidate>
-                <h3 class="text-sm font-semibold text-white">Encerrar candidatura</h3>
+                <h3 class="text-sm font-semibold text-white">
+                  {{ c.status === 'PROPOSTA' ? 'Retirar proposta e encerrar' : 'Encerrar candidatura' }}
+                </h3>
                 <p class="text-xs text-slate-400">
                   Essa ação não pode ser desfeita. Um retorno respeitoso ajuda o candidato a se preparar para as próximas oportunidades.
                 </p>

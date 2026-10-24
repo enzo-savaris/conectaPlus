@@ -3,7 +3,7 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 
 import { AuthService } from '../../../shared/services/auth.service';
 import { CursoService } from '../../../shared/services/curso.service';
-import { CapituloCurso, CursoDetalhado } from '../../../shared/types/curso';
+import { CapituloCurso, CursoDetalhado, InscritoCurso } from '../../../shared/types/curso';
 import { formatarCargaHorariaCurso, formatarPrecoCurso } from '../../../shared/utils/curso-format';
 
 /** Tela de detalhes do curso para a empresa: dados, status e estrutura de módulos/aulas, com atalho de edição. */
@@ -19,6 +19,19 @@ export class CursoDetalhesEmpresa {
   private readonly authService = inject(AuthService);
 
   protected readonly curso = signal<CursoDetalhado | null>(null);
+  protected readonly inscritos = signal<InscritoCurso[]>([]);
+  protected readonly erroInscritos = signal<string | null>(null);
+
+  /** Resumo do topo da lista: quantos inscritos, pagos/ativos e concluídos. */
+  protected readonly resumoInscritos = computed(() => {
+    const lista = this.inscritos();
+    return {
+      total: lista.length,
+      ativos: lista.filter((i) => i.statusMatricula === 'ATIVA').length,
+      aguardando: lista.filter((i) => i.statusMatricula === 'PENDENTE').length,
+      concluidos: lista.filter((i) => i.dataConclusao).length
+    };
+  });
   protected readonly carregando = signal(true);
   protected readonly erro = signal<string | null>(null);
   private readonly modulosAbertos = signal<ReadonlySet<number>>(new Set());
@@ -51,6 +64,7 @@ export class CursoDetalhesEmpresa {
       next: (curso) => {
         this.curso.set(curso);
         this.carregando.set(false);
+        this.carregarInscritos(curso.id);
 
         const primeiroModulo = curso.modulos[0];
         if (primeiroModulo) {
@@ -62,6 +76,72 @@ export class CursoDetalhesEmpresa {
         this.carregando.set(false);
       }
     });
+  }
+
+  private carregarInscritos(idCurso: number): void {
+    this.cursoService.listarInscritos(idCurso, this.idEmpresaLogada()).subscribe({
+      next: (inscritos) => this.inscritos.set(inscritos),
+      error: () => this.erroInscritos.set('Não foi possível carregar os inscritos.')
+    });
+  }
+
+  protected rotuloMatricula(inscrito: InscritoCurso): string {
+    if (inscrito.dataConclusao) return 'Concluiu';
+    switch (inscrito.statusMatricula) {
+      case 'ATIVA':
+        return 'Cursando';
+      case 'PENDENTE':
+        return 'Aguardando pagamento';
+      default:
+        return 'Cancelada';
+    }
+  }
+
+  protected classeMatricula(inscrito: InscritoCurso): string {
+    if (inscrito.dataConclusao) return 'border-emerald-400/40 bg-emerald-400/15 text-emerald-200';
+    switch (inscrito.statusMatricula) {
+      case 'ATIVA':
+        return 'border-brand-400/40 bg-brand-400/10 text-brand-200';
+      case 'PENDENTE':
+        return 'border-amber-400/40 bg-amber-400/10 text-amber-200';
+      default:
+        return 'border-rose-400/40 bg-rose-400/10 text-rose-200';
+    }
+  }
+
+  protected rotuloPagamento(inscrito: InscritoCurso): string {
+    const pagamento = inscrito.pagamento;
+    if (!pagamento) {
+      return inscrito.valor > 0 ? 'Nenhuma tentativa de pagamento' : 'Gratuito';
+    }
+
+    const metodo = pagamento.metodo === 'PIX' ? 'Pix' : `Cartão${pagamento.parcelas > 1 ? ` em ${pagamento.parcelas}x` : ''}`;
+    const status: Record<string, string> = {
+      APROVADO: 'aprovado',
+      PENDENTE: 'aguardando',
+      RECUSADO: 'recusado',
+      CANCELADO: 'cancelado/expirado',
+      ESTORNADO: 'estornado'
+    };
+    return `${metodo} · ${status[pagamento.status] ?? pagamento.status}`;
+  }
+
+  protected classePagamento(inscrito: InscritoCurso): string {
+    switch (inscrito.pagamento?.status) {
+      case 'APROVADO':
+        return 'text-emerald-300';
+      case 'PENDENTE':
+        return 'text-amber-300';
+      case 'RECUSADO':
+      case 'ESTORNADO':
+        return 'text-rose-300';
+      default:
+        return 'text-slate-400';
+    }
+  }
+
+  protected formatarDataInscricao(data: string): string {
+    return new Date(data).toLocaleDateString('pt-BR');
   }
 
   protected moduloAberto(idModulo: number): boolean {

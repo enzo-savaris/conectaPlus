@@ -1,38 +1,43 @@
 import { FormatoEntrevista, StatusCandidatura } from '../types/vaga';
 
+const ROTULOS: Record<StatusCandidatura, { empresa: string; candidato: string }> = {
+  PENDENTE: { empresa: 'Nova', candidato: 'Enviada' },
+  EM_ANALISE: { empresa: 'Em análise', candidato: 'Em análise' },
+  ENTREVISTA: { empresa: 'Entrevista agendada', candidato: 'Entrevista' },
+  ENTREVISTA_REALIZADA: { empresa: 'Entrevista realizada', candidato: 'Entrevista realizada' },
+  PROPOSTA: { empresa: 'Proposta enviada', candidato: 'Proposta recebida' },
+  APROVADO: { empresa: 'Contratado', candidato: 'Contratado' },
+  REPROVADO: { empresa: 'Não selecionado', candidato: 'Encerrada' },
+  DESISTIU: { empresa: 'Recusou a proposta', candidato: 'Proposta recusada' }
+};
+
+const CORES: Record<StatusCandidatura, string> = {
+  PENDENTE: 'bg-brand-400',
+  EM_ANALISE: 'bg-amber-400',
+  ENTREVISTA: 'bg-sky-400',
+  ENTREVISTA_REALIZADA: 'bg-indigo-400',
+  PROPOSTA: 'bg-fuchsia-400',
+  APROVADO: 'bg-emerald-400',
+  REPROVADO: 'bg-rose-400',
+  DESISTIU: 'bg-slate-400'
+};
+
 /**
- * Rótulo da etapa da candidatura. A empresa vê "Nova" para o que acabou de
- * chegar; o candidato vê "Enviada" — o resto é igual para os dois lados.
+ * Rótulo da etapa da candidatura. Algumas mudam conforme quem lê: a empresa
+ * vê "Nova" e "Proposta enviada"; o candidato, "Enviada" e "Proposta recebida".
  */
 export function formatarStatusCandidatura(status: StatusCandidatura, visao: 'empresa' | 'candidato'): string {
-  switch (status) {
-    case 'EM_ANALISE':
-      return 'Em análise';
-    case 'ENTREVISTA':
-      return 'Entrevista';
-    case 'APROVADO':
-      return visao === 'empresa' ? 'Contratado' : 'Aprovado';
-    case 'REPROVADO':
-      return visao === 'empresa' ? 'Não selecionado' : 'Encerrada';
-    default:
-      return visao === 'empresa' ? 'Nova' : 'Enviada';
-  }
+  return ROTULOS[status]?.[visao] ?? status;
 }
 
 /** Cor do marcador (bolinha) da etapa da candidatura. */
 export function corStatusCandidatura(status: StatusCandidatura): string {
-  switch (status) {
-    case 'EM_ANALISE':
-      return 'bg-amber-400';
-    case 'ENTREVISTA':
-      return 'bg-sky-400';
-    case 'APROVADO':
-      return 'bg-emerald-400';
-    case 'REPROVADO':
-      return 'bg-rose-400';
-    default:
-      return 'bg-brand-400';
-  }
+  return CORES[status] ?? 'bg-slate-400';
+}
+
+/** A candidatura já terminou (contratado, não selecionado ou recusou a proposta). */
+export function processoEncerrado(status: StatusCandidatura): boolean {
+  return status === 'APROVADO' || status === 'REPROVADO' || status === 'DESISTIU';
 }
 
 export function formatarFormatoEntrevista(formato: FormatoEntrevista): string {
@@ -75,4 +80,8 @@ export function formatarDataEntrevista(data: string): string {
 export function formatarDataSimples(data: string): string {
   const [ano, mes, dia] = data.split('-');
   return `${dia}/${mes}/${ano}`;
+}
+
+export function formatarSalario(valor: number): string {
+  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valor);
 }

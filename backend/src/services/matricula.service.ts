@@ -177,7 +177,7 @@ export async function obterMatricula(idPcd: number, idCurso: number): Promise<Re
 /** Lista os cursos em que o candidato tem matrícula (ativa ou aguardando pagamento). */
 export async function listarMatriculas(idPcd: number): Promise<RowDataPacket[]> {
   const [linhas] = await pool.query<RowDataPacket[]>(
-    `SELECT m.IDMATRICULA, m.IDCURSO, m.STATUSMATRICULA, m.DTCAD, m.DTATIVACAO, c.TITULO
+    `SELECT m.IDMATRICULA, m.IDCURSO, m.STATUSMATRICULA, m.DTCAD, m.DTATIVACAO, m.DTCONCLUSAO, c.TITULO
      FROM TBLCDSMATR0 m
      INNER JOIN TBLCDSCURSO0 c ON c.IDCURSO = m.IDCURSO
      WHERE m.IDPCD = ? AND m.STATUSMATRICULA <> 'CANCELADA'
@@ -579,4 +579,76 @@ export async function avaliar(idCurso: number, dados: DadosAvaliacao): Promise<v
      ON DUPLICATE KEY UPDATE NOTA = VALUES(NOTA), COMENTARIO = VALUES(COMENTARIO), DTCAD = NOW()`,
     [idCurso, dados.idPcd, dados.nota, dados.comentario]
   );
+}
+
+/**
+ * O aluno marca (ou desmarca) que terminou o curso. Curso pago exige a
+ * matrícula ATIVA; curso gratuito pode ser feito sem se matricular antes,
+ * então a matrícula é criada aqui na hora, já ativa.
+ */
+export async function marcarConclusao(idCurso: number, idPcd: number, concluido: boolean): Promise<Record<string, unknown>> {
+  const curso = await obterCursoParaMatricula(idCurso);
+
+  const [linhas] = await pool.query<RowDataPacket[]>(
+    'SELECT IDMATRICULA, STATUSMATRICULA FROM TBLCDSMATR0 WHERE IDCURSO = ? AND IDPCD = ?',
+    [idCurso, idPcd]
+  );
+  let matricula = linhas[0];
+
+  if (!matricula && !ehPago(curso)) {
+    await matricular(idCurso, { idPcd, necessidades: [], observacao: null });
+    [[matricula]] = await pool.query<RowDataPacket[]>(
+      'SELECT IDMATRICULA, STATUSMATRICULA FROM TBLCDSMATR0 WHERE IDCURSO = ? AND IDPCD = ?',
+      [idCurso, idPcd]
+    );
+  }
+
+  if (!matricula || matricula['STATUSMATRICULA'] !== 'ATIVA') {
+    throw new ErroApp(403, 'Matricule-se no curso para marcar a conclusão.');
+  }
+
+  await pool.execute(`UPDATE TBLCDSMATR0 SET DTCONCLUSAO = ${concluido ? 'NOW()' : 'NULL'} WHERE IDMATRICULA = ?`, [
+    matricula['IDMATRICULA']
+  ]);
+
+  const [[atualizada]] = await pool.query<RowDataPacket[]>(
+    'SELECT IDMATRICULA, STATUSMATRICULA, DTCAD, DTATIVACAO, DTCONCLUSAO FROM TBLCDSMATR0 WHERE IDMATRICULA = ?',
+    [matricula['IDMATRICULA']]
+  );
+  return atualizada!;
+}
+
+/**
+ * Quem se inscreveu no curso, para a empresa dona dele: dados do aluno,
+ * situação da matrícula, último pagamento (quando o curso é pago) e se já
+ * concluiu. Lança 404 se o curso não for da empresa.
+ */
+export async function listarInscritos(idCurso: number, idEmpresa: number): Promise<RowDataPacket[]> {
+  const [cursos] = await pool.query<RowDataPacket[]>('SELECT IDCURSO FROM TBLCDSCURSO0 WHERE IDCURSO = ? AND IDEMPRESA = ?', [
+    idCurso,
+    idEmpresa
+  ]);
+  if (cursos.length === 0) {
+    throw erroNaoEncontrado('Curso não encontrado.');
+  }
+
+  const [linhas] = await pool.query<RowDataPacket[]>(
+    `SELECT m.IDMATRICULA, m.STATUSMATRICULA, m.VALOR, m.DTCAD, m.DTATIVACAO, m.DTCONCLUSAO,
+            u.IDPCD, u.NOME, u.EMAIL,
+            p.METODO, p.STATUSPAGAMENTO, p.PARCELAS, p.DTATUALIZACAO AS DTPAGAMENTO,
+            (SELECT GROUP_CONCAT(n.DESCRICAO ORDER BY n.IDNECESSIDADE SEPARATOR '||')
+               FROM TBLCDSMATRNEC0 n WHERE n.IDMATRICULA = m.IDMATRICULA) AS NECESSIDADES
+     FROM TBLCDSMATR0 m
+     INNER JOIN TBLCDSUSR0 u ON u.IDPCD = m.IDPCD
+     LEFT JOIN TBLCDSPAG0 p ON p.IDPAGAMENTO = (
+       -- Pagamento que importa: o aprovado, se houver; senão a tentativa mais recente.
+       SELECT p2.IDPAGAMENTO FROM TBLCDSPAG0 p2 WHERE p2.IDMATRICULA = m.IDMATRICULA
+       ORDER BY (p2.STATUSPAGAMENTO = 'APROVADO') DESC, p2.IDPAGAMENTO DESC LIMIT 1
+     )
+     WHERE m.IDCURSO = ?
+     ORDER BY m.DTCAD DESC`,
+    [idCurso]
+  );
+
+  return linhas;
 }

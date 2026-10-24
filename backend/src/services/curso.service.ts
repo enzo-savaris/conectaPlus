@@ -194,7 +194,7 @@ export async function obterDetalhado(id: number, acesso: AcessoCurso = {}): Prom
 
 async function buscarMatricula(idCurso: number, idPcd: number): Promise<RowDataPacket | null> {
   const [linhas] = await pool.query<RowDataPacket[]>(
-    'SELECT IDMATRICULA, STATUSMATRICULA, DTCAD, DTATIVACAO FROM TBLCDSMATR0 WHERE IDCURSO = ? AND IDPCD = ?',
+    'SELECT IDMATRICULA, STATUSMATRICULA, DTCAD, DTATIVACAO, DTCONCLUSAO FROM TBLCDSMATR0 WHERE IDCURSO = ? AND IDPCD = ?',
     [idCurso, idPcd]
   );
 

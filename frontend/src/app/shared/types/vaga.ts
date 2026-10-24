@@ -51,7 +51,15 @@ export interface VagaDetalhada extends Vaga {
  * Etapas do processo seletivo: PENDENTE (recebida) → EM_ANALISE → ENTREVISTA
  * → APROVADO (contratado) ou REPROVADO (encerrada).
  */
-export type StatusCandidatura = 'PENDENTE' | 'EM_ANALISE' | 'ENTREVISTA' | 'APROVADO' | 'REPROVADO';
+export type StatusCandidatura =
+  | 'PENDENTE'
+  | 'EM_ANALISE'
+  | 'ENTREVISTA'
+  | 'ENTREVISTA_REALIZADA'
+  | 'PROPOSTA'
+  | 'APROVADO'
+  | 'REPROVADO'
+  | 'DESISTIU';
 
 export type FormatoEntrevista = 'REMOTA' | 'PRESENCIAL';
 
@@ -71,14 +79,30 @@ export interface HistoricoEtapa {
 }
 
 /** Andamento do processo seletivo, visto tanto pela empresa quanto pelo candidato. */
+/** Proposta de contratação enviada pela empresa. */
+export interface PropostaContratacao {
+  salario: number | null;
+  /** "AAAA-MM-DD" */
+  dataInicio: string | null;
+  detalhes: string;
+  /** Prazo para o candidato responder ("AAAA-MM-DD"); `null` = sem prazo. */
+  validade: string | null;
+}
+
 export interface ProcessoSeletivo {
   status: StatusCandidatura;
   dataCandidatura: string;
   entrevista: EntrevistaAgendada | null;
-  /** "AAAA-MM-DD", informada ao contratar. */
+  /** Se o candidato compareceu à entrevista (registrado pela empresa); `null` se ainda não registrado. */
+  compareceu: boolean | null;
+  /** "AAAA-MM-DD", data de início combinada na proposta. */
   dataInicio: string | null;
-  /** Mensagem da empresa no resultado final (contratação ou encerramento). */
+  proposta: PropostaContratacao | null;
+  /** Mensagem da empresa (na proposta ou no encerramento). */
   mensagemEmpresa: string | null;
+  /** Motivo informado pelo candidato ao recusar a proposta. */
+  respostaCandidato: string | null;
+  dataResposta: string | null;
   historico: HistoricoEtapa[];
 }
 
@@ -149,6 +173,8 @@ export interface CandidaturaGestao extends ProcessoSeletivo {
     avatarUrl: string | null;
     tituloProfissional: string | null;
   };
+  /** Anotações internas da empresa sobre a entrevista (o candidato não vê). */
+  notasEntrevista: string | null;
   cartaApresentacao: string | null;
   curriculoPdfUrl: string | null;
   adaptacoes: AdaptacoesCandidatura;
@@ -167,7 +193,16 @@ export type AcaoCandidatura =
       localEntrevista: string;
       observacoesEntrevista: string;
     }
-  | { acao: 'CONTRATAR'; dataInicio: string; mensagem: string }
+  | { acao: 'REGISTRAR_ENTREVISTA'; compareceu: boolean; notas: string }
+  | {
+      acao: 'ENVIAR_PROPOSTA';
+      /** Texto do input (vazio = não informado). */
+      salario: string;
+      dataInicio: string;
+      detalhes: string;
+      validade: string;
+      mensagem: string;
+    }
   | { acao: 'REPROVAR'; mensagem: string };
 
 /** Candidatura do próprio candidato logado, como exibida na tela de vagas disponíveis. */

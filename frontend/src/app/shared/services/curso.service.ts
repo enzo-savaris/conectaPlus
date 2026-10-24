@@ -7,6 +7,7 @@ import {
   CapituloCurso,
   Curso,
   CursoDetalhado,
+  InscritoCurso,
   MatriculaCurso,
   MetodoPagamento,
   ModuloCurso,
@@ -60,7 +61,7 @@ interface CursoDetalhadoDaApi extends CursoDaApi {
   skills: string[];
   modulos: ModuloDaApi[];
   CONTEUDOLIBERADO: boolean;
-  MATRICULA: { IDMATRICULA: number; STATUSMATRICULA: StatusMatricula } | null;
+  MATRICULA: { IDMATRICULA: number; STATUSMATRICULA: StatusMatricula; DTCONCLUSAO: string | null } | null;
   MINHAAVALIACAO: { NOTA: number; COMENTARIO: string | null } | null;
 }
 
@@ -92,6 +93,42 @@ interface MatriculaDaApi {
   OBSACESSIBILIDADE: string | null;
   necessidades: string[];
   pagamento: PagamentoDaApi | null;
+}
+
+interface InscritoDaApi {
+  IDMATRICULA: number;
+  IDPCD: number;
+  NOME: string;
+  EMAIL: string | null;
+  STATUSMATRICULA: StatusMatricula;
+  VALOR: string;
+  DTCAD: string;
+  DTATIVACAO: string | null;
+  DTCONCLUSAO: string | null;
+  METODO: MetodoPagamento | null;
+  STATUSPAGAMENTO: StatusPagamento | null;
+  PARCELAS: number | null;
+  DTPAGAMENTO: string | null;
+  NECESSIDADES: string | null;
+}
+
+function paraInscrito(i: InscritoDaApi): InscritoCurso {
+  return {
+    idMatricula: i.IDMATRICULA,
+    idCandidato: i.IDPCD,
+    nome: i.NOME,
+    email: i.EMAIL,
+    statusMatricula: i.STATUSMATRICULA,
+    valor: Number(i.VALOR),
+    dataMatricula: i.DTCAD,
+    dataAtivacao: i.DTATIVACAO,
+    dataConclusao: i.DTCONCLUSAO,
+    pagamento:
+      i.METODO && i.STATUSPAGAMENTO
+        ? { metodo: i.METODO, status: i.STATUSPAGAMENTO, parcelas: i.PARCELAS ?? 1, data: i.DTPAGAMENTO ?? i.DTCAD }
+        : null,
+    necessidades: i.NECESSIDADES ? i.NECESSIDADES.split('||') : []
+  };
 }
 
 function paraPagamento(pagamento: PagamentoDaApi, statusMatricula?: StatusMatricula): PagamentoCurso {
@@ -175,7 +212,11 @@ function paraCursoDetalhado(curso: CursoDetalhadoDaApi): CursoDetalhado {
     modulos: curso.modulos.map(paraModulo),
     conteudoLiberado: curso.CONTEUDOLIBERADO,
     matricula: curso.MATRICULA
-      ? { id: curso.MATRICULA.IDMATRICULA, status: curso.MATRICULA.STATUSMATRICULA }
+      ? {
+          id: curso.MATRICULA.IDMATRICULA,
+          status: curso.MATRICULA.STATUSMATRICULA,
+          dataConclusao: curso.MATRICULA.DTCONCLUSAO ?? null
+        }
       : null,
     minhaAvaliacao: curso.MINHAAVALIACAO
       ? { nota: curso.MINHAAVALIACAO.NOTA, comentario: curso.MINHAAVALIACAO.COMENTARIO }
@@ -302,10 +343,32 @@ export class CursoService {
   }
 
   /** Cursos em que o candidato tem matrícula (ativa ou aguardando pagamento). */
-  listarMatriculas(idPcd: number): Observable<{ idCurso: number; status: StatusMatricula }[]> {
+  listarMatriculas(idPcd: number): Observable<{ idCurso: number; status: StatusMatricula; concluido: boolean }[]> {
     return this.http
-      .get<{ IDCURSO: number; STATUSMATRICULA: StatusMatricula }[]>(`${URL_BASE_API}/usuarios/${idPcd}/matriculas`)
-      .pipe(map((lista) => lista.map((item) => ({ idCurso: item.IDCURSO, status: item.STATUSMATRICULA }))));
+      .get<{ IDCURSO: number; STATUSMATRICULA: StatusMatricula; DTCONCLUSAO: string | null }[]>(
+        `${URL_BASE_API}/usuarios/${idPcd}/matriculas`
+      )
+      .pipe(
+        map((lista) =>
+          lista.map((item) => ({ idCurso: item.IDCURSO, status: item.STATUSMATRICULA, concluido: !!item.DTCONCLUSAO }))
+        )
+      );
+  }
+
+  /** O aluno marca (ou desmarca) que terminou o curso; devolve a data de conclusão (ou `null`). */
+  marcarConclusao(idCurso: number, idPcd: number, concluido: boolean): Observable<string | null> {
+    return this.http
+      .post<{ DTCONCLUSAO: string | null }>(`${URL_BASE_API}/cursos/${idCurso}/conclusao`, { idPcd, concluido })
+      .pipe(map((matricula) => matricula.DTCONCLUSAO));
+  }
+
+  /** Inscritos no curso, com situação do pagamento — só para a empresa dona. */
+  listarInscritos(idCurso: number, idEmpresa: number): Observable<InscritoCurso[]> {
+    return this.http
+      .get<InscritoDaApi[]>(`${URL_BASE_API}/cursos/${idCurso}/matriculas`, {
+        params: new HttpParams().set('idEmpresa', idEmpresa)
+      })
+      .pipe(map((lista) => lista.map(paraInscrito)));
   }
 
   /** Etapa 2: cobra a matrícula pelo Mercado Pago. Pix devolve o QR Code; cartão já devolve aprovado/recusado. */

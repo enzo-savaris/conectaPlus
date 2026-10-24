@@ -48,6 +48,11 @@ export class CursoDetalhes {
   protected readonly matriculado = computed(() => this.curso()?.matricula?.status === 'ATIVA');
   protected readonly aguardandoPagamento = computed(() => this.curso()?.matricula?.status === 'PENDENTE');
 
+  /** Quem pode marcar que terminou: matriculado, ou qualquer um num curso gratuito. */
+  protected readonly podeConcluir = computed(() => this.matriculado() || (!!this.curso() && !this.pago()));
+  protected readonly dataConclusao = computed(() => this.curso()?.matricula?.dataConclusao ?? null);
+  protected readonly salvandoConclusao = signal(false);
+
   private readonly idCurso = Number(this.rota.snapshot.paramMap.get('id'));
 
   constructor() {
@@ -123,6 +128,40 @@ export class CursoDetalhes {
   /** Simulação sem juros só para referência; as parcelas reais (com ou sem juros) vêm do Mercado Pago no pagamento. */
   protected formatarParcela(curso: CursoDetalhado): string {
     return formatarMoeda((curso.preco ?? 0) / 12);
+  }
+
+  /** Marca ou desmarca o curso como concluído (curso gratuito cria a matrícula na hora). */
+  protected alternarConclusao(): void {
+    const curso = this.curso();
+    if (!curso) {
+      return;
+    }
+
+    const concluir = this.dataConclusao() === null;
+    this.salvandoConclusao.set(true);
+
+    this.cursoService.marcarConclusao(curso.id, this.idCandidatoLogado(), concluir).subscribe({
+      next: (dataConclusao) => {
+        this.salvandoConclusao.set(false);
+        this.curso.update((atual) =>
+          atual
+            ? {
+                ...atual,
+                matricula: { id: atual.matricula?.id ?? 0, status: 'ATIVA', dataConclusao }
+              }
+            : atual
+        );
+        this.toastService.sucesso(concluir ? 'Parabéns! Curso marcado como concluído.' : 'Conclusão desmarcada.');
+      },
+      error: () => {
+        this.salvandoConclusao.set(false);
+        this.toastService.erro('Não foi possível salvar. Tente novamente.');
+      }
+    });
+  }
+
+  protected formatarDataConclusao(data: string): string {
+    return new Date(data).toLocaleDateString('pt-BR');
   }
 
   protected aoDigitarComentario(evento: Event): void {

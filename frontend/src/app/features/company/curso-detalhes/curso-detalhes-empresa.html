@@ -108,6 +108,57 @@
             </div>
           }
         </section>
+
+        <!-- ============ INSCRITOS ============ -->
+        <section class="mt-6 rounded-2xl border border-white/10 bg-ink-900/60 p-5" aria-labelledby="titulo-inscritos">
+          <div class="flex flex-wrap items-baseline justify-between gap-2">
+            <h2 id="titulo-inscritos" class="text-sm font-semibold text-white">Inscritos ({{ resumoInscritos().total }})</h2>
+            @if (resumoInscritos().total > 0) {
+              <p class="text-xs text-slate-400">
+                {{ resumoInscritos().ativos }} com acesso · {{ resumoInscritos().aguardando }} aguardando pagamento ·
+                {{ resumoInscritos().concluidos }} {{ resumoInscritos().concluidos === 1 ? 'concluiu' : 'concluíram' }}
+              </p>
+            }
+          </div>
+
+          @if (erroInscritos()) {
+            <p class="mt-3 text-sm text-rose-300" role="alert">{{ erroInscritos() }}</p>
+          } @else if (inscritos().length === 0) {
+            <p class="mt-3 text-sm text-slate-400">Ninguém se inscreveu neste curso ainda.</p>
+          } @else {
+            <ul class="mt-4 flex flex-col gap-3">
+              @for (inscrito of inscritos(); track inscrito.idMatricula) {
+                <li class="flex flex-wrap items-start gap-4 rounded-xl border border-white/10 bg-ink-800/40 p-4">
+                  <span class="flex size-9 shrink-0 items-center justify-center rounded-full bg-brand-400/15 text-sm font-bold text-brand-300">
+                    {{ inscrito.nome.charAt(0).toUpperCase() }}
+                  </span>
+                  <div class="min-w-0 flex-1">
+                    <p class="truncate text-sm font-semibold text-white">{{ inscrito.nome }}</p>
+                    <p class="truncate text-xs text-slate-400">
+                      {{ inscrito.email ?? 'Sem e-mail' }} · inscrito em {{ formatarDataInscricao(inscrito.dataMatricula) }}
+                      @if (inscrito.dataConclusao) {
+                        · concluiu em {{ formatarDataInscricao(inscrito.dataConclusao) }}
+                      }
+                    </p>
+                    @if (inscrito.necessidades.length > 0) {
+                      <ul class="mt-2 flex flex-wrap gap-1.5" aria-label="Necessidades de acessibilidade">
+                        @for (necessidade of inscrito.necessidades; track necessidade) {
+                          <li class="rounded-full border border-brand-400/30 bg-brand-400/10 px-2 py-0.5 text-[11px] text-brand-200">{{ necessidade }}</li>
+                        }
+                      </ul>
+                    }
+                  </div>
+                  <div class="flex shrink-0 flex-col items-end gap-1 text-right">
+                    <span class="rounded-full border px-2.5 py-0.5 text-[11px] font-semibold" [class]="classeMatricula(inscrito)">
+                      {{ rotuloMatricula(inscrito) }}
+                    </span>
+                    <span class="text-xs" [class]="classePagamento(inscrito)">{{ rotuloPagamento(inscrito) }}</span>
+                  </div>
+                </li>
+              }
+            </ul>
+          }
+        </section>
       </div>
 
       <aside class="flex h-fit flex-col gap-4 rounded-2xl border border-white/10 bg-ink-900/60 p-5">

@@ -1,5 +1,7 @@
 import type { Request, Response } from 'express';
+import * as candidaturaService from '../services/candidatura.service.ts';
 import * as usuarioService from '../services/usuario.service.ts';
+import { validarRespostaProposta } from '../utils/validacao-etapa-candidatura.ts';
 import { PASTA_UPLOADS_AVATARES_PCD, PASTA_UPLOADS_CURRICULOS_PCD } from '../config/upload.ts';
 import { ErroApp, erroDeValidacao } from '../utils/erro-app.ts';
 import { validarId } from '../utils/validacao.ts';
@@ -143,6 +145,20 @@ export const listarCandidaturasDoUsuario = async (
     resposta.json(candidaturas);
   } catch (erro) {
     responderErro(resposta, erro, 'Erro ao buscar candidaturas do usuário');
+  }
+};
+
+/** POST /usuarios/:id/candidaturas/:idVaga/proposta — { aceitar, motivo } o candidato responde à proposta. */
+export const responderPropostaDoUsuario = async (requisicao: Request, resposta: Response): Promise<void> => {
+  try {
+    const idPcd = validarId(requisicao.params['id']);
+    const idVaga = validarId(requisicao.params['idVaga']);
+    const dados = validarRespostaProposta(requisicao.body);
+    await candidaturaService.responderProposta(idPcd, idVaga, dados);
+
+    resposta.json(await usuarioService.obterCandidatura(idPcd, idVaga));
+  } catch (erro) {
+    responderErro(resposta, erro, 'Erro ao responder a proposta');
   }
 };
 

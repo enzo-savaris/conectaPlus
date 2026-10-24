@@ -19,11 +19,13 @@ import {
   formatarDataHora,
   formatarDataSimples,
   formatarFormatoEntrevista,
-  formatarStatusCandidatura
+  formatarSalario,
+  formatarStatusCandidatura,
+  processoEncerrado
 } from '../../../shared/utils/candidatura-format';
 
 /** Formulário aberto no card de "Próxima ação". */
-type Painel = 'entrevista' | 'contratar' | 'reprovar' | null;
+type Painel = 'entrevista' | 'registro' | 'proposta' | 'reprovar' | null;
 
 interface EtapaLinhaDoTempo {
   titulo: string;
@@ -31,11 +33,25 @@ interface EtapaLinhaDoTempo {
   situacao: 'concluida' | 'atual' | 'pendente' | 'encerrada';
 }
 
+/** O que a tela sugere como próximo passo em cada etapa. */
+interface ProximoPasso {
+  texto: string;
+  /** Ação principal (botão em destaque). */
+  principal: { painel: Exclude<Painel, null> | 'analise'; rotulo: string } | null;
+  /** Ações secundárias. */
+  secundarias: { painel: Exclude<Painel, null>; rotulo: string }[];
+}
+
 /**
- * Tela da empresa para conduzir o processo seletivo de uma candidatura:
- * vê tudo que o candidato enviou e avança as etapas — iniciar a análise,
- * agendar (ou reagendar) a entrevista acessível, contratar ou encerrar. Cada
- * passo aparece na tela de acompanhamento do candidato.
+ * Tela da empresa para conduzir o processo seletivo de uma candidatura, do
+ * recebimento à contratação:
+ *
+ *   Recebida → Análise → Entrevista (agendar) → Entrevista realizada
+ *   (registrar como foi) → Proposta (salário, início, condições) →
+ *   Contratado, quando o candidato aceita a proposta pela plataforma.
+ *
+ * Em cada etapa o card "Próximo passo" diz o que fazer em seguida. Encerrar
+ * o processo é possível em qualquer ponto até a resposta do candidato.
  */
 @Component({
   selector: 'app-candidatura-gestao',
@@ -63,7 +79,12 @@ export class GerenciarCandidatura {
   protected readonly formatoEntrevista = signal<FormatoEntrevista>('REMOTA');
   protected readonly localEntrevista = signal('');
   protected readonly observacoesEntrevista = signal('');
+  protected readonly compareceu = signal(true);
+  protected readonly notasEntrevista = signal('');
+  protected readonly salarioProposta = signal('');
   protected readonly dataInicio = signal('');
+  protected readonly detalhesProposta = signal('');
+  protected readonly validadeProposta = signal('');
   protected readonly mensagem = signal('');
 
   /** Só empresa ATIVA pode mexer no processo; as outras só visualizam (mesma regra das vagas). */
@@ -72,8 +93,13 @@ export class GerenciarCandidatura {
     return sessao?.ambiente !== 'empresa' || sessao.perfil.status === 'ATIVA';
   });
 
-  /** Não dá pra agendar a entrevista pro passado; o input já bloqueia as datas anteriores a agora. */
   protected readonly agoraLocal = this.paraDataHoraLocal(new Date());
+  protected readonly hoje = new Date().toISOString().slice(0, 10);
+
+  protected readonly encerrado = computed(() => {
+    const c = this.candidatura();
+    return c ? processoEncerrado(c.status) : false;
+  });
 
   protected readonly adaptacoesPedidas = computed(() => {
     const c = this.candidatura();
@@ -88,44 +114,95 @@ export class GerenciarCandidatura {
     ].filter((item): item is string => item !== null);
   });
 
+  /** Próximo passo sugerido para a etapa atual. */
+  protected readonly proximoPasso = computed<ProximoPasso | null>(() => {
+    switch (this.candidatura()?.status) {
+      case 'PENDENTE':
+        return {
+          texto: 'Candidatura nova. Ao iniciar a análise, o candidato vê no portal que o currículo está sendo avaliado.',
+          principal: { painel: 'analise', rotulo: 'Iniciar análise' },
+          secundarias: [{ painel: 'reprovar', rotulo: 'Encerrar candidatura' }]
+        };
+      case 'EM_ANALISE':
+        return {
+          texto: 'Currículo em análise. Próximo passo: agendar uma entrevista acessível. Se a entrevista não for necessária, você pode enviar a proposta direto.',
+          principal: { painel: 'entrevista', rotulo: 'Agendar entrevista' },
+          secundarias: [
+            { painel: 'proposta', rotulo: 'Enviar proposta sem entrevista' },
+            { painel: 'reprovar', rotulo: 'Encerrar candidatura' }
+          ]
+        };
+      case 'ENTREVISTA':
+        return {
+          texto: 'Entrevista agendada. Próximo passo: depois que ela acontecer, registre como foi — só então a proposta fica disponível.',
+          principal: { painel: 'registro', rotulo: 'Registrar entrevista realizada' },
+          secundarias: [
+            { painel: 'entrevista', rotulo: 'Reagendar' },
+            { painel: 'reprovar', rotulo: 'Encerrar candidatura' }
+          ]
+        };
+      case 'ENTREVISTA_REALIZADA':
+        return {
+          texto: this.candidatura()?.compareceu === false
+            ? 'O candidato não compareceu. Você pode reagendar a entrevista ou encerrar o processo.'
+            : 'Entrevista registrada. Próximo passo: enviar a proposta de contratação — o candidato aceita ou recusa pela plataforma.',
+          principal:
+            this.candidatura()?.compareceu === false
+              ? { painel: 'entrevista', rotulo: 'Reagendar entrevista' }
+              : { painel: 'proposta', rotulo: 'Enviar proposta' },
+          secundarias: [
+            ...(this.candidatura()?.compareceu === false
+              ? [{ painel: 'proposta' as const, rotulo: 'Enviar proposta mesmo assim' }]
+              : [{ painel: 'entrevista' as const, rotulo: 'Agendar nova entrevista' }]),
+            { painel: 'reprovar', rotulo: 'Encerrar candidatura' }
+          ]
+        };
+      case 'PROPOSTA':
+        return {
+          texto: 'Proposta enviada. Aguardando o candidato aceitar ou recusar pela plataforma — ao aceitar, a contratação é concluída automaticamente.',
+          principal: null,
+          secundarias: [{ painel: 'reprovar', rotulo: 'Retirar proposta e encerrar' }]
+        };
+      default:
+        return null;
+    }
+  });
+
   protected readonly linhaDoTempo = computed<EtapaLinhaDoTempo[]>(() => {
     const c = this.candidatura();
     if (!c) {
       return [];
     }
 
-    const dataDe = (status: StatusCandidatura): string | null =>
-      [...c.historico].reverse().find((item) => item.status === status)?.data ?? null;
+    const dataDe = (...status: StatusCandidatura[]): string | null =>
+      [...c.historico].reverse().find((item) => status.includes(item.status))?.data ?? null;
 
-    const ordem: StatusCandidatura[] = ['PENDENTE', 'EM_ANALISE', 'ENTREVISTA'];
-    const final = c.status === 'APROVADO' || c.status === 'REPROVADO';
-    const indiceAtual = final ? ordem.length : ordem.indexOf(c.status);
+    const ordem: StatusCandidatura[] = ['PENDENTE', 'EM_ANALISE', 'ENTREVISTA', 'ENTREVISTA_REALIZADA', 'PROPOSTA', 'APROVADO'];
+    // Etapa "visual" atual: entrevista agendada e realizada são a mesma coluna.
+    const posicao = (status: StatusCandidatura): number => {
+      const indice = ordem.indexOf(status);
+      return indice >= 3 ? indice - 1 : indice;
+    };
+    const atingida = Math.max(...c.historico.map((item) => posicao(item.status)).filter((i) => i >= 0), 0);
+    const atual = processoEncerrado(c.status) ? -1 : posicao(c.status);
 
-    const etapas: EtapaLinhaDoTempo[] = [
-      { titulo: 'Recebida', data: c.dataCandidatura, situacao: 'concluida' },
+    const situacao = (indice: number): EtapaLinhaDoTempo['situacao'] => {
+      if (indice === atual) return 'atual';
+      if (indice <= atingida) return 'concluida';
+      return processoEncerrado(c.status) ? 'encerrada' : 'pendente';
+    };
+
+    return [
+      { titulo: 'Recebida', data: c.dataCandidatura, situacao: situacao(0) },
+      { titulo: 'Análise', data: dataDe('EM_ANALISE'), situacao: situacao(1) },
+      { titulo: 'Entrevista', data: dataDe('ENTREVISTA_REALIZADA', 'ENTREVISTA'), situacao: situacao(2) },
+      { titulo: 'Proposta', data: dataDe('PROPOSTA'), situacao: situacao(3) },
       {
-        titulo: 'Análise',
-        data: dataDe('EM_ANALISE'),
-        situacao: indiceAtual > 1 ? 'concluida' : indiceAtual === 1 ? 'atual' : 'pendente'
-      },
-      {
-        titulo: 'Entrevista',
-        data: dataDe('ENTREVISTA'),
-        situacao: dataDe('ENTREVISTA') && final ? 'concluida' : c.status === 'ENTREVISTA' ? 'atual' : final ? 'encerrada' : 'pendente'
-      },
-      {
-        titulo: c.status === 'APROVADO' ? 'Contratado' : c.status === 'REPROVADO' ? 'Não selecionado' : 'Resultado',
-        data: final ? dataDe(c.status) : null,
-        situacao: c.status === 'APROVADO' ? 'concluida' : c.status === 'REPROVADO' ? 'encerrada' : 'pendente'
+        titulo: c.status === 'REPROVADO' ? 'Não selecionado' : c.status === 'DESISTIU' ? 'Recusou a proposta' : 'Contratado',
+        data: dataDe('APROVADO', 'REPROVADO', 'DESISTIU'),
+        situacao: c.status === 'APROVADO' ? 'concluida' : processoEncerrado(c.status) ? 'encerrada' : 'pendente'
       }
     ];
-
-    // Candidatura nova (PENDENTE): a etapa atual é a própria "Recebida", aguardando análise.
-    if (c.status === 'PENDENTE') {
-      etapas[0].situacao = 'atual';
-    }
-
-    return etapas;
   });
 
   private readonly idCandidatura = Number(this.rota.snapshot.paramMap.get('id'));
@@ -153,14 +230,22 @@ export class GerenciarCandidatura {
     });
   }
 
-  protected abrirPainel(painel: Exclude<Painel, null>): void {
+  protected acionar(painel: Exclude<Painel, null> | 'analise'): void {
+    if (painel === 'analise') {
+      this.executar({ acao: 'INICIAR_ANALISE' }, 'Análise iniciada. O candidato já pode acompanhar.');
+      return;
+    }
+    this.abrirPainel(painel);
+  }
+
+  private abrirPainel(painel: Exclude<Painel, null>): void {
     const c = this.candidatura();
     this.erroAcao.set(null);
     this.errosCampos.set({});
     this.mensagem.set('');
 
     if (painel === 'entrevista' && c) {
-      if (c.entrevista) {
+      if (c.entrevista && c.status === 'ENTREVISTA') {
         // Reagendar: o formulário já vem com a entrevista atual.
         this.dataEntrevista.set(this.paraDataHoraLocal(new Date(c.entrevista.data)));
         this.formatoEntrevista.set(c.entrevista.formato);
@@ -170,15 +255,23 @@ export class GerenciarCandidatura {
         this.dataEntrevista.set('');
         // Sugere o formato que o candidato pediu, ou o da própria vaga.
         this.formatoEntrevista.set(
-          c.adaptacoes.entrevistaRemota || c.modeloTrabalho === 'REMOTO' ? 'REMOTA' : 'PRESENCIAL'
+          c.adaptacoes.entrevistaRemota || c.modeloTrabalho === 'REMOTO' ? 'REMOTA' : (c.entrevista?.formato ?? 'PRESENCIAL')
         );
-        this.localEntrevista.set('');
+        this.localEntrevista.set(c.entrevista?.local ?? '');
         this.observacoesEntrevista.set('');
       }
     }
 
-    if (painel === 'contratar') {
+    if (painel === 'registro') {
+      this.compareceu.set(true);
+      this.notasEntrevista.set('');
+    }
+
+    if (painel === 'proposta') {
+      this.salarioProposta.set('');
       this.dataInicio.set('');
+      this.detalhesProposta.set('');
+      this.validadeProposta.set('');
     }
 
     this.painel.set(painel);
@@ -192,10 +285,6 @@ export class GerenciarCandidatura {
 
   protected valorDe(evento: Event): string {
     return (evento.target as HTMLInputElement | HTMLTextAreaElement).value;
-  }
-
-  protected iniciarAnalise(): void {
-    this.executar({ acao: 'INICIAR_ANALISE' }, 'Análise iniciada. O candidato já pode acompanhar.');
   }
 
   protected agendarEntrevista(): void {
@@ -213,10 +302,24 @@ export class GerenciarCandidatura {
     );
   }
 
-  protected contratar(): void {
+  protected registrarEntrevista(): void {
     this.executar(
-      { acao: 'CONTRATAR', dataInicio: this.dataInicio(), mensagem: this.mensagem() },
-      'Contratação registrada!'
+      { acao: 'REGISTRAR_ENTREVISTA', compareceu: this.compareceu(), notas: this.notasEntrevista() },
+      this.compareceu() ? 'Entrevista registrada. Agora você pode enviar a proposta.' : 'Ausência registrada.'
+    );
+  }
+
+  protected enviarProposta(): void {
+    this.executar(
+      {
+        acao: 'ENVIAR_PROPOSTA',
+        salario: this.salarioProposta(),
+        dataInicio: this.dataInicio(),
+        detalhes: this.detalhesProposta(),
+        validade: this.validadeProposta(),
+        mensagem: this.mensagem()
+      },
+      'Proposta enviada! O candidato vai aceitar ou recusar pela plataforma.'
     );
   }
 
@@ -275,6 +378,10 @@ export class GerenciarCandidatura {
 
   protected formatarDataSimples(data: string): string {
     return formatarDataSimples(data);
+  }
+
+  protected formatarSalario(valor: number): string {
+    return formatarSalario(valor);
   }
 
   protected formatarFormato(formato: FormatoEntrevista): string {

@@ -36,6 +36,29 @@ export const matricularNoCurso = async (requisicao: Request, resposta: Response)
   }
 };
 
+/** POST /cursos/:id/conclusao — { idPcd, concluido } o aluno marca que terminou o curso. */
+export const marcarConclusaoDoCurso = async (requisicao: Request, resposta: Response): Promise<void> => {
+  try {
+    const idCurso = validarId(requisicao.params['id']);
+    const corpo = (requisicao.body ?? {}) as Record<string, unknown>;
+    const idPcd = validarId(corpo['idPcd']);
+    resposta.json(await matriculaService.marcarConclusao(idCurso, idPcd, corpo['concluido'] !== false));
+  } catch (erro) {
+    responderErro(resposta, erro, 'Erro ao marcar a conclusão do curso');
+  }
+};
+
+/** GET /cursos/:id/matriculas?idEmpresa= — inscritos no curso, só para a empresa dona. */
+export const listarInscritosDoCurso = async (requisicao: Request, resposta: Response): Promise<void> => {
+  try {
+    const idCurso = validarId(requisicao.params['id']);
+    const idEmpresa = validarId(requisicao.query['idEmpresa']);
+    resposta.json(await matriculaService.listarInscritos(idCurso, idEmpresa));
+  } catch (erro) {
+    responderErro(resposta, erro, 'Erro ao buscar os inscritos do curso');
+  }
+};
+
 /** POST /cursos/:id/avaliacoes — nota de 1 a 5 de quem está matriculado. */
 export const avaliarCurso = async (requisicao: Request, resposta: Response): Promise<void> => {
   try {

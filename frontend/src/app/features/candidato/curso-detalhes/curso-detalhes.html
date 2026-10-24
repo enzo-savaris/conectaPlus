@@ -164,6 +164,48 @@
             </ol>
           </section>
 
+          <!-- Conclusão do curso -->
+          @if (podeConcluir()) {
+            <section
+              class="flex flex-wrap items-center justify-between gap-4 rounded-2xl border p-5"
+              [class]="dataConclusao() ? 'border-emerald-400/40 bg-emerald-400/5' : 'border-white/10 bg-ink-900/60'"
+              aria-labelledby="titulo-conclusao"
+            >
+              <div class="flex items-center gap-3">
+                <span
+                  class="flex size-10 shrink-0 items-center justify-center rounded-full"
+                  [class]="dataConclusao() ? 'bg-emerald-400 text-ink-950' : 'border border-white/15 text-slate-400'"
+                >
+                  <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
+                    <path d="m5 12 4.5 4.5L19 7" stroke-linecap="round" stroke-linejoin="round" />
+                  </svg>
+                </span>
+                <div>
+                  <h2 id="titulo-conclusao" class="text-sm font-semibold text-white">
+                    @if (dataConclusao(); as data) {
+                      Curso concluído em {{ formatarDataConclusao(data) }}
+                    } @else {
+                      Terminou o curso?
+                    }
+                  </h2>
+                  <p class="text-xs text-slate-400">
+                    {{ dataConclusao() ? 'Parabéns pela dedicação! A empresa que oferece o curso também vê a sua conclusão.' : 'Marque quando tiver feito todas as aulas.' }}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                (click)="alternarConclusao()"
+                [disabled]="salvandoConclusao()"
+                [attr.aria-pressed]="!!dataConclusao()"
+                class="rounded-lg px-5 py-2 text-sm font-semibold transition disabled:opacity-60"
+                [class]="dataConclusao() ? 'border border-white/12 text-slate-300 hover:text-white' : 'bg-gradient-to-r from-brand-300 to-brand-600 text-ink-950 shadow-lg shadow-brand-500/20 hover:brightness-110'"
+              >
+                {{ salvandoConclusao() ? 'Salvando…' : dataConclusao() ? 'Desmarcar conclusão' : 'Marcar como concluído' }}
+              </button>
+            </section>
+          }
+
           <!-- Investimento / matrícula -->
           <section
             class="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-white/10 bg-ink-900/60 p-5"

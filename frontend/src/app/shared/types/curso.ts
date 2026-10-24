@@ -58,7 +58,7 @@ export interface CursoDetalhado extends Curso {
    */
   conteudoLiberado: boolean;
   /** Matrícula do candidato que pediu o curso (só quando consultado com o id dele). */
-  matricula: { id: number; status: StatusMatricula } | null;
+  matricula: { id: number; status: StatusMatricula; dataConclusao: string | null } | null;
   minhaAvaliacao: { nota: number; comentario: string | null } | null;
 }
 
@@ -147,4 +147,20 @@ export interface NovoCurso {
   aprendizados: string[];
   skills: string[];
   modulos: NovoModulo[];
+}
+
+/** Aluno inscrito num curso, como a empresa dona vê na tela de detalhes do curso. */
+export interface InscritoCurso {
+  idMatricula: number;
+  idCandidato: number;
+  nome: string;
+  email: string | null;
+  statusMatricula: StatusMatricula;
+  valor: number;
+  dataMatricula: string;
+  dataAtivacao: string | null;
+  dataConclusao: string | null;
+  /** Último pagamento relevante (o aprovado, se houver); `null` em curso gratuito ou sem tentativa. */
+  pagamento: { metodo: MetodoPagamento; status: StatusPagamento; parcelas: number; data: string } | null;
+  necessidades: string[];
 }

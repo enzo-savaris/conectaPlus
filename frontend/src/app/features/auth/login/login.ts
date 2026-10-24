@@ -29,7 +29,8 @@ export class Login {
     }),
     senha: new FormControl('', {
       nonNullable: true,
-      validators: [Validators.required, Validators.minLength(6)]
+      // Mesma regra do cadastro e do backend: ao menos 8 caracteres.
+      validators: [Validators.required, Validators.minLength(8)]
     }),
     lembrarDeMim: new FormControl(false, { nonNullable: true })
   });

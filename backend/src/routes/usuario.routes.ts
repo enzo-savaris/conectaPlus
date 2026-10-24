@@ -6,6 +6,7 @@ import {
   listarCandidaturasDoUsuario,
   listarUsuarios,
   obterCandidaturaDoUsuario,
+  responderPropostaDoUsuario,
   obterUsuario
 } from '../controller/usuario.controller.ts';
 import { listarMatriculasDoUsuario, obterMatriculaDoUsuario } from '../controller/matricula.controller.ts';
@@ -16,6 +17,7 @@ rotasUsuario.post('/', uploadAvatarPcd.single('avatar'), cadastrarUsuario);
 rotasUsuario.get('/', listarUsuarios);
 rotasUsuario.get('/:id/candidaturas', listarCandidaturasDoUsuario);
 rotasUsuario.get('/:id/candidaturas/:idVaga', obterCandidaturaDoUsuario);
+rotasUsuario.post('/:id/candidaturas/:idVaga/proposta', responderPropostaDoUsuario);
 rotasUsuario.get('/:id/matriculas', listarMatriculasDoUsuario);
 rotasUsuario.get('/:id/matriculas/:idCurso', obterMatriculaDoUsuario);
 rotasUsuario.get('/:id', obterUsuario);
