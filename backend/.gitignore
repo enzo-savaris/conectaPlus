@@ -2,7 +2,3 @@ node_modules/
 dist/
 .env
 *.log
-
-# Arquivos de curso enviados pelas empresas — não versionados, só a pasta (.gitkeep).
-uploads/cursos/*
-!uploads/cursos/.gitkeep

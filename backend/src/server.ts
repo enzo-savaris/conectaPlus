@@ -1,5 +1,8 @@
 import express from 'express';
 import type { NextFunction, Request, Response } from 'express';
+import { existsSync } from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import multer from 'multer';
@@ -25,31 +28,64 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+const api = express.Router();
+
 // Rota raiz, útil para confirmar rapidamente que a API está no ar.
-app.get('/', (_requisicao: Request, resposta: Response) => {
+api.get('/', (_requisicao: Request, resposta: Response) => {
   resposta.json({ mensagem: 'API do Conecta+ funcionando' });
 });
 
-app.use('/acessibilidade', rotasAcessibilidade);
-app.use('/admin', rotasAdmin);
-app.use('/auth', rotasAuth);
-app.use('/candidaturas', rotasCandidatura);
-app.use('/cidades', rotasCidade);
-app.use('/cursos', rotasCurso);
-app.use('/empresas', rotasEmpresa);
-app.use('/matriculas', rotasMatricula);
-app.use('/pagamentos', rotasPagamento);
-app.use('/usuarios', rotasUsuario);
-app.use('/vagas', rotasVaga);
+api.use('/acessibilidade', rotasAcessibilidade);
+api.use('/admin', rotasAdmin);
+api.use('/auth', rotasAuth);
+api.use('/candidaturas', rotasCandidatura);
+api.use('/cidades', rotasCidade);
+api.use('/cursos', rotasCurso);
+api.use('/empresas', rotasEmpresa);
+api.use('/matriculas', rotasMatricula);
+api.use('/pagamentos', rotasPagamento);
+api.use('/usuarios', rotasUsuario);
+api.use('/vagas', rotasVaga);
 
 // Vídeos de curso enviados pela empresa (POST/PUT /cursos com arquivo anexado).
-app.use('/uploads/cursos', express.static(PASTA_UPLOADS_CURSOS));
+api.use('/uploads/cursos', express.static(PASTA_UPLOADS_CURSOS));
 
 // Fotos de perfil enviadas no cadastro do candidato PCD.
-app.use('/uploads/avatares', express.static(PASTA_UPLOADS_AVATARES_PCD));
+api.use('/uploads/avatares', express.static(PASTA_UPLOADS_AVATARES_PCD));
 
 // Currículos em PDF enviados pelo candidato PCD no perfil.
-app.use('/uploads/curriculos', express.static(PASTA_UPLOADS_CURRICULOS_PCD));
+api.use('/uploads/curriculos', express.static(PASTA_UPLOADS_CURRICULOS_PCD));
+
+// No servidor publicado (SERVIR_FRONTEND=true), a própria API serve o build
+// do Angular e atende em /api, igual ao proxy do `ng serve`; assim frontend
+// e backend ficam num endereço só. Em desenvolvimento, a API continua
+// respondendo direto na raiz, atrás do proxy.
+const PASTA_FRONTEND = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  '../../frontend/dist/conectaPlus/browser'
+);
+
+if (process.env.SERVIR_FRONTEND === 'true') {
+  if (!existsSync(path.join(PASTA_FRONTEND, 'index.html'))) {
+    console.error(`SERVIR_FRONTEND=true, mas o build do frontend não existe em ${PASTA_FRONTEND}.`);
+    process.exit(1);
+  }
+
+  app.use('/api', api);
+  app.use(express.static(PASTA_FRONTEND));
+
+  // Rotas do Angular (/painel, /vagas...): devolve o index.html e o
+  // roteador do frontend decide a tela.
+  app.get('/{*caminho}', (requisicao: Request, resposta: Response, proximo: NextFunction) => {
+    if (requisicao.path.startsWith('/api/')) {
+      proximo();
+      return;
+    }
+    resposta.sendFile(path.join(PASTA_FRONTEND, 'index.html'));
+  });
+} else {
+  app.use(api);
+}
 
 // Qualquer caminho que não bata com as rotas acima.
 app.use((requisicao: Request, resposta: Response) => {

@@ -1,0 +1,41 @@
+# Deploy no Render (plano gratuito): um único serviço que compila o Angular
+# e sobe a API, que serve as páginas e responde em /api.
+# Render → New → Blueprint → escolher este repositório.
+services:
+  - type: web
+    name: conectaplus
+    runtime: node
+    plan: free
+    region: virginia
+    buildCommand: npm ci --prefix frontend && npm run build --prefix frontend && npm ci --prefix backend
+    startCommand: node backend/src/server.ts
+    healthCheckPath: /api/
+    envVars:
+      - key: NODE_VERSION
+        value: 24.14.0
+      - key: SERVIR_FRONTEND
+        value: "true"
+      # Banco MySQL na nuvem (Aiven) — preencher no painel do Render.
+      - key: DB_HOST
+        sync: false
+      - key: DB_PORT
+        sync: false
+      - key: DB_USER
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: DB_NAME
+        sync: false
+      - key: DB_SSL
+        value: "true"
+      - key: TOKEN_SECRET
+        generateValue: true
+      # Mercado Pago (opcional): sem eles o pagamento de cursos fica desligado.
+      - key: MP_ACCESS_TOKEN
+        sync: false
+      - key: MP_PUBLIC_KEY
+        sync: false
+      - key: MP_URL_NOTIFICACAO
+        sync: false
+      - key: MP_WEBHOOK_SECRET
+        sync: false

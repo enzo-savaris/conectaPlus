@@ -31,6 +31,14 @@ const pool = mysql.createPool({
   // A senha pode ser vazia em instalações locais do MySQL.
   password: process.env.DB_PASSWORD ?? '',
   database: variavelObrigatoria('DB_NAME'),
+  // Bancos na nuvem (ex.: Aiven) só aceitam conexão criptografada. Com
+  // DB_SSL=true liga o SSL; se DB_SSL_CA tiver o certificado do provedor,
+  // o servidor também é verificado.
+  ...(process.env.DB_SSL === 'true' && {
+    ssl: process.env.DB_SSL_CA
+      ? { ca: process.env.DB_SSL_CA.replace(/\\n/g, '\n') }
+      : { rejectUnauthorized: false }
+  }),
   waitForConnections: true,
   connectionLimit: 10
 });
