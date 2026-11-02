@@ -37,8 +37,8 @@ async function autenticarUsuario(cpf: string, senha: string): Promise<Sessao> {
   }
 
   return {
-    ambiente: 'usuario',
-    perfil: {
+      ambiente: 'usuario',
+      perfil: {
       id: usuario['IDPCD'] as number,
       nome: usuario['NOME'] as string,
       email: (usuario['EMAIL'] as string | null) ?? null,
@@ -68,8 +68,8 @@ async function autenticarEmpresa(cnpj: string, senha: string): Promise<Sessao> {
   }
 
   return {
-    ambiente: 'empresa',
-    perfil: {
+      ambiente: 'empresa',
+      perfil: {
       id: empresa['IDEMPRESA'] as number,
       razaoSocial: empresa['RAZAO'] as string,
       nomeFantasia: (empresa['FANTASIA'] as string | null) ?? null,
