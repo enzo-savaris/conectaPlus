@@ -8,6 +8,7 @@ import { AuthService } from '../../../shared/services/auth.service';
 import { CursoService } from '../../../shared/services/curso.service';
 import { Curso, StatusMatricula } from '../../../shared/types/curso';
 import { formatarCargaHorariaCurso, formatarPrecoCurso } from '../../../shared/utils/curso-format';
+import { correspondeBusca } from '../../../shared/utils/busca';
 
 /** Tela do candidato PCD: cursos de capacitação de todas as empresas parceiras. */
 @Component({
@@ -31,14 +32,8 @@ export class CursosDisponiveis {
 
   /** Filtra por título ou empresa, mesmo critério das buscas de vaga. */
   protected readonly cursosFiltrados = computed(() => {
-    const termo = this.termoBusca().trim().toLowerCase();
-    if (!termo) {
-      return this.cursos();
-    }
-
-    return this.cursos().filter((curso) =>
-      [curso.titulo, curso.nomeEmpresa].some((campo) => campo.toLowerCase().includes(termo))
-    );
+    const termo = this.termoBusca();
+    return this.cursos().filter((curso) => correspondeBusca([curso.titulo, curso.nomeEmpresa], termo));
   });
 
   constructor() {

@@ -12,6 +12,7 @@ import {
 import { ROTA_INICIAL } from '../../shared/guards/ambiente.guard';
 import { AcessibilidadeService } from '../../shared/services/acessibilidade.service';
 import { Logo } from '../../shared/components/logo/logo';
+import { correspondeBusca } from '../../shared/utils/busca';
 
 const ID_SECAO_VAGAS = 'vagas-abertas';
 
@@ -55,17 +56,11 @@ export class Landing {
     () => new Set(this.minhasCandidaturas().map((candidatura) => candidatura.idVaga))
   );
 
-  /** Filtra por título, empresa, área ou localização — sem exigir busca exata. */
+  /** Filtra por título, empresa, área ou localização — sem exigir acento, pontuação ou busca exata. */
   protected readonly vagasFiltradas = computed(() => {
-    const termo = this.termoBusca().trim().toLowerCase();
-    if (!termo) {
-      return this.vagas();
-    }
-
+    const termo = this.termoBusca();
     return this.vagas().filter((vaga) =>
-      [vaga.titulo, vaga.nomeEmpresa, vaga.area, vaga.cidade, vaga.estado]
-        .filter((campo): campo is string => !!campo)
-        .some((campo) => campo.toLowerCase().includes(termo))
+      correspondeBusca([vaga.titulo, vaga.nomeEmpresa, vaga.area, vaga.cidade, vaga.estado], termo)
     );
   });
 

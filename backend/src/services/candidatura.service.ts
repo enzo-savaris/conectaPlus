@@ -18,7 +18,7 @@ import type { DadosEtapaCandidatura } from '../utils/validacao-etapa-candidatura
  * como objeto Date, o fuso horário poderia empurrar o dia pra trás.
  */
 export const COLUNAS_PROCESSO = `c.STATUSCANDIDATURA, c.DTCAD AS DTCANDIDATURA,
-  c.DTENTREVISTA, c.FORMATOENTREVISTA, c.LOCALENTREVISTA, c.OBSENTREVISTA,
+  c.DTENTREVISTA, c.FORMATOENTREVISTA, c.LOCALENTREVISTA, c.OBSENTREVISTA, c.DTCONFIRMACAOENTREVISTA,
   DATE_FORMAT(c.DTINICIO, '%Y-%m-%d') AS DTINICIO, c.MENSAGEMEMPRESA,
   c.COMPARECEU, c.PROPOSTASALARIO, c.PROPOSTADETALHES,
   DATE_FORMAT(c.PROPOSTAVALIDADE, '%Y-%m-%d') AS PROPOSTAVALIDADE,
@@ -96,7 +96,8 @@ export async function obterParaEmpresa(idCandidatura: number, idEmpresa: number)
  * Avança a candidatura para a etapa da ação informada, só se a vaga for da
  * empresa e se a etapa atual permitir (ex.: não dá pra agendar entrevista
  * de quem já foi contratado). Reagendar a entrevista só atualiza os dados
- * dela, sem gerar uma nova linha no histórico.
+ * dela, sem gerar uma nova linha no histórico — mas zera a confirmação do
+ * candidato, que valia para a data antiga.
  */
 export async function alterarEtapa(
   idCandidatura: number,
@@ -142,7 +143,7 @@ export async function alterarEtapa(
         novoStatus = 'ENTREVISTA';
         await conexao.execute(
           `UPDATE TBLCDSCAND0 SET STATUSCANDIDATURA = ?, DTENTREVISTA = ?, FORMATOENTREVISTA = ?,
-             LOCALENTREVISTA = ?, OBSENTREVISTA = ?
+             LOCALENTREVISTA = ?, OBSENTREVISTA = ?, DTCONFIRMACAOENTREVISTA = NULL
            WHERE IDCANDIDATURA = ?`,
           [
             novoStatus,
@@ -254,4 +255,36 @@ export async function responderProposta(
   } finally {
     conexao.release();
   }
+}
+
+/**
+ * O candidato confirma que vai comparecer à entrevista agendada pela empresa.
+ * Não muda a etapa (continua ENTREVISTA); só registra quando confirmou, e a
+ * empresa vê isso na tela de gestão. Confirmar de novo não faz nada.
+ */
+export async function confirmarEntrevista(idPcd: number, idVaga: number): Promise<void> {
+  const [linhas] = await pool.query<RowDataPacket[]>(
+    `SELECT IDCANDIDATURA, STATUSCANDIDATURA, DTCONFIRMACAOENTREVISTA, DTENTREVISTA < NOW() AS PASSOU
+     FROM TBLCDSCAND0 WHERE IDPCD = ? AND IDVAGA = ?`,
+    [idPcd, idVaga]
+  );
+  const candidatura = linhas[0];
+
+  if (!candidatura) {
+    throw erroNaoEncontrado('Candidatura não encontrada.');
+  }
+  if (candidatura['STATUSCANDIDATURA'] !== 'ENTREVISTA') {
+    throw erroDeConflito('Não há entrevista agendada aguardando a sua confirmação.');
+  }
+  if (candidatura['DTCONFIRMACAOENTREVISTA']) {
+    return;
+  }
+  if (Number(candidatura['PASSOU']) === 1) {
+    throw erroDeConflito('O horário desta entrevista já passou. Fale com a empresa.');
+  }
+
+  await pool.execute(
+    'UPDATE TBLCDSCAND0 SET DTCONFIRMACAOENTREVISTA = NOW() WHERE IDCANDIDATURA = ? AND DTCONFIRMACAOENTREVISTA IS NULL',
+    [candidatura['IDCANDIDATURA']]
+  );
 }

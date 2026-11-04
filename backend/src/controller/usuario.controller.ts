@@ -162,6 +162,19 @@ export const responderPropostaDoUsuario = async (requisicao: Request, resposta: 
   }
 };
 
+/** POST /usuarios/:id/candidaturas/:idVaga/entrevista/confirmacao — candidato confirma presença na entrevista. */
+export const confirmarEntrevistaDoUsuario = async (requisicao: Request, resposta: Response): Promise<void> => {
+  try {
+    const idPcd = validarId(requisicao.params['id']);
+    const idVaga = validarId(requisicao.params['idVaga']);
+    await candidaturaService.confirmarEntrevista(idPcd, idVaga);
+
+    resposta.json(await usuarioService.obterCandidatura(idPcd, idVaga));
+  } catch (erro) {
+    responderErro(resposta, erro, 'Erro ao confirmar a entrevista');
+  }
+};
+
 /** GET /usuarios/:id/candidaturas/:idVaga — acompanhamento da candidatura do candidato a uma vaga. */
 export const obterCandidaturaDoUsuario = async (
   requisicao: Request,

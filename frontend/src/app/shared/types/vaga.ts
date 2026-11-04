@@ -70,6 +70,8 @@ export interface EntrevistaAgendada {
   /** Link da chamada (REMOTA) ou endereço (PRESENCIAL). */
   local: string;
   observacoes: string | null;
+  /** Quando o candidato confirmou presença; `null` enquanto não confirmou. */
+  confirmadaEm: string | null;
 }
 
 /** Momento em que a candidatura entrou numa etapa. */

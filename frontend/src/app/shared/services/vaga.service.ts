@@ -287,6 +287,13 @@ export class VagaService {
       .pipe(map(paraAcompanhamento));
   }
 
+  /** O candidato confirma presença na entrevista agendada pela empresa. */
+  confirmarEntrevista(idPcd: number, idVaga: number): Observable<AcompanhamentoCandidatura> {
+    return this.http
+      .post<AcompanhamentoCandidaturaDaApi>(`${URL_BASE_API}/usuarios/${idPcd}/candidaturas/${idVaga}/entrevista/confirmacao`, {})
+      .pipe(map(paraAcompanhamento));
+  }
+
   /** Candidatura do candidato logado a uma vaga, para a tela de acompanhamento. */
   obterMinhaCandidatura(idPcd: number, idVaga: number): Observable<AcompanhamentoCandidatura> {
     return this.http

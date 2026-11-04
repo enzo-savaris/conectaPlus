@@ -78,6 +78,10 @@ export class CandidaturaEnviada {
   protected readonly respondendo = signal(false);
   protected readonly erroResposta = signal<string | null>(null);
 
+  // Confirmação de presença na entrevista
+  protected readonly confirmandoEntrevista = signal(false);
+  protected readonly erroConfirmacao = signal<string | null>(null);
+
   protected readonly opcoesAdaptacao: { chave: keyof AdaptacoesCandidatura; rotulo: string }[] = [
     { chave: 'entrevistaRemota', rotulo: 'Entrevista 100% remota' },
     { chave: 'tempoEstendido', rotulo: 'Tempo estendido em testes' },
@@ -138,7 +142,7 @@ export class CandidaturaEnviada {
     if (c.status === 'ENTREVISTA' && c.entrevista) {
       entrevista = {
         titulo: 'Entrevista acessível',
-        detalhe: `Agendada · ${formatarDataEntrevista(c.entrevista.data)}`,
+        detalhe: `${c.entrevista.confirmadaEm ? 'Presença confirmada' : 'Agendada'} · ${formatarDataEntrevista(c.entrevista.data)}`,
         situacao: 'atual',
         icone: 'conversa',
         entrevista: c.entrevista
@@ -281,6 +285,32 @@ export class CandidaturaEnviada {
         this.erroResposta.set(erro.error?.mensagem ?? 'Não foi possível enviar sua resposta. Tente novamente.');
       }
     });
+  }
+
+  protected confirmarEntrevista(): void {
+    this.confirmandoEntrevista.set(true);
+    this.erroConfirmacao.set(null);
+
+    this.vagaService.confirmarEntrevista(this.idPcd(), this.idVaga).subscribe({
+      next: (candidatura) => {
+        this.confirmandoEntrevista.set(false);
+        this.candidatura.set(candidatura);
+        this.toastService.sucesso('Presença confirmada! A empresa já foi avisada.');
+      },
+      error: (erro: HttpErrorResponse) => {
+        this.confirmandoEntrevista.set(false);
+        this.erroConfirmacao.set(erro.error?.mensagem ?? 'Não foi possível confirmar a entrevista. Tente novamente.');
+      }
+    });
+  }
+
+  /** A data da entrevista ainda não chegou (depois dela, não faz sentido confirmar). */
+  protected entrevistaFutura(entrevista: EntrevistaAgendada): boolean {
+    return new Date(entrevista.data).getTime() > Date.now();
+  }
+
+  protected formatarDataHora(data: string): string {
+    return formatarDataHora(data);
   }
 
   protected aoDigitarMotivo(evento: Event): void {

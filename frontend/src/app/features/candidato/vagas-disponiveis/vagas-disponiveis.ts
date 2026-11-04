@@ -10,6 +10,7 @@ import {
   formatarSalarioVaga,
   formatarTipoContratacao
 } from '../../../shared/utils/vaga-format';
+import { correspondeBusca } from '../../../shared/utils/busca';
 
 /** Tela do candidato PCD: vagas abertas de todas as empresas, com atalho para se candidatar. */
 @Component({
@@ -35,15 +36,9 @@ export class VagasDisponiveis {
 
   /** Filtra por título, empresa, área ou cidade — mesmo critério da busca do painel. */
   protected readonly vagasFiltradas = computed(() => {
-    const termo = this.termoBusca().trim().toLowerCase();
-    if (!termo) {
-      return this.vagas();
-    }
-
+    const termo = this.termoBusca();
     return this.vagas().filter((vaga) =>
-      [vaga.titulo, vaga.nomeEmpresa, vaga.area, vaga.cidade]
-        .filter((campo): campo is string => !!campo)
-        .some((campo) => campo.toLowerCase().includes(termo))
+      correspondeBusca([vaga.titulo, vaga.nomeEmpresa, vaga.area, vaga.cidade], termo)
     );
   });
 

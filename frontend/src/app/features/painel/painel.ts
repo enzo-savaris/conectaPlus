@@ -11,6 +11,7 @@ import {
   formatarSalarioVaga,
   formatarTipoContratacao
 } from '../../shared/utils/vaga-format';
+import { correspondeBusca } from '../../shared/utils/busca';
 
 /** Quantidade de vagas mostradas na seção "Vagas em destaque". */
 const QUANTIDADE_VAGAS_EM_DESTAQUE = 3;
@@ -44,15 +45,13 @@ export class Painel {
 
   /** Com busca, procura em todas as vagas ativas carregadas, não só nas em destaque. */
   protected readonly vagasFiltradas = computed(() => {
-    const termo = this.termoBusca().trim().toLowerCase();
-    if (!termo) {
+    const termo = this.termoBusca();
+    if (!termo.trim()) {
       return this.vagasDestaque();
     }
 
     return this.todasVagas().filter((vaga) =>
-      [vaga.titulo, vaga.nomeEmpresa, vaga.area, vaga.cidade, ...vaga.requisitos]
-        .filter((campo): campo is string => !!campo)
-        .some((campo) => campo.toLowerCase().includes(termo))
+      correspondeBusca([vaga.titulo, vaga.nomeEmpresa, vaga.area, vaga.cidade, ...vaga.requisitos], termo)
     );
   });
 

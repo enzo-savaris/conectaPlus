@@ -166,6 +166,32 @@
                         @if (entrevista.observacoes) {
                           <p class="mt-1.5 text-xs whitespace-pre-line text-slate-400">{{ entrevista.observacoes }}</p>
                         }
+
+                        <div class="mt-3 border-t border-white/10 pt-3">
+                          @if (entrevista.confirmadaEm) {
+                            <p class="flex items-center gap-2 text-sm font-medium text-emerald-300">
+                              <svg class="size-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                              </svg>
+                              Presença confirmada · {{ formatarDataHora(entrevista.confirmadaEm) }}
+                            </p>
+                          } @else if (entrevistaFutura(entrevista)) {
+                            <p class="text-xs text-slate-400">Confirme que vai comparecer para a empresa saber que pode contar com você.</p>
+                            @if (erroConfirmacao()) {
+                              <p class="mt-2 rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-xs text-rose-200" role="alert">{{ erroConfirmacao() }}</p>
+                            }
+                            <button
+                              type="button"
+                              (click)="confirmarEntrevista()"
+                              [disabled]="confirmandoEntrevista()"
+                              class="mt-2 rounded-lg bg-emerald-400 px-5 py-2 text-sm font-semibold text-ink-950 transition hover:brightness-110 disabled:opacity-60"
+                            >
+                              {{ confirmandoEntrevista() ? 'Confirmando…' : 'Confirmar presença' }}
+                            </button>
+                          } @else {
+                            <p class="text-xs text-slate-400">O horário desta entrevista já passou. Aguarde o retorno da empresa.</p>
+                          }
+                        </div>
                       </div>
                     }
 

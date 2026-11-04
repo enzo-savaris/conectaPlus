@@ -201,3 +201,19 @@ html.a11y-contraste-claro :is([aria-pressed='true'], [aria-checked='true'], [ari
 html.a11y-contraste-claro ::placeholder {
   color: #404040 !important;
 }
+
+/*
+ * Celular: o iPhone dá zoom sozinho ao tocar num campo com fonte menor que
+ * 16px (os campos usam text-sm, 14px). Com 16px o zoom automático não
+ * acontece, e o zoom por pinça continua livre para quem precisa ampliar.
+ * Fica fora de @layer de propósito, para valer por cima das classes
+ * text-sm/text-xs dos campos. O max() respeita a fonte aumentada pelo
+ * painel de acessibilidade.
+ */
+@media (max-width: 639.98px) {
+  input:not([type='checkbox'], [type='radio'], [type='range'], [type='file']),
+  select,
+  textarea {
+    font-size: max(16px, 1em);
+  }
+}

@@ -20,6 +20,7 @@ export interface ProcessoSeletivoDaApi {
   FORMATOENTREVISTA: FormatoEntrevista | null;
   LOCALENTREVISTA: string | null;
   OBSENTREVISTA: string | null;
+  DTCONFIRMACAOENTREVISTA: string | null;
   DTINICIO: string | null;
   MENSAGEMEMPRESA: string | null;
   COMPARECEU: number | null;
@@ -41,7 +42,8 @@ export function paraProcessoSeletivo(processo: ProcessoSeletivoDaApi): ProcessoS
             data: processo.DTENTREVISTA,
             formato: processo.FORMATOENTREVISTA,
             local: processo.LOCALENTREVISTA ?? '',
-            observacoes: processo.OBSENTREVISTA
+            observacoes: processo.OBSENTREVISTA,
+            confirmadaEm: processo.DTCONFIRMACAOENTREVISTA ?? null
           }
         : null,
     compareceu: processo.COMPARECEU === null || processo.COMPARECEU === undefined ? null : Boolean(processo.COMPARECEU),
