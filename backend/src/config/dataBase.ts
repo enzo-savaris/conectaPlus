@@ -9,7 +9,9 @@ dotenv.config();
  * bem menos clara.
  */
 function variavelObrigatoria(nome: string): string {
-  const valor = process.env[nome];
+  // trim(): um espaço colado sem querer no painel de hospedagem
+  // ("DB_HOST= mysql-...") quebraria a resolução do endereço.
+  const valor = process.env[nome]?.trim();
 
   if (!valor) {
     throw new Error(`A variável ${nome} não foi definida no arquivo .env`);
