@@ -107,7 +107,11 @@ app.use((erro: unknown, _requisicao: Request, resposta: Response, _proximo: Next
   resposta.status(500).json({ mensagem: 'Erro interno do servidor' });
 });
 
-const PORTA = process.env.PORT ?? 3000;
+const PORTA = Number(process.env.PORT ?? 3000);
+
+// Na alwaysdata o processo precisa escutar no IP e na porta que o painel
+// passa nas variáveis IP e PORT; sem IP (local, Render), escuta em todas.
+const IP = process.env.IP;
 
 // Falhar aqui é melhor do que aceitar requisições e só descobrir
 // que o banco está fora na primeira consulta.
@@ -120,6 +124,12 @@ try {
   process.exit(1);
 }
 
-app.listen(PORTA, () => {
-  console.log(`Servidor rodando em http://localhost:${PORTA}`);
-});
+const aoIniciar = () => {
+  console.log(`Servidor rodando em http://${IP ?? 'localhost'}:${PORTA}`);
+};
+
+if (IP) {
+  app.listen(PORTA, IP, aoIniciar);
+} else {
+  app.listen(PORTA, aoIniciar);
+}

@@ -1,0 +1,93 @@
+# Deploy automático na alwaysdata a cada push na branch main.
+#
+# O plano gratuito tem só 256 MB de RAM, pouco para compilar o Angular lá.
+# Por isso tudo é compilado aqui no GitHub e só o resultado vai para o
+# servidor via rsync/SSH; no fim, a API da alwaysdata reinicia o site.
+#
+# Secrets necessários (GitHub → Settings → Secrets and variables → Actions):
+#   ALWAYSDATA_ACCOUNT  nome da conta (o "xxx" de xxx.alwaysdata.net)
+#   ALWAYSDATA_SSH_KEY  chave privada SSH cuja pública está no servidor
+#   ALWAYSDATA_API_KEY  token da API (Perfil → Tokens da API)
+#   ALWAYSDATA_SITE_ID  ID numérico do site (aparece na URL do painel)
+
+name: Deploy alwaysdata
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-alwaysdata
+  cancel-in-progress: false
+
+env:
+  PASTA_REMOTA: conectaplus
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: |
+            frontend/package-lock.json
+            backend/package-lock.json
+
+      - name: Build do frontend (Angular)
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
+
+      - name: Build do backend (TypeScript → dist)
+        working-directory: backend
+        run: |
+          npm ci
+          npm run build
+          npm prune --omit=dev
+
+      - name: Monta o pacote de deploy
+        run: |
+          mkdir -p pacote/backend pacote/frontend/dist/conectaPlus
+          cp -r backend/dist backend/node_modules backend/package.json pacote/backend/
+          cp -r frontend/dist/conectaPlus/browser pacote/frontend/dist/conectaPlus/
+
+      - name: Configura o SSH
+        env:
+          SSH_KEY: ${{ secrets.ALWAYSDATA_SSH_KEY }}
+          CONTA: ${{ secrets.ALWAYSDATA_ACCOUNT }}
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H "ssh-$CONTA.alwaysdata.net" >> ~/.ssh/known_hosts
+
+      - name: Envia os arquivos
+        env:
+          CONTA: ${{ secrets.ALWAYSDATA_ACCOUNT }}
+        run: |
+          DESTINO="$CONTA@ssh-$CONTA.alwaysdata.net"
+          ssh "$DESTINO" "mkdir -p ~/$PASTA_REMOTA/backend/uploads"
+          # --delete remove arquivos antigos do build, mas os uploads feitos
+          # pelos usuários e um eventual .env no servidor ficam protegidos.
+          rsync -az --delete \
+            --filter='P /backend/uploads/' \
+            --filter='P /backend/.env' \
+            pacote/ "$DESTINO:~/$PASTA_REMOTA/"
+          # Arquivos versionados no Git (vídeos dos cursos) são só acrescentados.
+          rsync -az --exclude='.gitkeep' backend/uploads/ "$DESTINO:~/$PASTA_REMOTA/backend/uploads/"
+
+      - name: Reinicia o site
+        env:
+          CONTA: ${{ secrets.ALWAYSDATA_ACCOUNT }}
+          API_KEY: ${{ secrets.ALWAYSDATA_API_KEY }}
+          SITE_ID: ${{ secrets.ALWAYSDATA_SITE_ID }}
+        run: |
+          curl --fail-with-body -sS -X POST --basic \
+            --user "$API_KEY account=$CONTA:" \
+            "https://api.alwaysdata.com/v1/site/$SITE_ID/restart/"
