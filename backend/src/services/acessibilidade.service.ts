@@ -3,7 +3,7 @@ import pool from '../config/dataBase.ts';
 import { erroDeValidacao, erroNaoEncontrado } from '../utils/erro-app.ts';
 
 /**
- * Preferências de acessibilidade de cada conta (TBLCDSPREFACS0): cada
+ * Preferências de acessibilidade de cada conta (tblcdsprefacs0): cada
  * candidato e cada empresa tem as suas, independentes das de qualquer outra
  * pessoa que use o mesmo computador.
  */
@@ -32,7 +32,7 @@ export type DonoPreferencias =
   | { tipo: 'admin'; id: number };
 
 const COLUNA_DO_DONO = { usuario: 'IDPCD', empresa: 'IDEMPRESA', admin: 'IDADMIN' } as const;
-const TABELA_DO_DONO = { usuario: 'TBLCDSUSR0', empresa: 'TBLCDSEMP0', admin: 'TBLCDSADM0' } as const;
+const TABELA_DO_DONO = { usuario: 'tblcdsusr0', empresa: 'tblcdsemp0', admin: 'tblcdsadm0' } as const;
 
 function coluna(dono: DonoPreferencias): 'IDPCD' | 'IDEMPRESA' | 'IDADMIN' {
   return COLUNA_DO_DONO[dono.tipo];
@@ -73,7 +73,7 @@ async function confirmarConta(dono: DonoPreferencias): Promise<void> {
 /** Preferências salvas da conta, ou `null` se ela ainda nunca salvou. */
 export async function obter(dono: DonoPreferencias): Promise<Preferencias | null> {
   const [linhas] = await pool.query<RowDataPacket[]>(
-    `SELECT PREFERENCIAS FROM TBLCDSPREFACS0 WHERE ${coluna(dono)} = ?`,
+    `SELECT PREFERENCIAS FROM tblcdsprefacs0 WHERE ${coluna(dono)} = ?`,
     [dono.id]
   );
 
@@ -90,7 +90,7 @@ export async function salvar(dono: DonoPreferencias, preferencias: Preferencias)
   await confirmarConta(dono);
 
   await pool.execute(
-    `INSERT INTO TBLCDSPREFACS0 (${coluna(dono)}, PREFERENCIAS) VALUES (?, ?)
+    `INSERT INTO tblcdsprefacs0 (${coluna(dono)}, PREFERENCIAS) VALUES (?, ?)
      ON DUPLICATE KEY UPDATE PREFERENCIAS = VALUES(PREFERENCIAS)`,
     [dono.id, JSON.stringify(preferencias)]
   );

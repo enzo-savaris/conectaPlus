@@ -7,8 +7,8 @@ import type { DadosCandidatura } from '../utils/validacao-candidatura.ts';
 import type { DadosVaga } from '../utils/validacao-vaga.ts';
 
 /**
- * A vaga guarda só o IDCIDADE e o IDEMPRESA; aqui juntamos com TBLCDSCID0 e
- * TBLCDSEMP0 pra devolver também o nome/UF (CIDADE, ESTADO) e o nome da
+ * A vaga guarda só o IDCIDADE e o IDEMPRESA; aqui juntamos com tblcdscid0 e
+ * tblcdsemp0 pra devolver também o nome/UF (CIDADE, ESTADO) e o nome da
  * empresa (NOMEEMPRESA) já prontos, no mesmo formato que a API sempre
  * devolveu, sem precisar mexer em quem consome esse retorno.
  */
@@ -17,17 +17,17 @@ const COLUNAS = `v.IDVAGA, v.IDEMPRESA, v.TITULO, v.AREA, v.DESCRICAO, v.IDCIDAD
                  COALESCE(emp.FANTASIA, emp.RAZAO) AS NOMEEMPRESA,
                  v.MODELOTRABALHO, v.TIPOCONTRATACAO, v.SALARIOMIN, v.SALARIOMAX,
                  v.DTCAD, v.STATUSVAGA`;
-const TABELA_COM_CIDADE = `TBLCDSVAG0 v
-  LEFT JOIN TBLCDSCID0 ci ON ci.IDCIDADE = v.IDCIDADE
-  LEFT JOIN TBLCDSEMP0 emp ON emp.IDEMPRESA = v.IDEMPRESA`;
+const TABELA_COM_CIDADE = `tblcdsvag0 v
+  LEFT JOIN tblcdscid0 ci ON ci.IDCIDADE = v.IDCIDADE
+  LEFT JOIN tblcdsemp0 emp ON emp.IDEMPRESA = v.IDEMPRESA`;
 
 /** Tabelas filhas que guardam as listas de itens do cadastro, uma linha por item. */
 const TABELAS_DE_ITENS = {
-  responsabilidades: { tabela: 'TBLCDSVAGRESP0', coluna: 'IDRESP' },
-  requisitos: { tabela: 'TBLCDSVAGREQ0', coluna: 'IDREQ' },
-  acessibilidade: { tabela: 'TBLCDSVAGACS0', coluna: 'IDACS' },
-  beneficios: { tabela: 'TBLCDSVAGBEN0', coluna: 'IDBEN' },
-  perguntas: { tabela: 'TBLCDSVAGPERG0', coluna: 'IDPERG' }
+  responsabilidades: { tabela: 'tblcdsvagresp0', coluna: 'IDRESP' },
+  requisitos: { tabela: 'tblcdsvagreq0', coluna: 'IDREQ' },
+  acessibilidade: { tabela: 'tblcdsvagacs0', coluna: 'IDACS' },
+  beneficios: { tabela: 'tblcdsvagben0', coluna: 'IDBEN' },
+  perguntas: { tabela: 'tblcdsvagperg0', coluna: 'IDPERG' }
 } as const;
 
 type ChaveDeItens = keyof typeof TABELAS_DE_ITENS;
@@ -123,8 +123,8 @@ async function listarItens(chave: ChaveDeItens, idVaga: number): Promise<string[
 async function listarCursosRecomendados(idVaga: number): Promise<RowDataPacket[]> {
   const [linhas] = await pool.query<RowDataPacket[]>(
     `SELECT c.IDCURSO, c.TITULO, c.CARGAHORARIA, c.PRECO
-     FROM TBLCDSVAGCURSO0 vc
-     INNER JOIN TBLCDSCURSO0 c ON c.IDCURSO = vc.IDCURSO
+     FROM tblcdsvagcurso0 vc
+     INNER JOIN tblcdscurso0 c ON c.IDCURSO = vc.IDCURSO
      WHERE vc.IDVAGA = ?
      ORDER BY c.TITULO`,
     [idVaga]
@@ -144,14 +144,14 @@ async function definirCursosRecomendados(
   idEmpresa: number,
   idsCursos: number[]
 ): Promise<void> {
-  await conexao.query('DELETE FROM TBLCDSVAGCURSO0 WHERE IDVAGA = ?', [idVaga]);
+  await conexao.query('DELETE FROM tblcdsvagcurso0 WHERE IDVAGA = ?', [idVaga]);
 
   if (idsCursos.length === 0) {
     return;
   }
 
   const [linhas] = await conexao.query<RowDataPacket[]>(
-    `SELECT IDCURSO FROM TBLCDSCURSO0 WHERE IDEMPRESA = ? AND IDCURSO IN (${idsCursos.map(() => '?').join(',')})`,
+    `SELECT IDCURSO FROM tblcdscurso0 WHERE IDEMPRESA = ? AND IDCURSO IN (${idsCursos.map(() => '?').join(',')})`,
     [idEmpresa, ...idsCursos]
   );
 
@@ -161,7 +161,7 @@ async function definirCursosRecomendados(
   }
 
   const valores = idsValidos.map((idCurso) => [idVaga, idCurso]);
-  await conexao.query('INSERT INTO TBLCDSVAGCURSO0 (IDVAGA, IDCURSO) VALUES ?', [valores]);
+  await conexao.query('INSERT INTO tblcdsvagcurso0 (IDVAGA, IDCURSO) VALUES ?', [valores]);
 }
 
 /** Vaga com as listas de itens do cadastro, usada para preencher a tela de edição. */
@@ -194,7 +194,7 @@ export async function cadastrar(dados: DadosVaga, idEmpresa: number): Promise<Ro
     }
 
     const [resultado] = await conexao.execute<ResultSetHeader>(
-      `INSERT INTO TBLCDSVAG0
+      `INSERT INTO tblcdsvag0
         (IDEMPRESA, TITULO, AREA, DESCRICAO, IDCIDADE,
          MODELOTRABALHO, TIPOCONTRATACAO, SALARIOMIN, SALARIOMAX)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -254,7 +254,7 @@ export async function atualizar(
     await conexao.beginTransaction();
 
     const [linhas] = await conexao.query<RowDataPacket[]>(
-      'SELECT IDVAGA FROM TBLCDSVAG0 WHERE IDVAGA = ? AND IDEMPRESA = ? FOR UPDATE',
+      'SELECT IDVAGA FROM tblcdsvag0 WHERE IDVAGA = ? AND IDEMPRESA = ? FOR UPDATE',
       [id, idEmpresa]
     );
 
@@ -267,7 +267,7 @@ export async function atualizar(
     }
 
     await conexao.execute(
-      `UPDATE TBLCDSVAG0 SET
+      `UPDATE tblcdsvag0 SET
         TITULO = ?, AREA = ?, DESCRICAO = ?, IDCIDADE = ?,
         MODELOTRABALHO = ?, TIPOCONTRATACAO = ?, SALARIOMIN = ?, SALARIOMAX = ?
        WHERE IDVAGA = ?`,
@@ -330,8 +330,8 @@ export async function listarCandidaturas(
             c.INTERPRETELIBRAS, c.INICIOIMEDIATO,
             COALESCE(c.CURRICULOPDF, u.CURRICULOPDF) AS CURRICULOPDF,
             u.IDPCD, u.NOME, u.EMAIL, u.SOBREMIM
-     FROM TBLCDSCAND0 c
-     INNER JOIN TBLCDSUSR0 u ON u.IDPCD = c.IDPCD
+     FROM tblcdscand0 c
+     INNER JOIN tblcdsusr0 u ON u.IDPCD = c.IDPCD
      WHERE c.IDVAGA = ?
      ORDER BY c.DTCAD DESC`,
     [idVaga]
@@ -373,7 +373,7 @@ export async function candidatar(
     await conexao.beginTransaction();
 
     const [existentes] = await conexao.query<RowDataPacket[]>(
-      'SELECT IDCANDIDATURA FROM TBLCDSCAND0 WHERE IDVAGA = ? AND IDPCD = ?',
+      'SELECT IDCANDIDATURA FROM tblcdscand0 WHERE IDVAGA = ? AND IDPCD = ?',
       [idVaga, dados.idPcd]
     );
 
@@ -382,7 +382,7 @@ export async function candidatar(
     }
 
     const [resultado] = await conexao.execute<ResultSetHeader>(
-      `INSERT INTO TBLCDSCAND0
+      `INSERT INTO tblcdscand0
         (IDVAGA, IDPCD, CARTAAPRESENTACAO, CURRICULOPDF,
          ENTREVISTAREMOTA, TEMPOESTENDIDO, INTERPRETELIBRAS, INICIOIMEDIATO)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -401,20 +401,20 @@ export async function candidatar(
     const idCandidatura = resultado.insertId;
 
     // Primeira linha do histórico do processo seletivo ("Candidatura recebida").
-    await conexao.execute('INSERT INTO TBLCDSCANDHIST0 (IDCANDIDATURA, STATUSCANDIDATURA) VALUES (?, ?)', [
+    await conexao.execute('INSERT INTO tblcdscandhist0 (IDCANDIDATURA, STATUSCANDIDATURA) VALUES (?, ?)', [
       idCandidatura,
       'PENDENTE'
     ]);
 
     if (dados.respostas.length > 0) {
       const valores = dados.respostas.map((item) => [idCandidatura, item.pergunta, item.resposta]);
-      await conexao.query('INSERT INTO TBLCDSCANDRESP0 (IDCANDIDATURA, PERGUNTA, RESPOSTA) VALUES ?', [valores]);
+      await conexao.query('INSERT INTO tblcdscandresp0 (IDCANDIDATURA, PERGUNTA, RESPOSTA) VALUES ?', [valores]);
     }
 
     await conexao.commit();
 
     const [linhas] = await pool.query<RowDataPacket[]>(
-      'SELECT IDCANDIDATURA, IDVAGA, IDPCD, STATUSCANDIDATURA, DTCAD FROM TBLCDSCAND0 WHERE IDCANDIDATURA = ?',
+      'SELECT IDCANDIDATURA, IDVAGA, IDPCD, STATUSCANDIDATURA, DTCAD FROM tblcdscand0 WHERE IDCANDIDATURA = ?',
       [idCandidatura]
     );
 
@@ -436,7 +436,7 @@ export async function listarRespostas(idsCandidaturas: number[]): Promise<Map<nu
   }
 
   const [linhas] = await pool.query<RowDataPacket[]>(
-    `SELECT IDCANDIDATURA, PERGUNTA, RESPOSTA FROM TBLCDSCANDRESP0
+    `SELECT IDCANDIDATURA, PERGUNTA, RESPOSTA FROM tblcdscandresp0
      WHERE IDCANDIDATURA IN (${idsCandidaturas.map(() => '?').join(',')})
      ORDER BY IDRESPOSTA`,
     idsCandidaturas
@@ -459,7 +459,7 @@ export async function remover(id: number, idEmpresa: number): Promise<void> {
   await garantirEmpresaAtiva(idEmpresa);
 
   const [resultado] = await pool.execute<ResultSetHeader>(
-    'DELETE FROM TBLCDSVAG0 WHERE IDVAGA = ? AND IDEMPRESA = ?',
+    'DELETE FROM tblcdsvag0 WHERE IDVAGA = ? AND IDEMPRESA = ?',
     [id, idEmpresa]
   );
 

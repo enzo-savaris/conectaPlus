@@ -10,7 +10,7 @@ import { listarRespostas } from './vaga.service.ts';
 import type { DadosCandidato, DadosPerfilCandidato } from '../utils/validacao-candidato.ts';
 
 /**
- * Camada de acesso ao banco dos candidatos PCD (tabela TBLCDSUSR0).
+ * Camada de acesso ao banco dos candidatos PCD (tabela tblcdsusr0).
  */
 
 /**
@@ -23,9 +23,9 @@ const COLUNAS = `IDPCD, NOME, EMAIL, TELEFONE, CPF, SOBREMIM, TIPODEF,
 
 /** Tabelas filhas de múltipla escolha do perfil, uma linha de texto por item. */
 const TABELAS_DE_ITENS = {
-  recursos: 'TBLCDSPCDREC0',
-  interesses: 'TBLCDSPCDINT0',
-  habilidades: 'TBLCDSPCDHAB0'
+  recursos: 'tblcdspcdrec0',
+  interesses: 'tblcdspcdint0',
+  habilidades: 'tblcdspcdhab0'
 } as const;
 
 type ChaveDeItens = keyof typeof TABELAS_DE_ITENS;
@@ -33,7 +33,7 @@ type ChaveDeItens = keyof typeof TABELAS_DE_ITENS;
 /** Lista os usuários cadastrados, em ordem alfabética. */
 export async function listar(): Promise<RowDataPacket[]> {
   const [usuarios] = await pool.query<RowDataPacket[]>(
-    `SELECT ${COLUNAS} FROM TBLCDSUSR0 ORDER BY NOME`
+    `SELECT ${COLUNAS} FROM tblcdsusr0 ORDER BY NOME`
   );
 
   return usuarios;
@@ -41,7 +41,7 @@ export async function listar(): Promise<RowDataPacket[]> {
 
 async function obterPorId(id: number): Promise<RowDataPacket> {
   const [linhas] = await pool.query<RowDataPacket[]>(
-    `SELECT ${COLUNAS} FROM TBLCDSUSR0 WHERE IDPCD = ?`,
+    `SELECT ${COLUNAS} FROM tblcdsusr0 WHERE IDPCD = ?`,
     [id]
   );
 
@@ -65,7 +65,7 @@ async function listarItens(chave: ChaveDeItens, idPcd: number): Promise<string[]
 
 async function listarExperiencias(idPcd: number): Promise<RowDataPacket[]> {
   const [linhas] = await pool.query<RowDataPacket[]>(
-    'SELECT IDEXPERIENCIA, CARGO, EMPRESA, PERIODO, DESCRICAO FROM TBLCDSPCDEXP0 WHERE IDPCD = ? ORDER BY IDEXPERIENCIA',
+    'SELECT IDEXPERIENCIA, CARGO, EMPRESA, PERIODO, DESCRICAO FROM tblcdspcdexp0 WHERE IDPCD = ? ORDER BY IDEXPERIENCIA',
     [idPcd]
   );
 
@@ -74,7 +74,7 @@ async function listarExperiencias(idPcd: number): Promise<RowDataPacket[]> {
 
 async function listarFormacoes(idPcd: number): Promise<RowDataPacket[]> {
   const [linhas] = await pool.query<RowDataPacket[]>(
-    'SELECT IDFORMACAO, CURSO, INSTITUICAO, PERIODO FROM TBLCDSPCDFORM0 WHERE IDPCD = ? ORDER BY IDFORMACAO',
+    'SELECT IDFORMACAO, CURSO, INSTITUICAO, PERIODO FROM tblcdspcdform0 WHERE IDPCD = ? ORDER BY IDFORMACAO',
     [idPcd]
   );
 
@@ -104,8 +104,8 @@ export async function obterDetalhado(id: number): Promise<Record<string, unknown
 export async function confirmarRelacionamento(idPcd: number, idEmpresa: number): Promise<void> {
   const [linhas] = await pool.query<RowDataPacket[]>(
     `SELECT c.IDCANDIDATURA
-       FROM TBLCDSCAND0 c
-       INNER JOIN TBLCDSVAG0 v ON v.IDVAGA = c.IDVAGA
+       FROM tblcdscand0 c
+       INNER JOIN tblcdsvag0 v ON v.IDVAGA = c.IDVAGA
       WHERE c.IDPCD = ? AND v.IDEMPRESA = ?
       LIMIT 1`,
     [idPcd, idEmpresa]
@@ -131,7 +131,7 @@ export async function removerArquivo(pasta: string, nomeArquivo: string | null):
 
 async function garantirQueNaoDuplica(cpf: string, email: string): Promise<void> {
   const [linhas] = await pool.query<RowDataPacket[]>(
-    'SELECT CPF, EMAIL FROM TBLCDSUSR0 WHERE CPF = ? OR EMAIL = ?',
+    'SELECT CPF, EMAIL FROM tblcdsusr0 WHERE CPF = ? OR EMAIL = ?',
     [cpf, email]
   );
 
@@ -154,7 +154,7 @@ async function garantirQueNaoDuplica(cpf: string, email: string): Promise<void> 
 /** Confere que o e-mail não pertence a outro candidato, ao trocá-lo na edição do perfil. */
 async function garantirEmailDisponivel(email: string, idIgnorado: number): Promise<void> {
   const [linhas] = await pool.query<RowDataPacket[]>(
-    'SELECT IDPCD FROM TBLCDSUSR0 WHERE EMAIL = ? AND IDPCD <> ?',
+    'SELECT IDPCD FROM tblcdsusr0 WHERE EMAIL = ? AND IDPCD <> ?',
     [email, idIgnorado]
   );
 
@@ -206,7 +206,7 @@ export async function cadastrar(
     const senhaHash = await gerarHashSenha(dados.senha);
 
     const [resultado] = await conexao.execute<ResultSetHeader>(
-      `INSERT INTO TBLCDSUSR0 (NOME, EMAIL, TELEFONE, CPF, SENHA, TIPODEF, AVATAR, STATUSPCD)
+      `INSERT INTO tblcdsusr0 (NOME, EMAIL, TELEFONE, CPF, SENHA, TIPODEF, AVATAR, STATUSPCD)
        VALUES (?, ?, ?, ?, ?, ?, ?, 'ATIVO')`,
       [dados.nome, dados.email, dados.telefone, dados.cpf, senhaHash, dados.tipoDeficiencia, nomeArquivoAvatar]
     );
@@ -245,7 +245,7 @@ export async function atualizar(
     await conexao.beginTransaction();
 
     const [linhasAtuais] = await conexao.query<RowDataPacket[]>(
-      'SELECT AVATAR, CURRICULOPDF FROM TBLCDSUSR0 WHERE IDPCD = ? FOR UPDATE',
+      'SELECT AVATAR, CURRICULOPDF FROM tblcdsusr0 WHERE IDPCD = ? FOR UPDATE',
       [id]
     );
     const atual = linhasAtuais[0];
@@ -307,7 +307,7 @@ export async function atualizar(
 
     if (atribuicoes.length > 0) {
       parametros.push(id);
-      await conexao.execute(`UPDATE TBLCDSUSR0 SET ${atribuicoes.join(', ')} WHERE IDPCD = ?`, parametros);
+      await conexao.execute(`UPDATE tblcdsusr0 SET ${atribuicoes.join(', ')} WHERE IDPCD = ?`, parametros);
     }
 
     for (const chave of Object.keys(TABELAS_DE_ITENS) as ChaveDeItens[]) {
@@ -319,21 +319,21 @@ export async function atualizar(
     }
 
     if (dados.experiencias !== undefined) {
-      await conexao.query('DELETE FROM TBLCDSPCDEXP0 WHERE IDPCD = ?', [id]);
+      await conexao.query('DELETE FROM tblcdspcdexp0 WHERE IDPCD = ?', [id]);
       if (dados.experiencias.length > 0) {
         const valores = dados.experiencias.map((exp) => [id, exp.cargo, exp.empresa, exp.periodo, exp.descricao]);
         await conexao.query(
-          'INSERT INTO TBLCDSPCDEXP0 (IDPCD, CARGO, EMPRESA, PERIODO, DESCRICAO) VALUES ?',
+          'INSERT INTO tblcdspcdexp0 (IDPCD, CARGO, EMPRESA, PERIODO, DESCRICAO) VALUES ?',
           [valores]
         );
       }
     }
 
     if (dados.formacoes !== undefined) {
-      await conexao.query('DELETE FROM TBLCDSPCDFORM0 WHERE IDPCD = ?', [id]);
+      await conexao.query('DELETE FROM tblcdspcdform0 WHERE IDPCD = ?', [id]);
       if (dados.formacoes.length > 0) {
         const valores = dados.formacoes.map((form) => [id, form.curso, form.instituicao, form.periodo]);
-        await conexao.query('INSERT INTO TBLCDSPCDFORM0 (IDPCD, CURSO, INSTITUICAO, PERIODO) VALUES ?', [valores]);
+        await conexao.query('INSERT INTO tblcdspcdform0 (IDPCD, CURSO, INSTITUICAO, PERIODO) VALUES ?', [valores]);
       }
     }
 
@@ -361,8 +361,8 @@ export async function atualizar(
 export async function listarCandidaturas(idPcd: number): Promise<RowDataPacket[]> {
   const [linhas] = await pool.query<RowDataPacket[]>(
     `SELECT c.IDCANDIDATURA, c.IDVAGA, c.STATUSCANDIDATURA, c.DTCAD AS DTCANDIDATURA, v.TITULO
-     FROM TBLCDSCAND0 c
-     INNER JOIN TBLCDSVAG0 v ON v.IDVAGA = c.IDVAGA
+     FROM tblcdscand0 c
+     INNER JOIN tblcdsvag0 v ON v.IDVAGA = c.IDVAGA
      WHERE c.IDPCD = ?
      ORDER BY c.DTCAD DESC`,
     [idPcd]
@@ -381,9 +381,9 @@ export async function obterCandidatura(idPcd: number, idVaga: number): Promise<R
   const [linhas] = await pool.query<RowDataPacket[]>(
     `SELECT c.IDCANDIDATURA, c.IDVAGA, ${COLUNAS_PROCESSO}, c.CARTAAPRESENTACAO,
             v.TITULO, COALESCE(emp.FANTASIA, emp.RAZAO) AS NOMEEMPRESA
-     FROM TBLCDSCAND0 c
-     INNER JOIN TBLCDSVAG0 v ON v.IDVAGA = c.IDVAGA
-     LEFT JOIN TBLCDSEMP0 emp ON emp.IDEMPRESA = v.IDEMPRESA
+     FROM tblcdscand0 c
+     INNER JOIN tblcdsvag0 v ON v.IDVAGA = c.IDVAGA
+     LEFT JOIN tblcdsemp0 emp ON emp.IDEMPRESA = v.IDEMPRESA
      WHERE c.IDPCD = ? AND c.IDVAGA = ?`,
     [idPcd, idVaga]
   );

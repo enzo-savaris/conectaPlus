@@ -27,7 +27,7 @@ export type Sessao =
 
 async function autenticarUsuario(cpf: string, senha: string): Promise<Sessao> {
   const [linhas] = await pool.query<RowDataPacket[]>(
-    'SELECT IDPCD, NOME, EMAIL, CPF, SENHA, STATUSPCD FROM TBLCDSUSR0 WHERE CPF = ?',
+    'SELECT IDPCD, NOME, EMAIL, CPF, SENHA, STATUSPCD FROM tblcdsusr0 WHERE CPF = ?',
     [cpf]
   );
 
@@ -50,7 +50,7 @@ async function autenticarUsuario(cpf: string, senha: string): Promise<Sessao> {
 
 async function autenticarEmpresa(cnpj: string, senha: string): Promise<Sessao> {
   const [linhas] = await pool.query<RowDataPacket[]>(
-    'SELECT IDEMPRESA, RAZAO, FANTASIA, EMAIL, CNPJ, SENHA, STATUSEMP FROM TBLCDSEMP0 WHERE CNPJ = ?',
+    'SELECT IDEMPRESA, RAZAO, FANTASIA, EMAIL, CNPJ, SENHA, STATUSEMP FROM tblcdsemp0 WHERE CNPJ = ?',
     [cnpj]
   );
 

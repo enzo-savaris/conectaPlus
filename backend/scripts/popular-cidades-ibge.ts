@@ -2,7 +2,7 @@ import type { ResultSetHeader } from 'mysql2';
 import pool from '../src/config/dataBase.ts';
 
 /**
- * Popula TBLCDSCID0 com todos os municípios do Brasil, usando a API pública
+ * Popula tblcdscid0 com todos os municípios do Brasil, usando a API pública
  * do IBGE (gratuita, sem chave, sem limite de uso conhecido).
  *
  * Hoje a tabela só cresce organicamente: uma cidade só é cadastrada quando
@@ -56,7 +56,7 @@ async function inserirEmLotes(cidades: { nome: string; estado: string }[]): Prom
     const valores = lote.map((cidade) => [cidade.nome, cidade.estado]);
 
     const [resultado] = await pool.query<ResultSetHeader>(
-      'INSERT IGNORE INTO TBLCDSCID0 (NOME, ESTADO) VALUES ?',
+      'INSERT IGNORE INTO tblcdscid0 (NOME, ESTADO) VALUES ?',
       [valores]
     );
 
@@ -74,7 +74,7 @@ async function main(): Promise<void> {
 
   const totalInserido = await inserirEmLotes(cidades);
 
-  console.log(`Concluído: ${totalInserido} cidades novas inseridas em TBLCDSCID0.`);
+  console.log(`Concluído: ${totalInserido} cidades novas inseridas em tblcdscid0.`);
   await pool.end();
 }
 

@@ -19,7 +19,7 @@ import type { DadosAvaliacao, DadosMatricula, DadosPagamento } from '../utils/va
  * Fluxo de um curso pago:
  * 1. `matricular` cria a matrícula PENDENTE, guardando o preço do momento.
  * 2. `pagar` cria a cobrança no Mercado Pago (Pix ou cartão) e grava a
- *    tentativa na TBLCDSPAG0.
+ *    tentativa na tblcdspag0.
  * 3. Quando o Mercado Pago aprova — na hora (cartão), ou depois, quando o
  *    Pix é pago (avisado pelo webhook ou pela consulta que a tela faz a cada
  *    poucos segundos) — `aplicarStatus` marca o pagamento APROVADO e a
@@ -59,7 +59,7 @@ function statusDaPlataforma(statusMercadoPago: string): StatusPagamento {
 
 async function obterCursoParaMatricula(idCurso: number): Promise<RowDataPacket> {
   const [linhas] = await pool.query<RowDataPacket[]>(
-    'SELECT IDCURSO, TITULO, PRECO, STATUSCURSO FROM TBLCDSCURSO0 WHERE IDCURSO = ?',
+    'SELECT IDCURSO, TITULO, PRECO, STATUSCURSO FROM tblcdscurso0 WHERE IDCURSO = ?',
     [idCurso]
   );
 
@@ -72,10 +72,10 @@ async function obterCursoParaMatricula(idCurso: number): Promise<RowDataPacket> 
 }
 
 async function regravarNecessidades(conexao: PoolConnection, idMatricula: number, necessidades: string[]): Promise<void> {
-  await conexao.query('DELETE FROM TBLCDSMATRNEC0 WHERE IDMATRICULA = ?', [idMatricula]);
+  await conexao.query('DELETE FROM tblcdsmatrnec0 WHERE IDMATRICULA = ?', [idMatricula]);
 
   if (necessidades.length > 0) {
-    await conexao.query('INSERT INTO TBLCDSMATRNEC0 (IDMATRICULA, DESCRICAO) VALUES ?', [
+    await conexao.query('INSERT INTO tblcdsmatrnec0 (IDMATRICULA, DESCRICAO) VALUES ?', [
       necessidades.map((item) => [idMatricula, item])
     ]);
   }
@@ -97,7 +97,7 @@ export async function matricular(idCurso: number, dados: DadosMatricula): Promis
     await conexao.beginTransaction();
 
     const [existentes] = await conexao.query<RowDataPacket[]>(
-      'SELECT IDMATRICULA, STATUSMATRICULA FROM TBLCDSMATR0 WHERE IDCURSO = ? AND IDPCD = ? FOR UPDATE',
+      'SELECT IDMATRICULA, STATUSMATRICULA FROM tblcdsmatr0 WHERE IDCURSO = ? AND IDPCD = ? FOR UPDATE',
       [idCurso, dados.idPcd]
     );
     const existente = existentes[0];
@@ -113,14 +113,14 @@ export async function matricular(idCurso: number, dados: DadosMatricula): Promis
       // PENDENTE (voltou da etapa de pagamento) ou CANCELADA (estorno antigo):
       // recomeça com o preço atual do curso.
       await conexao.execute(
-        `UPDATE TBLCDSMATR0 SET VALOR = ?, OBSACESSIBILIDADE = ?, STATUSMATRICULA = ?,
+        `UPDATE tblcdsmatr0 SET VALOR = ?, OBSACESSIBILIDADE = ?, STATUSMATRICULA = ?,
            DTATIVACAO = ${valor === 0 ? 'NOW()' : 'NULL'}
          WHERE IDMATRICULA = ?`,
         [valor, dados.observacao, valor === 0 ? 'ATIVA' : 'PENDENTE', idMatricula]
       );
     } else {
       const [resultado] = await conexao.execute<ResultSetHeader>(
-        `INSERT INTO TBLCDSMATR0 (IDCURSO, IDPCD, VALOR, OBSACESSIBILIDADE, STATUSMATRICULA, DTATIVACAO)
+        `INSERT INTO tblcdsmatr0 (IDCURSO, IDPCD, VALOR, OBSACESSIBILIDADE, STATUSMATRICULA, DTATIVACAO)
          VALUES (?, ?, ?, ?, ?, ${valor === 0 ? 'NOW()' : 'NULL'})`,
         [idCurso, dados.idPcd, valor, dados.observacao, valor === 0 ? 'ATIVA' : 'PENDENTE']
       );
@@ -145,9 +145,9 @@ export async function obterMatricula(idPcd: number, idCurso: number): Promise<Re
     `SELECT m.IDMATRICULA, m.IDCURSO, m.VALOR, m.OBSACESSIBILIDADE, m.STATUSMATRICULA, m.DTCAD, m.DTATIVACAO,
             c.TITULO, c.CARGAHORARIA, c.NIVEL, c.CERTIFICADO,
             COALESCE(emp.FANTASIA, emp.RAZAO) AS NOMEEMPRESA
-     FROM TBLCDSMATR0 m
-     INNER JOIN TBLCDSCURSO0 c ON c.IDCURSO = m.IDCURSO
-     LEFT JOIN TBLCDSEMP0 emp ON emp.IDEMPRESA = c.IDEMPRESA
+     FROM tblcdsmatr0 m
+     INNER JOIN tblcdscurso0 c ON c.IDCURSO = m.IDCURSO
+     LEFT JOIN tblcdsemp0 emp ON emp.IDEMPRESA = c.IDEMPRESA
      WHERE m.IDPCD = ? AND m.IDCURSO = ?`,
     [idPcd, idCurso]
   );
@@ -161,7 +161,7 @@ export async function obterMatricula(idPcd: number, idCurso: number): Promise<Re
 
   const [[necessidades], ultimoPagamento] = await Promise.all([
     pool.query<RowDataPacket[]>(
-      'SELECT DESCRICAO FROM TBLCDSMATRNEC0 WHERE IDMATRICULA = ? ORDER BY IDNECESSIDADE',
+      'SELECT DESCRICAO FROM tblcdsmatrnec0 WHERE IDMATRICULA = ? ORDER BY IDNECESSIDADE',
       [idMatricula]
     ),
     buscarUltimoPagamento(idMatricula)
@@ -178,8 +178,8 @@ export async function obterMatricula(idPcd: number, idCurso: number): Promise<Re
 export async function listarMatriculas(idPcd: number): Promise<RowDataPacket[]> {
   const [linhas] = await pool.query<RowDataPacket[]>(
     `SELECT m.IDMATRICULA, m.IDCURSO, m.STATUSMATRICULA, m.DTCAD, m.DTATIVACAO, m.DTCONCLUSAO, c.TITULO
-     FROM TBLCDSMATR0 m
-     INNER JOIN TBLCDSCURSO0 c ON c.IDCURSO = m.IDCURSO
+     FROM tblcdsmatr0 m
+     INNER JOIN tblcdscurso0 c ON c.IDCURSO = m.IDCURSO
      WHERE m.IDPCD = ? AND m.STATUSMATRICULA <> 'CANCELADA'
      ORDER BY m.DTCAD DESC`,
     [idPcd]
@@ -190,7 +190,7 @@ export async function listarMatriculas(idPcd: number): Promise<RowDataPacket[]> 
 
 async function buscarUltimoPagamento(idMatricula: number): Promise<RowDataPacket | null> {
   const [linhas] = await pool.query<RowDataPacket[]>(
-    `SELECT ${COLUNAS_PAGAMENTO} FROM TBLCDSPAG0 WHERE IDMATRICULA = ? ORDER BY IDPAGAMENTO DESC LIMIT 1`,
+    `SELECT ${COLUNAS_PAGAMENTO} FROM tblcdspag0 WHERE IDMATRICULA = ? ORDER BY IDPAGAMENTO DESC LIMIT 1`,
     [idMatricula]
   );
 
@@ -205,7 +205,7 @@ async function obterMatriculaDoCandidato(
 ): Promise<RowDataPacket> {
   const [linhas] = await conexao.query<RowDataPacket[]>(
     `SELECT m.IDMATRICULA, m.IDCURSO, m.VALOR, m.STATUSMATRICULA, c.TITULO
-     FROM TBLCDSMATR0 m INNER JOIN TBLCDSCURSO0 c ON c.IDCURSO = m.IDCURSO
+     FROM tblcdsmatr0 m INNER JOIN tblcdscurso0 c ON c.IDCURSO = m.IDCURSO
      WHERE m.IDMATRICULA = ? AND m.IDPCD = ? FOR UPDATE`,
     [idMatricula, idPcd]
   );
@@ -241,7 +241,7 @@ export async function pagar(idMatricula: number, dados: DadosPagamento): Promise
 
     if (dados.metodo === 'PIX') {
       const [pixAberto] = await conexao.query<RowDataPacket[]>(
-        `SELECT IDPAGAMENTO FROM TBLCDSPAG0
+        `SELECT IDPAGAMENTO FROM tblcdspag0
          WHERE IDMATRICULA = ? AND METODO = 'PIX' AND STATUSPAGAMENTO = 'PENDENTE'
            AND IDEXTERNO IS NOT NULL AND PIXEXPIRACAO > NOW()
          ORDER BY IDPAGAMENTO DESC LIMIT 1`,
@@ -254,7 +254,7 @@ export async function pagar(idMatricula: number, dados: DadosPagamento): Promise
     }
 
     const [resultado] = await conexao.execute<ResultSetHeader>(
-      'INSERT INTO TBLCDSPAG0 (IDMATRICULA, METODO, VALOR, PARCELAS) VALUES (?, ?, ?, ?)',
+      'INSERT INTO tblcdspag0 (IDMATRICULA, METODO, VALOR, PARCELAS) VALUES (?, ?, ?, ?)',
       [idMatricula, dados.metodo, matricula['VALOR'], dados.metodo === 'CARTAO' ? dados.parcelas : 1]
     );
     idPagamento = resultado.insertId;
@@ -268,7 +268,7 @@ export async function pagar(idMatricula: number, dados: DadosPagamento): Promise
   }
 
   const [[usuario]] = await pool.query<RowDataPacket[]>(
-    'SELECT NOME, EMAIL, CPF FROM TBLCDSUSR0 WHERE IDPCD = ?',
+    'SELECT NOME, EMAIL, CPF FROM tblcdsusr0 WHERE IDPCD = ?',
     [dados.idPcd]
   );
   if (!usuario?.['EMAIL']) {
@@ -327,7 +327,7 @@ export async function pagar(idMatricula: number, dados: DadosPagamento): Promise
 }
 
 async function marcarFalha(idPagamento: number, detalhe: string): Promise<void> {
-  await pool.execute("UPDATE TBLCDSPAG0 SET STATUSPAGAMENTO = 'CANCELADO', DETALHESTATUS = ? WHERE IDPAGAMENTO = ?", [
+  await pool.execute("UPDATE tblcdspag0 SET STATUSPAGAMENTO = 'CANCELADO', DETALHESTATUS = ? WHERE IDPAGAMENTO = ?", [
     detalhe,
     idPagamento
   ]);
@@ -336,7 +336,7 @@ async function marcarFalha(idPagamento: number, detalhe: string): Promise<void> 
 async function obterPagamento(idPagamento: number): Promise<Record<string, unknown>> {
   const [linhas] = await pool.query<RowDataPacket[]>(
     `SELECT p.${COLUNAS_PAGAMENTO.split(',').map((c) => c.trim()).join(', p.')}, m.STATUSMATRICULA
-     FROM TBLCDSPAG0 p INNER JOIN TBLCDSMATR0 m ON m.IDMATRICULA = p.IDMATRICULA
+     FROM tblcdspag0 p INNER JOIN tblcdsmatr0 m ON m.IDMATRICULA = p.IDMATRICULA
      WHERE p.IDPAGAMENTO = ?`,
     [idPagamento]
   );
@@ -385,7 +385,7 @@ async function gravarStatus(
 
     const [linhas] = await conexao.query<RowDataPacket[]>(
       `SELECT p.IDPAGAMENTO, p.IDMATRICULA, p.VALOR, p.STATUSPAGAMENTO, m.STATUSMATRICULA
-       FROM TBLCDSPAG0 p INNER JOIN TBLCDSMATR0 m ON m.IDMATRICULA = p.IDMATRICULA
+       FROM tblcdspag0 p INNER JOIN tblcdsmatr0 m ON m.IDMATRICULA = p.IDMATRICULA
        WHERE p.IDPAGAMENTO = ? FOR UPDATE`,
       [idPagamento]
     );
@@ -409,7 +409,7 @@ async function gravarStatus(
     const pix = pagamento.point_of_interaction?.transaction_data;
 
     await conexao.execute(
-      `UPDATE TBLCDSPAG0 SET IDEXTERNO = ?, STATUSPAGAMENTO = ?, DETALHESTATUS = ?, PARCELAS = ?
+      `UPDATE tblcdspag0 SET IDEXTERNO = ?, STATUSPAGAMENTO = ?, DETALHESTATUS = ?, PARCELAS = ?
          ${dadosDeCriacao ? ', PIXCOPIACOLA = ?, PIXQRCODE = ?, PIXEXPIRACAO = ?, CARTAOBANDEIRA = ?, CARTAOFINAL = ?' : ''}
        WHERE IDPAGAMENTO = ?`,
       [
@@ -437,7 +437,7 @@ async function gravarStatus(
         pendencia = { tipo: 'reembolsarDuplicado', idExterno: String(pagamento.id) };
       } else {
         await conexao.execute(
-          "UPDATE TBLCDSMATR0 SET STATUSMATRICULA = 'ATIVA', DTATIVACAO = NOW() WHERE IDMATRICULA = ?",
+          "UPDATE tblcdsmatr0 SET STATUSMATRICULA = 'ATIVA', DTATIVACAO = NOW() WHERE IDMATRICULA = ?",
           [atual['IDMATRICULA']]
         );
         pendencia = { tipo: 'cancelarOutros', idMatricula: atual['IDMATRICULA'] as number };
@@ -448,11 +448,11 @@ async function gravarStatus(
       // Só bloqueia o curso se não sobrou nenhum outro pagamento aprovado —
       // devolver um pagamento duplicado não pode tirar o acesso de quem pagou.
       const [outrosAprovados] = await conexao.query<RowDataPacket[]>(
-        "SELECT IDPAGAMENTO FROM TBLCDSPAG0 WHERE IDMATRICULA = ? AND IDPAGAMENTO <> ? AND STATUSPAGAMENTO = 'APROVADO' LIMIT 1",
+        "SELECT IDPAGAMENTO FROM tblcdspag0 WHERE IDMATRICULA = ? AND IDPAGAMENTO <> ? AND STATUSPAGAMENTO = 'APROVADO' LIMIT 1",
         [atual['IDMATRICULA'], idPagamento]
       );
       if (outrosAprovados.length === 0) {
-        await conexao.execute("UPDATE TBLCDSMATR0 SET STATUSMATRICULA = 'CANCELADA' WHERE IDMATRICULA = ?", [
+        await conexao.execute("UPDATE tblcdsmatr0 SET STATUSMATRICULA = 'CANCELADA' WHERE IDMATRICULA = ?", [
           atual['IDMATRICULA']
         ]);
       }
@@ -472,7 +472,7 @@ async function gravarStatus(
 /** Cancela no Mercado Pago os outros pagamentos ainda abertos da matrícula que acabou de ser paga. */
 async function cancelarOutrosPendentes(idMatricula: number, idPagamentoAprovado: number): Promise<void> {
   const [pendentes] = await pool.query<RowDataPacket[]>(
-    `SELECT IDPAGAMENTO, IDEXTERNO FROM TBLCDSPAG0
+    `SELECT IDPAGAMENTO, IDEXTERNO FROM tblcdspag0
      WHERE IDMATRICULA = ? AND IDPAGAMENTO <> ? AND STATUSPAGAMENTO = 'PENDENTE' AND IDEXTERNO IS NOT NULL`,
     [idMatricula, idPagamentoAprovado]
   );
@@ -487,7 +487,7 @@ async function cancelarOutrosPendentes(idMatricula: number, idPagamentoAprovado:
         continue;
       }
       await pool.execute(
-        "UPDATE TBLCDSPAG0 SET STATUSPAGAMENTO = 'CANCELADO', DETALHESTATUS = 'cancelado_outro_pagamento_aprovado' WHERE IDPAGAMENTO = ?",
+        "UPDATE tblcdspag0 SET STATUSPAGAMENTO = 'CANCELADO', DETALHESTATUS = 'cancelado_outro_pagamento_aprovado' WHERE IDPAGAMENTO = ?",
         [pendente['IDPAGAMENTO']]
       );
     } catch (erro) {
@@ -503,12 +503,12 @@ async function reembolsarDuplicado(idPagamento: number, idExterno: string): Prom
   try {
     await reembolsarPagamentoMercadoPago(idExterno);
     await pool.execute(
-      "UPDATE TBLCDSPAG0 SET STATUSPAGAMENTO = 'ESTORNADO', DETALHESTATUS = 'reembolsado_pagamento_duplicado' WHERE IDPAGAMENTO = ?",
+      "UPDATE tblcdspag0 SET STATUSPAGAMENTO = 'ESTORNADO', DETALHESTATUS = 'reembolsado_pagamento_duplicado' WHERE IDPAGAMENTO = ?",
       [idPagamento]
     );
     console.warn(`Pagamento ${idExterno} era duplicado e foi devolvido automaticamente.`);
   } catch (erro) {
-    await pool.execute("UPDATE TBLCDSPAG0 SET DETALHESTATUS = 'duplicado_devolver_manual' WHERE IDPAGAMENTO = ?", [
+    await pool.execute("UPDATE tblcdspag0 SET DETALHESTATUS = 'duplicado_devolver_manual' WHERE IDPAGAMENTO = ?", [
       idPagamento
     ]);
     console.error(`ATENÇÃO: pagamento ${idExterno} foi pago em duplicidade e precisa ser devolvido pelo painel do Mercado Pago.`, erro);
@@ -524,7 +524,7 @@ async function reembolsarDuplicado(idPagamento: number, idExterno: string): Prom
 export async function consultarUltimoPagamento(idMatricula: number, idPcd: number): Promise<Record<string, unknown>> {
   const [linhas] = await pool.query<RowDataPacket[]>(
     `SELECT p.IDPAGAMENTO, p.IDEXTERNO, p.STATUSPAGAMENTO
-     FROM TBLCDSPAG0 p INNER JOIN TBLCDSMATR0 m ON m.IDMATRICULA = p.IDMATRICULA
+     FROM tblcdspag0 p INNER JOIN tblcdsmatr0 m ON m.IDMATRICULA = p.IDMATRICULA
      WHERE p.IDMATRICULA = ? AND m.IDPCD = ?
      ORDER BY p.IDPAGAMENTO DESC LIMIT 1`,
     [idMatricula, idPcd]
@@ -550,7 +550,7 @@ export async function consultarUltimoPagamento(idMatricula: number, idPcd: numbe
 export async function processarNotificacao(idExterno: string): Promise<void> {
   const pagamento = await consultarPagamentoMercadoPago(idExterno);
 
-  const [linhas] = await pool.query<RowDataPacket[]>('SELECT IDPAGAMENTO FROM TBLCDSPAG0 WHERE IDEXTERNO = ?', [
+  const [linhas] = await pool.query<RowDataPacket[]>('SELECT IDPAGAMENTO FROM tblcdspag0 WHERE IDEXTERNO = ?', [
     String(pagamento.id)
   ]);
 
@@ -566,7 +566,7 @@ export async function processarNotificacao(idExterno: string): Promise<void> {
 /** Avaliação do curso (1 a 5 estrelas). Só quem tem matrícula ATIVA pode avaliar; avaliar de novo substitui a nota. */
 export async function avaliar(idCurso: number, dados: DadosAvaliacao): Promise<void> {
   const [linhas] = await pool.query<RowDataPacket[]>(
-    "SELECT IDMATRICULA FROM TBLCDSMATR0 WHERE IDCURSO = ? AND IDPCD = ? AND STATUSMATRICULA = 'ATIVA'",
+    "SELECT IDMATRICULA FROM tblcdsmatr0 WHERE IDCURSO = ? AND IDPCD = ? AND STATUSMATRICULA = 'ATIVA'",
     [idCurso, dados.idPcd]
   );
 
@@ -575,7 +575,7 @@ export async function avaliar(idCurso: number, dados: DadosAvaliacao): Promise<v
   }
 
   await pool.execute(
-    `INSERT INTO TBLCDSCURSOAVAL0 (IDCURSO, IDPCD, NOTA, COMENTARIO) VALUES (?, ?, ?, ?)
+    `INSERT INTO tblcdscursoaval0 (IDCURSO, IDPCD, NOTA, COMENTARIO) VALUES (?, ?, ?, ?)
      ON DUPLICATE KEY UPDATE NOTA = VALUES(NOTA), COMENTARIO = VALUES(COMENTARIO), DTCAD = NOW()`,
     [idCurso, dados.idPcd, dados.nota, dados.comentario]
   );
@@ -590,7 +590,7 @@ export async function marcarConclusao(idCurso: number, idPcd: number, concluido:
   const curso = await obterCursoParaMatricula(idCurso);
 
   const [linhas] = await pool.query<RowDataPacket[]>(
-    'SELECT IDMATRICULA, STATUSMATRICULA FROM TBLCDSMATR0 WHERE IDCURSO = ? AND IDPCD = ?',
+    'SELECT IDMATRICULA, STATUSMATRICULA FROM tblcdsmatr0 WHERE IDCURSO = ? AND IDPCD = ?',
     [idCurso, idPcd]
   );
   let matricula = linhas[0];
@@ -598,7 +598,7 @@ export async function marcarConclusao(idCurso: number, idPcd: number, concluido:
   if (!matricula && !ehPago(curso)) {
     await matricular(idCurso, { idPcd, necessidades: [], observacao: null });
     [[matricula]] = await pool.query<RowDataPacket[]>(
-      'SELECT IDMATRICULA, STATUSMATRICULA FROM TBLCDSMATR0 WHERE IDCURSO = ? AND IDPCD = ?',
+      'SELECT IDMATRICULA, STATUSMATRICULA FROM tblcdsmatr0 WHERE IDCURSO = ? AND IDPCD = ?',
       [idCurso, idPcd]
     );
   }
@@ -607,12 +607,12 @@ export async function marcarConclusao(idCurso: number, idPcd: number, concluido:
     throw new ErroApp(403, 'Matricule-se no curso para marcar a conclusão.');
   }
 
-  await pool.execute(`UPDATE TBLCDSMATR0 SET DTCONCLUSAO = ${concluido ? 'NOW()' : 'NULL'} WHERE IDMATRICULA = ?`, [
+  await pool.execute(`UPDATE tblcdsmatr0 SET DTCONCLUSAO = ${concluido ? 'NOW()' : 'NULL'} WHERE IDMATRICULA = ?`, [
     matricula['IDMATRICULA']
   ]);
 
   const [[atualizada]] = await pool.query<RowDataPacket[]>(
-    'SELECT IDMATRICULA, STATUSMATRICULA, DTCAD, DTATIVACAO, DTCONCLUSAO FROM TBLCDSMATR0 WHERE IDMATRICULA = ?',
+    'SELECT IDMATRICULA, STATUSMATRICULA, DTCAD, DTATIVACAO, DTCONCLUSAO FROM tblcdsmatr0 WHERE IDMATRICULA = ?',
     [matricula['IDMATRICULA']]
   );
   return atualizada!;
@@ -624,7 +624,7 @@ export async function marcarConclusao(idCurso: number, idPcd: number, concluido:
  * concluiu. Lança 404 se o curso não for da empresa.
  */
 export async function listarInscritos(idCurso: number, idEmpresa: number): Promise<RowDataPacket[]> {
-  const [cursos] = await pool.query<RowDataPacket[]>('SELECT IDCURSO FROM TBLCDSCURSO0 WHERE IDCURSO = ? AND IDEMPRESA = ?', [
+  const [cursos] = await pool.query<RowDataPacket[]>('SELECT IDCURSO FROM tblcdscurso0 WHERE IDCURSO = ? AND IDEMPRESA = ?', [
     idCurso,
     idEmpresa
   ]);
@@ -637,12 +637,12 @@ export async function listarInscritos(idCurso: number, idEmpresa: number): Promi
             u.IDPCD, u.NOME, u.EMAIL,
             p.METODO, p.STATUSPAGAMENTO, p.PARCELAS, p.DTATUALIZACAO AS DTPAGAMENTO,
             (SELECT GROUP_CONCAT(n.DESCRICAO ORDER BY n.IDNECESSIDADE SEPARATOR '||')
-               FROM TBLCDSMATRNEC0 n WHERE n.IDMATRICULA = m.IDMATRICULA) AS NECESSIDADES
-     FROM TBLCDSMATR0 m
-     INNER JOIN TBLCDSUSR0 u ON u.IDPCD = m.IDPCD
-     LEFT JOIN TBLCDSPAG0 p ON p.IDPAGAMENTO = (
+               FROM tblcdsmatrnec0 n WHERE n.IDMATRICULA = m.IDMATRICULA) AS NECESSIDADES
+     FROM tblcdsmatr0 m
+     INNER JOIN tblcdsusr0 u ON u.IDPCD = m.IDPCD
+     LEFT JOIN tblcdspag0 p ON p.IDPAGAMENTO = (
        -- Pagamento que importa: o aprovado, se houver; senão a tentativa mais recente.
-       SELECT p2.IDPAGAMENTO FROM TBLCDSPAG0 p2 WHERE p2.IDMATRICULA = m.IDMATRICULA
+       SELECT p2.IDPAGAMENTO FROM tblcdspag0 p2 WHERE p2.IDMATRICULA = m.IDMATRICULA
        ORDER BY (p2.STATUSPAGAMENTO = 'APROVADO') DESC, p2.IDPAGAMENTO DESC LIMIT 1
      )
      WHERE m.IDCURSO = ?

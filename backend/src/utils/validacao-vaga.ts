@@ -12,12 +12,12 @@ const TIPOS_CONTRATACAO = ['CLT', 'PJ', 'ESTAGIO', 'TEMPORARIO', 'FREELANCER'] a
 export type ModeloTrabalho = (typeof MODELOS_TRABALHO)[number];
 export type TipoContratacao = (typeof TIPOS_CONTRATACAO)[number];
 
-/** Vaga já validada e pronta para gravar na TBLCDSVAG0 e nas tabelas filhas. */
+/** Vaga já validada e pronta para gravar na tblcdsvag0 e nas tabelas filhas. */
 export interface DadosVaga {
   titulo: string;
   area: string | null;
   descricao: string;
-  /** Escolhida no combobox de cidades (ligado à TBLCDSCID0); `null` quando não informada. */
+  /** Escolhida no combobox de cidades (ligado à tblcdscid0); `null` quando não informada. */
   idCidade: number | null;
   modeloTrabalho: ModeloTrabalho;
   tipoContratacao: TipoContratacao;

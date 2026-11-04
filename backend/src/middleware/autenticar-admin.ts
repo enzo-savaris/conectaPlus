@@ -34,7 +34,7 @@ export async function autenticarAdmin(requisicao: Request, resposta: Response, p
 
   try {
     const [linhas] = await pool.query<RowDataPacket[]>(
-      "SELECT IDADMIN, NOME, EMAIL FROM TBLCDSADM0 WHERE IDADMIN = ? AND STATUSADM = 'ATIVO'",
+      "SELECT IDADMIN, NOME, EMAIL FROM tblcdsadm0 WHERE IDADMIN = ? AND STATUSADM = 'ATIVO'",
       [id]
     );
     const admin = linhas[0];

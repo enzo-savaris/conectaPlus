@@ -11,7 +11,7 @@ const TIPOS_DEFICIENCIA = ['FISICA', 'AUDITIVA', 'VISUAL', 'INTELECTUAL', 'MULTI
 
 export type TipoDeficiencia = (typeof TIPOS_DEFICIENCIA)[number];
 
-/** Candidato já validado e pronto para gravar na TBLCDSUSR0 e nas tabelas filhas. */
+/** Candidato já validado e pronto para gravar na tblcdsusr0 e nas tabelas filhas. */
 export interface DadosCandidato {
   nome: string;
   email: string;

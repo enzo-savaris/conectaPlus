@@ -15,7 +15,7 @@ export interface RespostaPergunta {
   resposta: string;
 }
 
-/** Candidatura já validada e pronta para gravar na TBLCDSCAND0 e na TBLCDSCANDRESP0. */
+/** Candidatura já validada e pronta para gravar na tblcdscand0 e na tblcdscandresp0. */
 export interface DadosCandidatura {
   idPcd: number;
   cartaApresentacao: string | null;

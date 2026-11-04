@@ -8,18 +8,18 @@ const COLUNAS = 'IDCIDADE, NOME, ESTADO';
 export async function buscar(termo?: string): Promise<RowDataPacket[]> {
   if (termo) {
     const [linhas] = await pool.query<RowDataPacket[]>(
-      `SELECT ${COLUNAS} FROM TBLCDSCID0 WHERE NOME LIKE ? ORDER BY NOME LIMIT 20`,
+      `SELECT ${COLUNAS} FROM tblcdscid0 WHERE NOME LIKE ? ORDER BY NOME LIMIT 20`,
       [`%${termo}%`]
     );
     return linhas;
   }
 
-  const [linhas] = await pool.query<RowDataPacket[]>(`SELECT ${COLUNAS} FROM TBLCDSCID0 ORDER BY NOME LIMIT 20`);
+  const [linhas] = await pool.query<RowDataPacket[]>(`SELECT ${COLUNAS} FROM tblcdscid0 ORDER BY NOME LIMIT 20`);
   return linhas;
 }
 
 export async function obterPorId(id: number): Promise<RowDataPacket> {
-  const [linhas] = await pool.query<RowDataPacket[]>(`SELECT ${COLUNAS} FROM TBLCDSCID0 WHERE IDCIDADE = ?`, [id]);
+  const [linhas] = await pool.query<RowDataPacket[]>(`SELECT ${COLUNAS} FROM tblcdscid0 WHERE IDCIDADE = ?`, [id]);
 
   if (!linhas[0]) {
     throw erroNaoEncontrado('Cidade não encontrada.');
@@ -34,7 +34,7 @@ export async function obterPorId(id: number): Promise<RowDataPacket> {
  * violação de chave estrangeira do MySQL.
  */
 export async function confirmarExiste(executor: Pool | PoolConnection, id: number): Promise<void> {
-  const [linhas] = await executor.query<RowDataPacket[]>('SELECT IDCIDADE FROM TBLCDSCID0 WHERE IDCIDADE = ?', [id]);
+  const [linhas] = await executor.query<RowDataPacket[]>('SELECT IDCIDADE FROM tblcdscid0 WHERE IDCIDADE = ?', [id]);
 
   if (!linhas[0]) {
     throw erroDeValidacao({ idCidade: 'Cidade inválida. Busque e selecione uma cidade da lista.' });
@@ -43,7 +43,7 @@ export async function confirmarExiste(executor: Pool | PoolConnection, id: numbe
 
 /**
  * Resolve o id de uma cidade a partir do nome + UF, criando a linha em
- * TBLCDSCID0 na primeira vez que aquela combinação aparece (ex: quando vem
+ * tblcdscid0 na primeira vez que aquela combinação aparece (ex: quando vem
  * de uma busca por CEP). Da segunda vez em diante, reaproveita o mesmo id.
  */
 export async function resolverOuCriar(
@@ -52,7 +52,7 @@ export async function resolverOuCriar(
   estado: string
 ): Promise<RowDataPacket> {
   const [existentes] = await executor.query<RowDataPacket[]>(
-    `SELECT ${COLUNAS} FROM TBLCDSCID0 WHERE NOME = ? AND ESTADO = ?`,
+    `SELECT ${COLUNAS} FROM tblcdscid0 WHERE NOME = ? AND ESTADO = ?`,
     [nome, estado]
   );
 
@@ -61,7 +61,7 @@ export async function resolverOuCriar(
   }
 
   const [resultado] = await executor.execute<ResultSetHeader>(
-    'INSERT INTO TBLCDSCID0 (NOME, ESTADO) VALUES (?, ?)',
+    'INSERT INTO tblcdscid0 (NOME, ESTADO) VALUES (?, ?)',
     [nome, estado]
   );
 
@@ -77,7 +77,7 @@ interface RespostaViaCep {
 
 /**
  * Busca o endereço do CEP na ViaCEP (serviço público, sem chave de API) e
- * resolve/cria a cidade correspondente em TBLCDSCID0.
+ * resolve/cria a cidade correspondente em tblcdscid0.
  */
 export async function buscarPorCep(cep: string): Promise<RowDataPacket> {
   let resposta: Response;

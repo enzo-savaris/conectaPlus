@@ -101,7 +101,7 @@ export const ESTADOS = [
 export type StatusEmpresa = 'ATIVA' | 'INATIVA' | 'PENDENTE';
 
 /**
- * Empresa já validada e pronta para gravar na TBLCDSEMP0. Só `telefone` e
+ * Empresa já validada e pronta para gravar na tblcdsemp0. Só `telefone` e
  * `complemento` são realmente opcionais — o resto compõe a identificação e o
  * endereço mínimos pra empresa aparecer corretamente na plataforma.
  */

@@ -10,7 +10,7 @@ const COLUNAS = `IDEMPRESA, RAZAO, FANTASIA, CNPJ, EMAIL, TELEFONE, CEP,
 type ValorSql = string | number | null;
 
 /**
- * Tradução entre os campos da API e as colunas da TBLCDSEMP0. `status` fica
+ * Tradução entre os campos da API e as colunas da tblcdsemp0. `status` fica
  * de fora de propósito: quem decide o status final na atualização é a regra
  * de revalidação em `atualizar`, não uma atribuição direta genérica.
  */
@@ -38,7 +38,7 @@ async function garantirQueNaoDuplica(cnpj: string | undefined, idIgnorado?: numb
   }
 
   const parametros: ValorSql[] = [cnpj];
-  let sql = 'SELECT CNPJ FROM TBLCDSEMP0 WHERE CNPJ = ?';
+  let sql = 'SELECT CNPJ FROM tblcdsemp0 WHERE CNPJ = ?';
 
   if (idIgnorado !== undefined) {
     sql += ' AND IDEMPRESA <> ?';
@@ -69,7 +69,7 @@ export async function garantirEmpresaAtiva(idEmpresa: number): Promise<void> {
 
 export async function buscarPorId(id: number): Promise<RowDataPacket | null> {
   const [linhas] = await pool.query<RowDataPacket[]>(
-    `SELECT ${COLUNAS} FROM TBLCDSEMP0 WHERE IDEMPRESA = ?`,
+    `SELECT ${COLUNAS} FROM tblcdsemp0 WHERE IDEMPRESA = ?`,
     [id]
   );
 
@@ -90,7 +90,7 @@ export async function listar(busca?: string): Promise<RowDataPacket[]> {
   if (busca) {
     const termo = `%${busca}%`;
     const [linhas] = await pool.query<RowDataPacket[]>(
-      `SELECT ${COLUNAS} FROM TBLCDSEMP0
+      `SELECT ${COLUNAS} FROM tblcdsemp0
        WHERE RAZAO LIKE ? OR FANTASIA LIKE ? OR CNPJ LIKE ?
        ORDER BY RAZAO`,
       [termo, termo, termo]
@@ -99,7 +99,7 @@ export async function listar(busca?: string): Promise<RowDataPacket[]> {
   }
 
   const [linhas] = await pool.query<RowDataPacket[]>(
-    `SELECT ${COLUNAS} FROM TBLCDSEMP0 ORDER BY RAZAO`
+    `SELECT ${COLUNAS} FROM tblcdsemp0 ORDER BY RAZAO`
   );
 
   return linhas;
@@ -111,7 +111,7 @@ export async function cadastrar(dados: DadosEmpresa): Promise<RowDataPacket> {
   const senhaHash = await gerarHashSenha(dados.senha);
 
   const [resultado] = await pool.execute<ResultSetHeader>(
-    `INSERT INTO TBLCDSEMP0
+    `INSERT INTO tblcdsemp0
       (RAZAO, FANTASIA, CNPJ, EMAIL, TELEFONE, CEP, NUMERO,
        COMPLEMENTO, BAIRRO, CIDADE, ESTADO, SENHA, STATUSEMP)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -183,7 +183,7 @@ export async function atualizar(
   parametros.push(id);
 
   await pool.execute<ResultSetHeader>(
-    `UPDATE TBLCDSEMP0 SET ${atribuicoes.join(', ')} WHERE IDEMPRESA = ?`,
+    `UPDATE tblcdsemp0 SET ${atribuicoes.join(', ')} WHERE IDEMPRESA = ?`,
     parametros
   );
 
@@ -201,18 +201,18 @@ export async function obterResumoPainel(idEmpresa: number): Promise<ResumoPainel
   await obterPorId(idEmpresa);
 
   const [[vagas]] = await pool.query<RowDataPacket[]>(
-    'SELECT COUNT(*) AS TOTAL FROM TBLCDSVAG0 WHERE IDEMPRESA = ?',
+    'SELECT COUNT(*) AS TOTAL FROM tblcdsvag0 WHERE IDEMPRESA = ?',
     [idEmpresa]
   );
 
   const [[cursos]] = await pool.query<RowDataPacket[]>(
-    'SELECT COUNT(*) AS TOTAL FROM TBLCDSCURSO0 WHERE IDEMPRESA = ?',
+    'SELECT COUNT(*) AS TOTAL FROM tblcdscurso0 WHERE IDEMPRESA = ?',
     [idEmpresa]
   );
 
   const [[inscricoes]] = await pool.query<RowDataPacket[]>(
-    `SELECT COUNT(*) AS TOTAL FROM TBLCDSCAND0 c
-     INNER JOIN TBLCDSVAG0 v ON v.IDVAGA = c.IDVAGA
+    `SELECT COUNT(*) AS TOTAL FROM tblcdscand0 c
+     INNER JOIN tblcdsvag0 v ON v.IDVAGA = c.IDVAGA
      WHERE v.IDEMPRESA = ?`,
     [idEmpresa]
   );
@@ -234,9 +234,9 @@ export async function listarCandidatosRelacionados(idEmpresa: number): Promise<R
 
   const [linhas] = await pool.query<RowDataPacket[]>(
     `SELECT DISTINCT u.IDPCD, u.NOME, u.EMAIL, u.TELEFONE, u.SOBREMIM, u.TIPODEF, u.CIDADE, u.ESTADO
-     FROM TBLCDSCAND0 c
-     INNER JOIN TBLCDSVAG0 v ON v.IDVAGA = c.IDVAGA
-     INNER JOIN TBLCDSUSR0 u ON u.IDPCD = c.IDPCD
+     FROM tblcdscand0 c
+     INNER JOIN tblcdsvag0 v ON v.IDVAGA = c.IDVAGA
+     INNER JOIN tblcdsusr0 u ON u.IDPCD = c.IDPCD
      WHERE v.IDEMPRESA = ?
      ORDER BY u.NOME`,
     [idEmpresa]
@@ -248,7 +248,7 @@ export async function listarCandidatosRelacionados(idEmpresa: number): Promise<R
 /** Remove a empresa. Lança 404 se o id não existir. */
 export async function remover(id: number): Promise<void> {
   const [resultado] = await pool.execute<ResultSetHeader>(
-    'DELETE FROM TBLCDSEMP0 WHERE IDEMPRESA = ?',
+    'DELETE FROM tblcdsemp0 WHERE IDEMPRESA = ?',
     [id]
   );
 

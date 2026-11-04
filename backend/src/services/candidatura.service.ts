@@ -6,10 +6,10 @@ import { erroDeConflito, erroNaoEncontrado } from '../utils/erro-app.ts';
 import type { DadosEtapaCandidatura } from '../utils/validacao-etapa-candidatura.ts';
 
 /**
- * Processo seletivo de uma candidatura (TBLCDSCAND0), do ponto de vista da
+ * Processo seletivo de uma candidatura (tblcdscand0), do ponto de vista da
  * empresa dona da vaga: consultar tudo que o candidato enviou e avançar as
  * etapas (análise → entrevista → contratação ou encerramento). Cada mudança
- * de etapa vira uma linha na TBLCDSCANDHIST0.
+ * de etapa vira uma linha na tblcdscandhist0.
  */
 
 /**
@@ -41,7 +41,7 @@ const ETAPAS_DE_ORIGEM: Record<DadosEtapaCandidatura['acao'], string[]> = {
 /** Data/hora em que a candidatura entrou em cada etapa, na ordem em que aconteceu. */
 export async function listarHistorico(idCandidatura: number): Promise<RowDataPacket[]> {
   const [linhas] = await pool.query<RowDataPacket[]>(
-    `SELECT STATUSCANDIDATURA, DTCAD FROM TBLCDSCANDHIST0
+    `SELECT STATUSCANDIDATURA, DTCAD FROM tblcdscandhist0
      WHERE IDCANDIDATURA = ? ORDER BY DTCAD, IDHISTORICO`,
     [idCandidatura]
   );
@@ -54,7 +54,7 @@ export async function registrarHistorico(
   idCandidatura: number,
   status: string
 ): Promise<void> {
-  await conexao.execute('INSERT INTO TBLCDSCANDHIST0 (IDCANDIDATURA, STATUSCANDIDATURA) VALUES (?, ?)', [
+  await conexao.execute('INSERT INTO tblcdscandhist0 (IDCANDIDATURA, STATUSCANDIDATURA) VALUES (?, ?)', [
     idCandidatura,
     status
   ]);
@@ -72,9 +72,9 @@ export async function obterParaEmpresa(idCandidatura: number, idEmpresa: number)
             v.TITULO, v.MODELOTRABALHO,
             u.IDPCD, u.NOME, u.EMAIL, u.TELEFONE, u.TIPODEF, u.CIDADE, u.ESTADO,
             u.AVATAR, u.TITULOPROFISSIONAL
-     FROM TBLCDSCAND0 c
-     INNER JOIN TBLCDSVAG0 v ON v.IDVAGA = c.IDVAGA
-     INNER JOIN TBLCDSUSR0 u ON u.IDPCD = c.IDPCD
+     FROM tblcdscand0 c
+     INNER JOIN tblcdsvag0 v ON v.IDVAGA = c.IDVAGA
+     INNER JOIN tblcdsusr0 u ON u.IDPCD = c.IDPCD
      WHERE c.IDCANDIDATURA = ? AND v.IDEMPRESA = ?`,
     [idCandidatura, idEmpresa]
   );
@@ -111,8 +111,8 @@ export async function alterarEtapa(
     await conexao.beginTransaction();
 
     const [linhas] = await conexao.query<RowDataPacket[]>(
-      `SELECT c.STATUSCANDIDATURA FROM TBLCDSCAND0 c
-       INNER JOIN TBLCDSVAG0 v ON v.IDVAGA = c.IDVAGA
+      `SELECT c.STATUSCANDIDATURA FROM tblcdscand0 c
+       INNER JOIN tblcdsvag0 v ON v.IDVAGA = c.IDVAGA
        WHERE c.IDCANDIDATURA = ? AND v.IDEMPRESA = ?
        FOR UPDATE`,
       [idCandidatura, dados.idEmpresa]
@@ -133,7 +133,7 @@ export async function alterarEtapa(
     switch (dados.acao) {
       case 'INICIAR_ANALISE':
         novoStatus = 'EM_ANALISE';
-        await conexao.execute('UPDATE TBLCDSCAND0 SET STATUSCANDIDATURA = ? WHERE IDCANDIDATURA = ?', [
+        await conexao.execute('UPDATE tblcdscand0 SET STATUSCANDIDATURA = ? WHERE IDCANDIDATURA = ?', [
           novoStatus,
           idCandidatura
         ]);
@@ -142,7 +142,7 @@ export async function alterarEtapa(
       case 'AGENDAR_ENTREVISTA':
         novoStatus = 'ENTREVISTA';
         await conexao.execute(
-          `UPDATE TBLCDSCAND0 SET STATUSCANDIDATURA = ?, DTENTREVISTA = ?, FORMATOENTREVISTA = ?,
+          `UPDATE tblcdscand0 SET STATUSCANDIDATURA = ?, DTENTREVISTA = ?, FORMATOENTREVISTA = ?,
              LOCALENTREVISTA = ?, OBSENTREVISTA = ?, DTCONFIRMACAOENTREVISTA = NULL
            WHERE IDCANDIDATURA = ?`,
           [
@@ -159,7 +159,7 @@ export async function alterarEtapa(
       case 'REGISTRAR_ENTREVISTA':
         novoStatus = 'ENTREVISTA_REALIZADA';
         await conexao.execute(
-          'UPDATE TBLCDSCAND0 SET STATUSCANDIDATURA = ?, COMPARECEU = ?, NOTASENTREVISTA = ? WHERE IDCANDIDATURA = ?',
+          'UPDATE tblcdscand0 SET STATUSCANDIDATURA = ?, COMPARECEU = ?, NOTASENTREVISTA = ? WHERE IDCANDIDATURA = ?',
           [novoStatus, dados.compareceu, dados.notas, idCandidatura]
         );
         break;
@@ -167,7 +167,7 @@ export async function alterarEtapa(
       case 'ENVIAR_PROPOSTA':
         novoStatus = 'PROPOSTA';
         await conexao.execute(
-          `UPDATE TBLCDSCAND0 SET STATUSCANDIDATURA = ?, PROPOSTASALARIO = ?, DTINICIO = ?, PROPOSTADETALHES = ?,
+          `UPDATE tblcdscand0 SET STATUSCANDIDATURA = ?, PROPOSTASALARIO = ?, DTINICIO = ?, PROPOSTADETALHES = ?,
              PROPOSTAVALIDADE = ?, MENSAGEMEMPRESA = ?, RESPOSTACANDIDATO = NULL, DTRESPOSTA = NULL
            WHERE IDCANDIDATURA = ?`,
           [
@@ -185,7 +185,7 @@ export async function alterarEtapa(
       case 'REPROVAR':
         novoStatus = 'REPROVADO';
         await conexao.execute(
-          'UPDATE TBLCDSCAND0 SET STATUSCANDIDATURA = ?, MENSAGEMEMPRESA = ? WHERE IDCANDIDATURA = ?',
+          'UPDATE tblcdscand0 SET STATUSCANDIDATURA = ?, MENSAGEMEMPRESA = ? WHERE IDCANDIDATURA = ?',
           [novoStatus, dados.mensagem, idCandidatura]
         );
         break;
@@ -224,7 +224,7 @@ export async function responderProposta(
 
     const [linhas] = await conexao.query<RowDataPacket[]>(
       `SELECT IDCANDIDATURA, STATUSCANDIDATURA, PROPOSTAVALIDADE < CURDATE() AS EXPIRADA
-       FROM TBLCDSCAND0 WHERE IDPCD = ? AND IDVAGA = ? FOR UPDATE`,
+       FROM tblcdscand0 WHERE IDPCD = ? AND IDVAGA = ? FOR UPDATE`,
       [idPcd, idVaga]
     );
     const candidatura = linhas[0];
@@ -243,7 +243,7 @@ export async function responderProposta(
     const idCandidatura = candidatura['IDCANDIDATURA'] as number;
 
     await conexao.execute(
-      'UPDATE TBLCDSCAND0 SET STATUSCANDIDATURA = ?, RESPOSTACANDIDATO = ?, DTRESPOSTA = NOW() WHERE IDCANDIDATURA = ?',
+      'UPDATE tblcdscand0 SET STATUSCANDIDATURA = ?, RESPOSTACANDIDATO = ?, DTRESPOSTA = NOW() WHERE IDCANDIDATURA = ?',
       [novoStatus, resposta.aceitar ? null : resposta.motivo, idCandidatura]
     );
     await registrarHistorico(conexao, idCandidatura, novoStatus);
@@ -265,7 +265,7 @@ export async function responderProposta(
 export async function confirmarEntrevista(idPcd: number, idVaga: number): Promise<void> {
   const [linhas] = await pool.query<RowDataPacket[]>(
     `SELECT IDCANDIDATURA, STATUSCANDIDATURA, DTCONFIRMACAOENTREVISTA, DTENTREVISTA < NOW() AS PASSOU
-     FROM TBLCDSCAND0 WHERE IDPCD = ? AND IDVAGA = ?`,
+     FROM tblcdscand0 WHERE IDPCD = ? AND IDVAGA = ?`,
     [idPcd, idVaga]
   );
   const candidatura = linhas[0];
@@ -284,7 +284,7 @@ export async function confirmarEntrevista(idPcd: number, idVaga: number): Promis
   }
 
   await pool.execute(
-    'UPDATE TBLCDSCAND0 SET DTCONFIRMACAOENTREVISTA = NOW() WHERE IDCANDIDATURA = ? AND DTCONFIRMACAOENTREVISTA IS NULL',
+    'UPDATE tblcdscand0 SET DTCONFIRMACAOENTREVISTA = NOW() WHERE IDCANDIDATURA = ? AND DTCONFIRMACAOENTREVISTA IS NULL',
     [candidatura['IDCANDIDATURA']]
   );
 }

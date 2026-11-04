@@ -8,20 +8,20 @@ import { erroDeValidacao, erroNaoEncontrado } from '../utils/erro-app.ts';
 import type { DadosCurso } from '../utils/validacao-curso.ts';
 
 /**
- * Junta com TBLCDSEMP0 pra devolver também o nome da empresa (NOMEEMPRESA) já
+ * Junta com tblcdsemp0 pra devolver também o nome da empresa (NOMEEMPRESA) já
  * pronto — a busca de cursos disponíveis, aberta ao candidato PCD, mostra
  * quem oferece cada curso, igual a busca de vagas já faz com NOMEEMPRESA.
  */
 const COLUNAS = `c.IDCURSO, c.IDEMPRESA, c.TITULO, c.DESCRICAO, c.CARGAHORARIA, c.PRECO,
                  c.DTCAD, c.STATUSCURSO, c.NIVEL, c.CERTIFICADO,
                  COALESCE(emp.FANTASIA, emp.RAZAO) AS NOMEEMPRESA,
-                 (SELECT ROUND(AVG(a.NOTA), 1) FROM TBLCDSCURSOAVAL0 a WHERE a.IDCURSO = c.IDCURSO) AS AVALIACAOMEDIA,
-                 (SELECT COUNT(*) FROM TBLCDSCURSOAVAL0 a WHERE a.IDCURSO = c.IDCURSO) AS TOTALAVALIACOES`;
+                 (SELECT ROUND(AVG(a.NOTA), 1) FROM tblcdscursoaval0 a WHERE a.IDCURSO = c.IDCURSO) AS AVALIACAOMEDIA,
+                 (SELECT COUNT(*) FROM tblcdscursoaval0 a WHERE a.IDCURSO = c.IDCURSO) AS TOTALAVALIACOES`;
 
 /** Listas de itens do curso, uma linha por item (mesmo padrão da vaga). */
 const TABELAS_DE_ITENS = {
-  aprendizados: { tabela: 'TBLCDSCURSOAPR0', coluna: 'IDAPRENDIZADO' },
-  skills: { tabela: 'TBLCDSCURSOSKILL0', coluna: 'IDSKILL' }
+  aprendizados: { tabela: 'tblcdscursoapr0', coluna: 'IDAPRENDIZADO' },
+  skills: { tabela: 'tblcdscursoskill0', coluna: 'IDSKILL' }
 } as const;
 
 type ChaveDeItens = keyof typeof TABELAS_DE_ITENS;
@@ -35,7 +35,7 @@ export interface AcessoCurso {
   idEmpresa?: number;
   idPcd?: number;
 }
-const TABELA_COM_EMPRESA = `TBLCDSCURSO0 c LEFT JOIN TBLCDSEMP0 emp ON emp.IDEMPRESA = c.IDEMPRESA`;
+const TABELA_COM_EMPRESA = `tblcdscurso0 c LEFT JOIN tblcdsemp0 emp ON emp.IDEMPRESA = c.IDEMPRESA`;
 
 /**
  * Lista os cursos cadastrados, dos mais recentes para os mais antigos (sem os
@@ -91,7 +91,7 @@ async function obterPorId(id: number): Promise<RowDataPacket> {
 async function listarCapitulos(idModulo: number): Promise<RowDataPacket[]> {
   const [linhas] = await pool.query<RowDataPacket[]>(
     `SELECT IDCAPITULO, TITULO, DESCRICAO, TIPOCONTEUDO, LINKCAPITULO, ARQUIVOCAPITULO, MATERIAL
-     FROM TBLCDSCURSOCAP0 WHERE IDMODULO = ? ORDER BY IDCAPITULO`,
+     FROM tblcdscursocap0 WHERE IDMODULO = ? ORDER BY IDCAPITULO`,
     [idModulo]
   );
 
@@ -101,7 +101,7 @@ async function listarCapitulos(idModulo: number): Promise<RowDataPacket[]> {
 /** Módulos do curso (com seus capítulos aninhados), na ordem em que foram cadastrados. */
 async function listarModulos(idCurso: number): Promise<RowDataPacket[]> {
   const [modulos] = await pool.query<RowDataPacket[]>(
-    'SELECT IDMODULO, TITULO, CARGAHORARIA FROM TBLCDSCURSOMOD0 WHERE IDCURSO = ? ORDER BY IDMODULO',
+    'SELECT IDMODULO, TITULO, CARGAHORARIA FROM tblcdscursomod0 WHERE IDCURSO = ? ORDER BY IDMODULO',
     [idCurso]
   );
 
@@ -194,7 +194,7 @@ export async function obterDetalhado(id: number, acesso: AcessoCurso = {}): Prom
 
 async function buscarMatricula(idCurso: number, idPcd: number): Promise<RowDataPacket | null> {
   const [linhas] = await pool.query<RowDataPacket[]>(
-    'SELECT IDMATRICULA, STATUSMATRICULA, DTCAD, DTATIVACAO, DTCONCLUSAO FROM TBLCDSMATR0 WHERE IDCURSO = ? AND IDPCD = ?',
+    'SELECT IDMATRICULA, STATUSMATRICULA, DTCAD, DTATIVACAO, DTCONCLUSAO FROM tblcdsmatr0 WHERE IDCURSO = ? AND IDPCD = ?',
     [idCurso, idPcd]
   );
 
@@ -203,7 +203,7 @@ async function buscarMatricula(idCurso: number, idPcd: number): Promise<RowDataP
 
 async function buscarAvaliacao(idCurso: number, idPcd: number): Promise<RowDataPacket | null> {
   const [linhas] = await pool.query<RowDataPacket[]>(
-    'SELECT NOTA, COMENTARIO, DTCAD FROM TBLCDSCURSOAVAL0 WHERE IDCURSO = ? AND IDPCD = ?',
+    'SELECT NOTA, COMENTARIO, DTCAD FROM tblcdscursoaval0 WHERE IDCURSO = ? AND IDPCD = ?',
     [idCurso, idPcd]
   );
 
@@ -240,7 +240,7 @@ async function inserirModulos(
     const modulo = modulos[indiceModulo]!;
 
     const [resultadoModulo] = await conexao.execute<ResultSetHeader>(
-      'INSERT INTO TBLCDSCURSOMOD0 (IDCURSO, TITULO, CARGAHORARIA) VALUES (?, ?, ?)',
+      'INSERT INTO tblcdscursomod0 (IDCURSO, TITULO, CARGAHORARIA) VALUES (?, ?, ?)',
       [idCurso, modulo.titulo, modulo.cargaHoraria]
     );
     const idModulo = resultadoModulo.insertId;
@@ -264,7 +264,7 @@ async function inserirModulos(
       }
 
       await conexao.execute(
-        `INSERT INTO TBLCDSCURSOCAP0 (IDMODULO, TITULO, DESCRICAO, TIPOCONTEUDO, LINKCAPITULO, ARQUIVOCAPITULO, MATERIAL)
+        `INSERT INTO tblcdscursocap0 (IDMODULO, TITULO, DESCRICAO, TIPOCONTEUDO, LINKCAPITULO, ARQUIVOCAPITULO, MATERIAL)
          VALUES (?, ?, ?, ?, ?, ?, ?)`,
         [
           idModulo,
@@ -293,7 +293,7 @@ export async function cadastrar(
     await conexao.beginTransaction();
 
     const [resultado] = await conexao.execute<ResultSetHeader>(
-      `INSERT INTO TBLCDSCURSO0 (IDEMPRESA, TITULO, DESCRICAO, CARGAHORARIA, PRECO, NIVEL, CERTIFICADO)
+      `INSERT INTO tblcdscurso0 (IDEMPRESA, TITULO, DESCRICAO, CARGAHORARIA, PRECO, NIVEL, CERTIFICADO)
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [idEmpresa, dados.titulo, dados.descricao, dados.cargaHoraria, dados.preco, dados.nivel, dados.certificado]
     );
@@ -344,7 +344,7 @@ export async function atualizar(
     await conexao.beginTransaction();
 
     const [linhas] = await conexao.query<RowDataPacket[]>(
-      'SELECT IDCURSO FROM TBLCDSCURSO0 WHERE IDCURSO = ? AND IDEMPRESA = ? FOR UPDATE',
+      'SELECT IDCURSO FROM tblcdscurso0 WHERE IDCURSO = ? AND IDEMPRESA = ? FOR UPDATE',
       [id, idEmpresa]
     );
 
@@ -353,7 +353,7 @@ export async function atualizar(
     }
 
     const [modulosAntigos] = await conexao.query<RowDataPacket[]>(
-      'SELECT IDMODULO FROM TBLCDSCURSOMOD0 WHERE IDCURSO = ?',
+      'SELECT IDMODULO FROM tblcdscursomod0 WHERE IDCURSO = ?',
       [id]
     );
     const idsModulosAntigos = modulosAntigos.map((linha) => linha['IDMODULO'] as number);
@@ -361,7 +361,7 @@ export async function atualizar(
     const arquivosAntigos = new Set<string>();
     if (idsModulosAntigos.length > 0) {
       const [capitulosAntigos] = await conexao.query<RowDataPacket[]>(
-        `SELECT ARQUIVOCAPITULO, MATERIAL FROM TBLCDSCURSOCAP0 WHERE IDMODULO IN (${idsModulosAntigos.map(() => '?').join(',')})`,
+        `SELECT ARQUIVOCAPITULO, MATERIAL FROM tblcdscursocap0 WHERE IDMODULO IN (${idsModulosAntigos.map(() => '?').join(',')})`,
         idsModulosAntigos
       );
       for (const linha of capitulosAntigos) {
@@ -377,7 +377,7 @@ export async function atualizar(
     }
 
     await conexao.execute(
-      `UPDATE TBLCDSCURSO0 SET TITULO = ?, DESCRICAO = ?, CARGAHORARIA = ?, PRECO = ?, NIVEL = ?, CERTIFICADO = ?
+      `UPDATE tblcdscurso0 SET TITULO = ?, DESCRICAO = ?, CARGAHORARIA = ?, PRECO = ?, NIVEL = ?, CERTIFICADO = ?
        WHERE IDCURSO = ?`,
       [dados.titulo, dados.descricao, dados.cargaHoraria, dados.preco, dados.nivel, dados.certificado, id]
     );
@@ -385,8 +385,8 @@ export async function atualizar(
     await regravarItens(conexao, 'aprendizados', id, dados.aprendizados);
     await regravarItens(conexao, 'skills', id, dados.skills);
 
-    // TBLCDSCURSOCAP0 vai junto por ON DELETE CASCADE.
-    await conexao.query('DELETE FROM TBLCDSCURSOMOD0 WHERE IDCURSO = ?', [id]);
+    // tblcdscursocap0 vai junto por ON DELETE CASCADE.
+    await conexao.query('DELETE FROM tblcdscursomod0 WHERE IDCURSO = ?', [id]);
     await inserirModulos(conexao, id, dados.modulos, arquivosPorChave);
 
     await conexao.commit();

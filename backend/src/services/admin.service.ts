@@ -5,7 +5,7 @@ import { gerarHashSenha, senhaConfere } from '../utils/senha.ts';
 import { gerarToken } from '../utils/token.ts';
 
 /**
- * Ambiente da equipe Conecta+ (TBLCDSADM0): login com e-mail e senha,
+ * Ambiente da equipe Conecta+ (tblcdsadm0): login com e-mail e senha,
  * validação dos cadastros de empresa e gestão da própria equipe.
  */
 
@@ -30,7 +30,7 @@ const COLUNAS_EMPRESA = `e.IDEMPRESA, e.RAZAO, e.FANTASIA, e.CNPJ, e.EMAIL, e.TE
 
 export async function autenticar(email: string, senha: string): Promise<Record<string, unknown>> {
   const [linhas] = await pool.query<RowDataPacket[]>(
-    "SELECT IDADMIN, NOME, EMAIL, SENHA FROM TBLCDSADM0 WHERE EMAIL = ? AND STATUSADM = 'ATIVO'",
+    "SELECT IDADMIN, NOME, EMAIL, SENHA FROM tblcdsadm0 WHERE EMAIL = ? AND STATUSADM = 'ATIVO'",
     [email]
   );
 
@@ -40,7 +40,7 @@ export async function autenticar(email: string, senha: string): Promise<Record<s
     throw new ErroApp(401, 'E-mail ou senha incorretos.');
   }
 
-  await pool.execute('UPDATE TBLCDSADM0 SET DTULTIMOACESSO = NOW() WHERE IDADMIN = ?', [admin['IDADMIN']]);
+  await pool.execute('UPDATE tblcdsadm0 SET DTULTIMOACESSO = NOW() WHERE IDADMIN = ?', [admin['IDADMIN']]);
 
   return {
     ambiente: 'admin',
@@ -54,7 +54,7 @@ export async function autenticar(email: string, senha: string): Promise<Record<s
 /** Quantas empresas há em cada status (os números das abas). */
 export async function contarEmpresas(): Promise<Record<StatusEmpresa, number>> {
   const [linhas] = await pool.query<RowDataPacket[]>(
-    'SELECT STATUSEMP, COUNT(*) AS TOTAL FROM TBLCDSEMP0 GROUP BY STATUSEMP'
+    'SELECT STATUSEMP, COUNT(*) AS TOTAL FROM tblcdsemp0 GROUP BY STATUSEMP'
   );
 
   const contagem: Record<StatusEmpresa, number> = { PENDENTE: 0, ATIVA: 0, INATIVA: 0, RECUSADA: 0 };
@@ -85,8 +85,8 @@ export async function listarEmpresas(status: StatusEmpresa, busca: string): Prom
 
   const [linhas] = await pool.query<RowDataPacket[]>(
     `SELECT ${COLUNAS_EMPRESA},
-            (SELECT h.DTCAD FROM TBLCDSEMPHIST0 h WHERE h.IDEMPRESA = e.IDEMPRESA ORDER BY h.IDHISTORICO DESC LIMIT 1) AS DTULTIMADECISAO
-     FROM TBLCDSEMP0 e
+            (SELECT h.DTCAD FROM tblcdsemphist0 h WHERE h.IDEMPRESA = e.IDEMPRESA ORDER BY h.IDHISTORICO DESC LIMIT 1) AS DTULTIMADECISAO
+     FROM tblcdsemp0 e
      WHERE e.STATUSEMP = ? ${filtroBusca}
      ORDER BY COALESCE(e.DTALT, e.DTCAD) ${status === 'PENDENTE' ? 'ASC' : 'DESC'}
      LIMIT 200`,
@@ -98,7 +98,7 @@ export async function listarEmpresas(status: StatusEmpresa, busca: string): Prom
 
 /** Empresa com o histórico de decisões e um resumo do que ela já publicou. */
 export async function obterEmpresa(idEmpresa: number): Promise<Record<string, unknown>> {
-  const [linhas] = await pool.query<RowDataPacket[]>(`SELECT ${COLUNAS_EMPRESA} FROM TBLCDSEMP0 e WHERE e.IDEMPRESA = ?`, [
+  const [linhas] = await pool.query<RowDataPacket[]>(`SELECT ${COLUNAS_EMPRESA} FROM tblcdsemp0 e WHERE e.IDEMPRESA = ?`, [
     idEmpresa
   ]);
 
@@ -110,20 +110,20 @@ export async function obterEmpresa(idEmpresa: number): Promise<Record<string, un
   const [[historico], [[resumo]]] = await Promise.all([
     pool.query<RowDataPacket[]>(
       `SELECT h.STATUSANTERIOR, h.STATUSNOVO, h.MOTIVO, h.DTCAD, a.NOME AS NOMEADMIN
-       FROM TBLCDSEMPHIST0 h LEFT JOIN TBLCDSADM0 a ON a.IDADMIN = h.IDADMIN
+       FROM tblcdsemphist0 h LEFT JOIN tblcdsadm0 a ON a.IDADMIN = h.IDADMIN
        WHERE h.IDEMPRESA = ? ORDER BY h.IDHISTORICO DESC`,
       [idEmpresa]
     ),
     pool.query<RowDataPacket[]>(
-      `SELECT (SELECT COUNT(*) FROM TBLCDSVAG0 WHERE IDEMPRESA = ?) AS TOTALVAGAS,
-              (SELECT COUNT(*) FROM TBLCDSCURSO0 WHERE IDEMPRESA = ?) AS TOTALCURSOS`,
+      `SELECT (SELECT COUNT(*) FROM tblcdsvag0 WHERE IDEMPRESA = ?) AS TOTALVAGAS,
+              (SELECT COUNT(*) FROM tblcdscurso0 WHERE IDEMPRESA = ?) AS TOTALCURSOS`,
       [idEmpresa, idEmpresa]
     )
   ]);
 
   // Outras empresas com o mesmo e-mail ou telefone: sinal para conferir duplicidade/fraude.
   const [semelhantes] = await pool.query<RowDataPacket[]>(
-    `SELECT IDEMPRESA, RAZAO, CNPJ, STATUSEMP FROM TBLCDSEMP0
+    `SELECT IDEMPRESA, RAZAO, CNPJ, STATUSEMP FROM tblcdsemp0
      WHERE IDEMPRESA <> ? AND ((EMAIL IS NOT NULL AND EMAIL = ?) OR (TELEFONE IS NOT NULL AND TELEFONE = ?))
      LIMIT 10`,
     [idEmpresa, empresa['EMAIL'], empresa['TELEFONE']]
@@ -156,7 +156,7 @@ export async function decidir(
     await conexao.beginTransaction();
 
     const [linhas] = await conexao.query<RowDataPacket[]>(
-      'SELECT STATUSEMP FROM TBLCDSEMP0 WHERE IDEMPRESA = ? FOR UPDATE',
+      'SELECT STATUSEMP FROM tblcdsemp0 WHERE IDEMPRESA = ? FOR UPDATE',
       [idEmpresa]
     );
     const atual = linhas[0]?.['STATUSEMP'] as StatusEmpresa | undefined;
@@ -168,9 +168,9 @@ export async function decidir(
       throw erroDeConflito('Essa ação não se aplica ao status atual da empresa. Atualize a página.');
     }
 
-    await conexao.execute('UPDATE TBLCDSEMP0 SET STATUSEMP = ? WHERE IDEMPRESA = ?', [regra.destino, idEmpresa]);
+    await conexao.execute('UPDATE tblcdsemp0 SET STATUSEMP = ? WHERE IDEMPRESA = ?', [regra.destino, idEmpresa]);
     await conexao.execute(
-      'INSERT INTO TBLCDSEMPHIST0 (IDEMPRESA, IDADMIN, STATUSANTERIOR, STATUSNOVO, MOTIVO) VALUES (?, ?, ?, ?, ?)',
+      'INSERT INTO tblcdsemphist0 (IDEMPRESA, IDADMIN, STATUSANTERIOR, STATUSNOVO, MOTIVO) VALUES (?, ?, ?, ?, ?)',
       [idEmpresa, idAdmin, atual, regra.destino, motivo]
     );
 
@@ -188,8 +188,8 @@ export async function decidir(
 /** Último motivo registrado pela equipe para o status atual (mostrado à empresa recusada/inativada). */
 export async function motivoAtual(idEmpresa: number): Promise<string | null> {
   const [linhas] = await pool.query<RowDataPacket[]>(
-    `SELECT h.MOTIVO FROM TBLCDSEMPHIST0 h
-     INNER JOIN TBLCDSEMP0 e ON e.IDEMPRESA = h.IDEMPRESA AND e.STATUSEMP = h.STATUSNOVO
+    `SELECT h.MOTIVO FROM tblcdsemphist0 h
+     INNER JOIN tblcdsemp0 e ON e.IDEMPRESA = h.IDEMPRESA AND e.STATUSEMP = h.STATUSNOVO
      WHERE h.IDEMPRESA = ? ORDER BY h.IDHISTORICO DESC LIMIT 1`,
     [idEmpresa]
   );
@@ -202,19 +202,19 @@ export async function motivoAtual(idEmpresa: number): Promise<string | null> {
 export async function listarEquipe(): Promise<RowDataPacket[]> {
   const [linhas] = await pool.query<RowDataPacket[]>(
     `SELECT a.IDADMIN, a.NOME, a.EMAIL, a.STATUSADM, a.DTCAD, a.DTULTIMOACESSO,
-            (SELECT COUNT(*) FROM TBLCDSEMPHIST0 h WHERE h.IDADMIN = a.IDADMIN) AS TOTALDECISOES
-     FROM TBLCDSADM0 a ORDER BY a.STATUSADM, a.NOME`
+            (SELECT COUNT(*) FROM tblcdsemphist0 h WHERE h.IDADMIN = a.IDADMIN) AS TOTALDECISOES
+     FROM tblcdsadm0 a ORDER BY a.STATUSADM, a.NOME`
   );
   return linhas;
 }
 
 export async function criarMembro(nome: string, email: string, senha: string): Promise<RowDataPacket[]> {
-  const [existentes] = await pool.query<RowDataPacket[]>('SELECT IDADMIN FROM TBLCDSADM0 WHERE EMAIL = ?', [email]);
+  const [existentes] = await pool.query<RowDataPacket[]>('SELECT IDADMIN FROM tblcdsadm0 WHERE EMAIL = ?', [email]);
   if (existentes.length > 0) {
     throw erroDeConflito('Já existe alguém da equipe com esse e-mail.', { email: 'E-mail já cadastrado.' });
   }
 
-  await pool.execute<ResultSetHeader>('INSERT INTO TBLCDSADM0 (NOME, EMAIL, SENHA) VALUES (?, ?, ?)', [
+  await pool.execute<ResultSetHeader>('INSERT INTO tblcdsadm0 (NOME, EMAIL, SENHA) VALUES (?, ?, ?)', [
     nome,
     email,
     await gerarHashSenha(senha)
@@ -233,7 +233,7 @@ export async function alterarStatusMembro(
     throw erroDeConflito('Você não pode desativar o seu próprio acesso.');
   }
 
-  const [resultado] = await pool.execute<ResultSetHeader>('UPDATE TBLCDSADM0 SET STATUSADM = ? WHERE IDADMIN = ?', [
+  const [resultado] = await pool.execute<ResultSetHeader>('UPDATE tblcdsadm0 SET STATUSADM = ? WHERE IDADMIN = ?', [
     ativo ? 'ATIVO' : 'INATIVO',
     idMembro
   ]);

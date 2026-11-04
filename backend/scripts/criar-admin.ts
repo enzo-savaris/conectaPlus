@@ -20,7 +20,7 @@ if (!nome || nome.trim().length < 3 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
 
 const hash = await gerarHashSenha(senha);
 await pool.execute(
-  `INSERT INTO TBLCDSADM0 (NOME, EMAIL, SENHA, STATUSADM) VALUES (?, ?, ?, 'ATIVO')
+  `INSERT INTO tblcdsadm0 (NOME, EMAIL, SENHA, STATUSADM) VALUES (?, ?, ?, 'ATIVO')
    ON DUPLICATE KEY UPDATE NOME = VALUES(NOME), SENHA = VALUES(SENHA), STATUSADM = 'ATIVO'`,
   [nome.trim(), email, hash]
 );
