@@ -7,7 +7,19 @@
     class="relative w-full max-w-md rounded-3xl border border-brand-400/25 bg-ink-900/90 p-6 shadow-2xl shadow-black/50 sm:p-10"
     aria-labelledby="admin-login-titulo"
   >
-    <header class="text-center">
+    <!-- Voltar para a página inicial, igual ao login de candidatos e empresas. -->
+    <a
+      routerLink="/"
+      class="absolute top-4 left-4 inline-flex size-9 items-center justify-center rounded-full border border-white/15 bg-ink-800/60 text-slate-300 transition hover:border-white/30 hover:bg-ink-700/70 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-400 sm:top-6 sm:left-6"
+      aria-label="Voltar para a página inicial"
+      title="Voltar para a página inicial"
+    >
+      <svg class="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <path d="M15 19l-7-7 7-7" stroke-linecap="round" stroke-linejoin="round" />
+      </svg>
+    </a>
+
+    <header class="mt-8 text-center sm:mt-4">
       <app-logo class="mb-5 flex justify-center" classeSimbolo="size-10" classeNome="text-2xl" />
       <p class="text-xs font-semibold tracking-widest text-brand-300 uppercase">Equipe Conecta+</p>
       <h1 id="admin-login-titulo" class="mt-2 text-2xl font-bold text-white">Área administrativa</h1>

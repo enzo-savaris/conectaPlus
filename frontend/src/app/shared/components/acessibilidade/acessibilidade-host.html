@@ -9,7 +9,10 @@
 
 <!-- ============ PAINEL DE ACESSIBILIDADE ============ -->
 @if (servico.painelAberto()) {
-  <div class="a11y-ignorar fixed inset-0 z-[150] flex items-center justify-center overflow-y-auto bg-ink-950/80 p-4 backdrop-blur-sm">
+  <!-- Centraliza com m-auto no painel, e não com items-center: quando o painel é
+       mais alto que a tela (celular), items-center empurra o topo para fora da
+       área de rolagem e as primeiras opções ficam inalcançáveis. -->
+  <div class="a11y-ignorar fixed inset-0 z-[150] flex overflow-y-auto bg-ink-950/80 p-4 backdrop-blur-sm">
     <!-- Clicar fora fecha (sem salvar). -->
     <div class="absolute inset-0" (click)="servico.fecharPainel()" aria-hidden="true"></div>
 
@@ -20,7 +23,7 @@
       aria-labelledby="a11y-titulo"
       aria-describedby="a11y-descricao"
       (keydown)="aoTeclarNoPainel($event)"
-      class="relative w-full max-w-3xl rounded-3xl border border-white/10 bg-ink-900 p-5 shadow-2xl shadow-black/50 sm:p-7"
+      class="relative m-auto w-full max-w-3xl rounded-3xl border border-white/10 bg-ink-900 p-5 shadow-2xl shadow-black/50 sm:p-7"
     >
       <header class="flex items-start justify-between gap-4">
         <div>

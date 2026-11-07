@@ -1,7 +1,7 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 
 import { Logo } from '../../../shared/components/logo/logo';
 import { AuthService } from '../../../shared/services/auth.service';
@@ -9,7 +9,7 @@ import { AuthService } from '../../../shared/services/auth.service';
 /** Login da equipe Conecta+ (e-mail e senha), separado do login de candidatos e empresas. */
 @Component({
   selector: 'app-admin-login',
-  imports: [ReactiveFormsModule, Logo],
+  imports: [ReactiveFormsModule, RouterLink, Logo],
   templateUrl: './admin-login.html',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
