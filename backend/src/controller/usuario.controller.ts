@@ -175,6 +175,27 @@ export const confirmarEntrevistaDoUsuario = async (requisicao: Request, resposta
   }
 };
 
+/** POST /usuarios/:id/candidaturas/:idVaga/entrevista/reagendamento — candidato não pode na data e pede outra. */
+export const pedirReagendamentoDoUsuario = async (requisicao: Request, resposta: Response): Promise<void> => {
+  try {
+    const idPcd = validarId(requisicao.params['id']);
+    const idVaga = validarId(requisicao.params['idVaga']);
+    const corpo = (typeof requisicao.body === 'object' && requisicao.body !== null ? requisicao.body : {}) as Record<
+      string,
+      unknown
+    >;
+    const mensagem = typeof corpo['mensagem'] === 'string' ? corpo['mensagem'].trim() : '';
+    if (mensagem.length > 1000) {
+      throw erroDeValidacao({ mensagem: 'A mensagem deve ter no máximo 1000 caracteres.' });
+    }
+
+    await candidaturaService.pedirReagendamento(idPcd, idVaga, mensagem || null);
+    resposta.json(await usuarioService.obterCandidatura(idPcd, idVaga));
+  } catch (erro) {
+    responderErro(resposta, erro, 'Erro ao pedir outra data para a entrevista');
+  }
+};
+
 /** GET /usuarios/:id/candidaturas/:idVaga — acompanhamento da candidatura do candidato a uma vaga. */
 export const obterCandidaturaDoUsuario = async (
   requisicao: Request,

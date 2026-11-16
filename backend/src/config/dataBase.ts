@@ -1,6 +1,8 @@
 import mysql from 'mysql2/promise';
 import dotenv from 'dotenv';
 
+import { FUSO_BRASILIA } from '../utils/fuso.ts';
+
 dotenv.config();
 
 /**
@@ -41,8 +43,16 @@ const pool = mysql.createPool({
       ? { ca: process.env.DB_SSL_CA.replace(/\\n/g, '\n') }
       : { rejectUnauthorized: false }
   }),
+  // Datas sempre no horário de Brasília (utils/fuso.ts): `timezone` faz o
+  // mysql2 ler e gravar DATETIME nesse fuso; o SET abaixo faz o NOW() e o
+  // CURRENT_TIMESTAMP do MySQL também usarem.
+  timezone: FUSO_BRASILIA,
   waitForConnections: true,
   connectionLimit: 10
+});
+
+pool.on('connection', (conexao) => {
+  conexao.query(`SET time_zone = '${FUSO_BRASILIA}'`);
 });
 
 /** Confirma que o banco responde antes de o servidor começar a atender. */

@@ -1,11 +1,11 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 
 import { Landing } from '../../landing/landing';
 import { AuthService } from '../../../shared/services/auth.service';
-import { formatarCpfOuCnpj } from '../../../shared/utils/masks';
+import { apenasCaracteresCnpj, formatarCpfOuCnpj } from '../../../shared/utils/masks';
 import { validadorCpfOuCnpj } from '../../../shared/validators/br-validators';
 import { Logo } from '../../../shared/components/logo/logo';
 
@@ -21,6 +21,7 @@ const CHAVE_DOCUMENTO_LEMBRADO = 'conecta+:documento-lembrado';
 export class Login {
   private readonly authService = inject(AuthService);
   private readonly roteador = inject(Router);
+  private readonly rota = inject(ActivatedRoute);
 
   protected readonly formulario = new FormGroup({
     documento: new FormControl('', {
@@ -39,6 +40,12 @@ export class Login {
     const lembrado = this.lerDocumentoLembrado();
     if (lembrado) {
       this.formulario.patchValue({ documento: formatarCpfOuCnpj(lembrado), lembrarDeMim: true });
+    }
+
+    // Vindo da tela "Aguardando confirmação" depois da aprovação: o CNPJ já vem preenchido.
+    const documentoDaUrl = this.rota.snapshot.queryParamMap.get('documento');
+    if (documentoDaUrl) {
+      this.formulario.patchValue({ documento: formatarCpfOuCnpj(documentoDaUrl) });
     }
   }
 
@@ -95,7 +102,9 @@ export class Login {
         }
 
         if (erro.status === 403 && erro.error?.erros?.situacao === 'PENDENTE') {
-          this.roteador.navigate(['/empresa/aguardando-confirmacao']);
+          this.roteador.navigate(['/empresa/aguardando-confirmacao'], {
+            queryParams: { cnpj: apenasCaracteresCnpj(documento) }
+          });
           return;
         }
 
@@ -116,11 +125,11 @@ export class Login {
     }
   }
 
-  /** Marcado: guarda o CPF/CNPJ (só os dígitos). Desmarcado: esquece. */
+  /** Marcado: guarda o CPF/CNPJ (sem a pontuação, com as letras do CNPJ alfanumérico). Desmarcado: esquece. */
   private lembrarDocumento(documento: string | null): void {
     try {
       if (documento) {
-        localStorage.setItem(CHAVE_DOCUMENTO_LEMBRADO, documento.replace(/\D/g, ''));
+        localStorage.setItem(CHAVE_DOCUMENTO_LEMBRADO, apenasCaracteresCnpj(documento));
       } else {
         localStorage.removeItem(CHAVE_DOCUMENTO_LEMBRADO);
       }

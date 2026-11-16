@@ -1,7 +1,7 @@
 import type { Request, Response } from 'express';
 import * as empresaService from '../services/empresa.service.ts';
 import { ErroApp } from '../utils/erro-app.ts';
-import { validarEmpresa, validarId } from '../utils/validacao.ts';
+import { apenasCaracteresCnpj, cnpjValido, validarEmpresa, validarId } from '../utils/validacao.ts';
 
 /**
  * Traduz o erro em resposta HTTP. Erros previstos (ErroApp) viram o status
@@ -33,6 +33,21 @@ export const cadastrarEmpresa = async (
     resposta.status(201).json(empresa);
   } catch (erro) {
     responderErro(resposta, erro, 'Erro ao cadastrar empresa');
+  }
+};
+
+/** GET /empresas/situacao?cnpj= — status do cadastro (tela "Aguardando confirmação"). */
+export const obterSituacaoEmpresa = async (requisicao: Request, resposta: Response): Promise<void> => {
+  try {
+    const cnpj = apenasCaracteresCnpj(typeof requisicao.query['cnpj'] === 'string' ? requisicao.query['cnpj'] : '');
+    if (!cnpjValido(cnpj)) {
+      resposta.status(422).json({ mensagem: 'CNPJ inválido.' });
+      return;
+    }
+
+    resposta.json(await empresaService.obterSituacao(cnpj));
+  } catch (erro) {
+    responderErro(resposta, erro, 'Erro ao consultar a situação da empresa');
   }
 };
 

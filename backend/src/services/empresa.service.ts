@@ -2,6 +2,7 @@ import type { ResultSetHeader, RowDataPacket } from 'mysql2';
 import pool from '../config/dataBase.ts';
 import { erroDeConflito, erroEmpresaNaoAtiva, erroNaoEncontrado } from '../utils/erro-app.ts';
 import { gerarHashSenha } from '../utils/senha.ts';
+import { motivoAtual } from './admin.service.ts';
 import type { DadosEmpresa, DadosEmpresaParciais } from '../utils/validacao.ts';
 
 const COLUNAS = `IDEMPRESA, RAZAO, FANTASIA, CNPJ, EMAIL, TELEFONE, CEP,
@@ -84,6 +85,27 @@ export async function obterPorId(id: number): Promise<RowDataPacket> {
   }
 
   return empresa;
+}
+
+/**
+ * Situação do cadastro pelo CNPJ, para a tela "Aguardando confirmação"
+ * descobrir sozinha quando a equipe aprovou (ou recusou) a empresa. Devolve
+ * só o status e, se recusada, o motivo — nada de dados da empresa.
+ */
+export async function obterSituacao(cnpj: string): Promise<{ status: string; motivo: string | null }> {
+  const [linhas] = await pool.query<RowDataPacket[]>('SELECT IDEMPRESA, STATUSEMP FROM tblcdsemp0 WHERE CNPJ = ?', [
+    cnpj
+  ]);
+
+  const empresa = linhas[0];
+  if (!empresa) {
+    throw erroNaoEncontrado('Empresa não encontrada.');
+  }
+
+  const status = empresa['STATUSEMP'] as string;
+  const motivo = status === 'RECUSADA' ? await motivoAtual(empresa['IDEMPRESA'] as number) : null;
+
+  return { status, motivo };
 }
 
 export async function listar(busca?: string): Promise<RowDataPacket[]> {

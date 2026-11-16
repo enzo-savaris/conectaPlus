@@ -19,6 +19,7 @@ import type { DadosEtapaCandidatura } from '../utils/validacao-etapa-candidatura
  */
 export const COLUNAS_PROCESSO = `c.STATUSCANDIDATURA, c.DTCAD AS DTCANDIDATURA,
   c.DTENTREVISTA, c.FORMATOENTREVISTA, c.LOCALENTREVISTA, c.OBSENTREVISTA, c.DTCONFIRMACAOENTREVISTA,
+  c.DTPEDIDOREAGENDAMENTO, c.MOTIVOREAGENDAMENTO,
   DATE_FORMAT(c.DTINICIO, '%Y-%m-%d') AS DTINICIO, c.MENSAGEMEMPRESA,
   c.COMPARECEU, c.PROPOSTASALARIO, c.PROPOSTADETALHES,
   DATE_FORMAT(c.PROPOSTAVALIDADE, '%Y-%m-%d') AS PROPOSTAVALIDADE,
@@ -143,7 +144,8 @@ export async function alterarEtapa(
         novoStatus = 'ENTREVISTA';
         await conexao.execute(
           `UPDATE tblcdscand0 SET STATUSCANDIDATURA = ?, DTENTREVISTA = ?, FORMATOENTREVISTA = ?,
-             LOCALENTREVISTA = ?, OBSENTREVISTA = ?, DTCONFIRMACAOENTREVISTA = NULL
+             LOCALENTREVISTA = ?, OBSENTREVISTA = ?, DTCONFIRMACAOENTREVISTA = NULL,
+             DTPEDIDOREAGENDAMENTO = NULL, MOTIVOREAGENDAMENTO = NULL
            WHERE IDCANDIDATURA = ?`,
           [
             novoStatus,
@@ -260,11 +262,12 @@ export async function responderProposta(
 /**
  * O candidato confirma que vai comparecer à entrevista agendada pela empresa.
  * Não muda a etapa (continua ENTREVISTA); só registra quando confirmou, e a
- * empresa vê isso na tela de gestão. Confirmar de novo não faz nada.
+ * empresa vê isso na tela de gestão. Confirmar de novo não faz nada. Se ele
+ * tinha pedido outra data e mudou de ideia, confirmar desfaz o pedido.
  */
 export async function confirmarEntrevista(idPcd: number, idVaga: number): Promise<void> {
   const [linhas] = await pool.query<RowDataPacket[]>(
-    `SELECT IDCANDIDATURA, STATUSCANDIDATURA, DTCONFIRMACAOENTREVISTA, DTENTREVISTA < NOW() AS PASSOU
+    `SELECT IDCANDIDATURA, STATUSCANDIDATURA, DTCONFIRMACAOENTREVISTA, DTPEDIDOREAGENDAMENTO, DTENTREVISTA < NOW() AS PASSOU
      FROM tblcdscand0 WHERE IDPCD = ? AND IDVAGA = ?`,
     [idPcd, idVaga]
   );
@@ -276,7 +279,7 @@ export async function confirmarEntrevista(idPcd: number, idVaga: number): Promis
   if (candidatura['STATUSCANDIDATURA'] !== 'ENTREVISTA') {
     throw erroDeConflito('Não há entrevista agendada aguardando a sua confirmação.');
   }
-  if (candidatura['DTCONFIRMACAOENTREVISTA']) {
+  if (candidatura['DTCONFIRMACAOENTREVISTA'] && !candidatura['DTPEDIDOREAGENDAMENTO']) {
     return;
   }
   if (Number(candidatura['PASSOU']) === 1) {
@@ -284,7 +287,39 @@ export async function confirmarEntrevista(idPcd: number, idVaga: number): Promis
   }
 
   await pool.execute(
-    'UPDATE tblcdscand0 SET DTCONFIRMACAOENTREVISTA = NOW() WHERE IDCANDIDATURA = ? AND DTCONFIRMACAOENTREVISTA IS NULL',
+    `UPDATE tblcdscand0 SET DTCONFIRMACAOENTREVISTA = NOW(), DTPEDIDOREAGENDAMENTO = NULL, MOTIVOREAGENDAMENTO = NULL
+     WHERE IDCANDIDATURA = ?`,
     [candidatura['IDCANDIDATURA']]
+  );
+}
+
+/**
+ * O candidato avisa que não consegue ir na data marcada e pede que a empresa
+ * reagende, com uma mensagem opcional (motivo, dias e horários em que pode).
+ * A etapa continua ENTREVISTA; a confirmação de presença, se havia, deixa de
+ * valer. A empresa vê o pedido na tela de gestão e reagenda por lá.
+ */
+export async function pedirReagendamento(idPcd: number, idVaga: number, mensagem: string | null): Promise<void> {
+  const [linhas] = await pool.query<RowDataPacket[]>(
+    `SELECT IDCANDIDATURA, STATUSCANDIDATURA, DTENTREVISTA < NOW() AS PASSOU
+     FROM tblcdscand0 WHERE IDPCD = ? AND IDVAGA = ?`,
+    [idPcd, idVaga]
+  );
+  const candidatura = linhas[0];
+
+  if (!candidatura) {
+    throw erroNaoEncontrado('Candidatura não encontrada.');
+  }
+  if (candidatura['STATUSCANDIDATURA'] !== 'ENTREVISTA') {
+    throw erroDeConflito('Não há entrevista agendada para pedir outra data.');
+  }
+  if (Number(candidatura['PASSOU']) === 1) {
+    throw erroDeConflito('O horário desta entrevista já passou. Fale com a empresa.');
+  }
+
+  await pool.execute(
+    `UPDATE tblcdscand0 SET DTPEDIDOREAGENDAMENTO = NOW(), MOTIVOREAGENDAMENTO = ?, DTCONFIRMACAOENTREVISTA = NULL
+     WHERE IDCANDIDATURA = ?`,
+    [mensagem, candidatura['IDCANDIDATURA']]
   );
 }

@@ -7,7 +7,7 @@ import { CidadeService } from '../../../shared/services/cidade.service';
 import { EmpresaService } from '../../../shared/services/empresa.service';
 import { ToastService } from '../../../shared/services/toast.service';
 import { Cidade } from '../../../shared/types/cidade';
-import { formatarCep, formatarCnpj, formatarTelefone } from '../../../shared/utils/masks';
+import { apenasCaracteresCnpj, formatarCep, formatarCnpj, formatarTelefone } from '../../../shared/utils/masks';
 import {
   validadorCep,
   validadorCnpj,
@@ -214,7 +214,9 @@ export class CompanyRegister {
         next: () => {
           this.enviando.set(false);
           this.toastService.sucesso('Cadastro enviado com sucesso! Aguarde a confirmação.');
-          this.roteador.navigate(['/empresa/aguardando-confirmacao']);
+          this.roteador.navigate(['/empresa/aguardando-confirmacao'], {
+            queryParams: { cnpj: apenasCaracteresCnpj(valores.cnpj) }
+          });
         },
         error: (erro: HttpErrorResponse) => {
           this.enviando.set(false);

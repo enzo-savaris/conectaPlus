@@ -86,7 +86,7 @@ async function autenticarEmpresa(cnpj: string, senha: string): Promise<Sessao> {
  * própria tabela e sua própria senha.
  */
 export async function autenticar(documento: string, senha: string): Promise<Sessao> {
-  if (documento.length === 11) {
+  if (/^\d{11}$/.test(documento)) {
     return autenticarUsuario(documento, senha);
   }
 

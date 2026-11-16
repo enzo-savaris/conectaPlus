@@ -294,6 +294,15 @@ export class VagaService {
       .pipe(map(paraAcompanhamento));
   }
 
+  /** O candidato avisa que não pode na data da entrevista e pede que a empresa reagende. */
+  pedirReagendamento(idPcd: number, idVaga: number, mensagem: string): Observable<AcompanhamentoCandidatura> {
+    return this.http
+      .post<AcompanhamentoCandidaturaDaApi>(`${URL_BASE_API}/usuarios/${idPcd}/candidaturas/${idVaga}/entrevista/reagendamento`, {
+        mensagem
+      })
+      .pipe(map(paraAcompanhamento));
+  }
+
   /** Candidatura do candidato logado a uma vaga, para a tela de acompanhamento. */
   obterMinhaCandidatura(idPcd: number, idVaga: number): Observable<AcompanhamentoCandidatura> {
     return this.http

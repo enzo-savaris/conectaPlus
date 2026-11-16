@@ -1,7 +1,7 @@
 import type { Request, Response } from 'express';
 import * as authService from '../services/auth.service.ts';
 import { ErroApp } from '../utils/erro-app.ts';
-import { apenasDigitos } from '../utils/validacao.ts';
+import { apenasCaracteresCnpj } from '../utils/validacao.ts';
 
 function responderErro(resposta: Response, erro: unknown, mensagemPadrao: string): void {
   if (erro instanceof ErroApp) {
@@ -20,7 +20,9 @@ function responderErro(resposta: Response, erro: unknown, mensagemPadrao: string
 export const login = async (requisicao: Request, resposta: Response): Promise<void> => {
   try {
     const corpo = requisicao.body as Record<string, unknown>;
-    const documento = apenasDigitos(
+    // Mantém as letras: o CNPJ alfanumérico (Receita Federal, a partir de
+    // julho/2026) tem letras nas 12 primeiras posições.
+    const documento = apenasCaracteresCnpj(
       typeof corpo['documento'] === 'string' ? corpo['documento'] : ''
     );
     const senha = typeof corpo['senha'] === 'string' ? corpo['senha'] : '';

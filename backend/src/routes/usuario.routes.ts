@@ -7,6 +7,7 @@ import {
   listarCandidaturasDoUsuario,
   listarUsuarios,
   obterCandidaturaDoUsuario,
+  pedirReagendamentoDoUsuario,
   responderPropostaDoUsuario,
   obterUsuario
 } from '../controller/usuario.controller.ts';
@@ -20,6 +21,7 @@ rotasUsuario.get('/:id/candidaturas', listarCandidaturasDoUsuario);
 rotasUsuario.get('/:id/candidaturas/:idVaga', obterCandidaturaDoUsuario);
 rotasUsuario.post('/:id/candidaturas/:idVaga/proposta', responderPropostaDoUsuario);
 rotasUsuario.post('/:id/candidaturas/:idVaga/entrevista/confirmacao', confirmarEntrevistaDoUsuario);
+rotasUsuario.post('/:id/candidaturas/:idVaga/entrevista/reagendamento', pedirReagendamentoDoUsuario);
 rotasUsuario.get('/:id/matriculas', listarMatriculasDoUsuario);
 rotasUsuario.get('/:id/matriculas/:idCurso', obterMatriculaDoUsuario);
 rotasUsuario.get('/:id', obterUsuario);

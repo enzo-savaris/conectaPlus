@@ -72,6 +72,10 @@ export interface EntrevistaAgendada {
   observacoes: string | null;
   /** Quando o candidato confirmou presença; `null` enquanto não confirmou. */
   confirmadaEm: string | null;
+  /** Quando o candidato avisou que não pode nesta data e pediu outra; `null` se não pediu. */
+  pedidoReagendamentoEm: string | null;
+  /** Mensagem do candidato no pedido (motivo, dias e horários em que pode). */
+  motivoReagendamento: string | null;
 }
 
 /** Momento em que a candidatura entrou numa etapa. */

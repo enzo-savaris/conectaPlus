@@ -75,11 +75,12 @@ export async function listarEmpresas(status: StatusEmpresa, busca: string): Prom
 
   if (busca) {
     const termo = `%${busca}%`;
-    const digitos = busca.replace(/\D/g, '');
-    filtroBusca = 'AND (e.RAZAO LIKE ? OR e.FANTASIA LIKE ? OR e.EMAIL LIKE ?' + (digitos ? ' OR e.CNPJ LIKE ?' : '') + ')';
+    // CNPJ sem a pontuação, com as letras do formato alfanumérico.
+    const cnpj = busca.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    filtroBusca = 'AND (e.RAZAO LIKE ? OR e.FANTASIA LIKE ? OR e.EMAIL LIKE ?' + (cnpj ? ' OR e.CNPJ LIKE ?' : '') + ')';
     parametros.push(termo, termo, termo);
-    if (digitos) {
-      parametros.push(`%${digitos}%`);
+    if (cnpj) {
+      parametros.push(`%${cnpj}%`);
     }
   }
 

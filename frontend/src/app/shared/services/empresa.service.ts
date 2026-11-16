@@ -4,7 +4,7 @@ import { Observable, map } from 'rxjs';
 
 import { URL_BASE_API } from '../config/api';
 import { CandidatoRelacionado, TipoDeficiencia } from '../types/candidato';
-import { AtualizarEmpresa, CadastrarEmpresa, Empresa, StatusEmpresa } from '../types/empresa';
+import { AtualizarEmpresa, CadastrarEmpresa, Empresa, SituacaoCadastroEmpresa, StatusEmpresa } from '../types/empresa';
 
 /** Formato bruto devolvido pela API: colunas da TBLCDSEMP0. */
 interface EmpresaDaApi {
@@ -76,6 +76,11 @@ export class EmpresaService {
 
   obterPorId(id: number): Observable<Empresa> {
     return this.http.get<EmpresaDaApi>(`${URL_BASE_API}/empresas/${id}`).pipe(map(paraEmpresa));
+  }
+
+  /** Situação do cadastro pelo CNPJ: a tela de espera consulta até a equipe aprovar ou recusar. */
+  consultarSituacao(cnpj: string): Observable<SituacaoCadastroEmpresa> {
+    return this.http.get<SituacaoCadastroEmpresa>(`${URL_BASE_API}/empresas/situacao`, { params: { cnpj } });
   }
 
   cadastrar(dados: CadastrarEmpresa): Observable<Empresa> {

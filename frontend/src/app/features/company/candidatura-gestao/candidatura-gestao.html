@@ -179,7 +179,16 @@
                   <p class="mt-2 text-xs whitespace-pre-line text-slate-400">{{ c.entrevista.observacoes }}</p>
                 }
                 @if (c.status === 'ENTREVISTA') {
-                  @if (c.entrevista.confirmadaEm) {
+                  @if (c.entrevista.pedidoReagendamentoEm) {
+                    <div class="mt-3 rounded-lg border border-amber-300/30 bg-amber-300/10 p-3">
+                      <p class="text-xs font-semibold text-amber-200">
+                        O candidato não pode nesta data e pediu outra · {{ formatarDataHora(c.entrevista.pedidoReagendamentoEm) }}
+                      </p>
+                      @if (c.entrevista.motivoReagendamento) {
+                        <p class="mt-1 text-sm whitespace-pre-line text-slate-200">“{{ c.entrevista.motivoReagendamento }}”</p>
+                      }
+                    </div>
+                  } @else if (c.entrevista.confirmadaEm) {
                     <p class="mt-3 inline-flex items-center gap-1.5 rounded-md bg-emerald-400/15 px-2 py-1 text-xs font-semibold text-emerald-300">
                       <svg class="size-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
                         <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />

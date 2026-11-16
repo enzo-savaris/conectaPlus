@@ -133,6 +133,13 @@ export class GerenciarCandidatura {
           ]
         };
       case 'ENTREVISTA':
+        if (this.candidatura()?.entrevista?.pedidoReagendamentoEm) {
+          return {
+            texto: 'O candidato avisou que não consegue ir nesta data e pediu outra. Veja a mensagem dele e reagende a entrevista.',
+            principal: { painel: 'entrevista', rotulo: 'Reagendar entrevista' },
+            secundarias: [{ painel: 'reprovar', rotulo: 'Encerrar candidatura' }]
+          };
+        }
         return {
           texto: 'Entrevista agendada. Próximo passo: depois que ela acontecer, registre como foi — só então a proposta fica disponível.',
           principal: { painel: 'registro', rotulo: 'Registrar entrevista realizada' },

@@ -26,13 +26,22 @@ export function formatarCpf(valor: string): string {
 }
 
 /**
- * Aplica a máscara de CPF enquanto o usuário digita até 11 dígitos, e passa
- * a formatar como CNPJ a partir do 12º — usado no campo único de login, que
- * aceita os dois documentos.
+ * Diz se o que foi digitado no campo único de login/cadastro é um CNPJ:
+ * mais de 11 caracteres ou qualquer letra (CPF só tem números; o CNPJ
+ * alfanumérico tem letras nas 12 primeiras posições).
+ */
+export function pareceCnpj(valor: string): boolean {
+  const caracteres = apenasCaracteresCnpj(valor);
+  return caracteres.length > 11 || /[A-Z]/.test(caracteres);
+}
+
+/**
+ * Aplica a máscara de CPF enquanto o usuário digita até 11 números, e passa
+ * a formatar como CNPJ a partir do 12º caractere ou da primeira letra —
+ * usado no campo único de login, que aceita os dois documentos.
  */
 export function formatarCpfOuCnpj(valor: string): string {
-  const digitos = apenasDigitos(valor);
-  return digitos.length > 11 ? formatarCnpj(valor) : formatarCpf(digitos);
+  return pareceCnpj(valor) ? formatarCnpj(valor) : formatarCpf(valor);
 }
 
 export function formatarCep(valor: string): string {

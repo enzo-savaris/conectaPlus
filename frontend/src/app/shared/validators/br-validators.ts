@@ -1,5 +1,5 @@
 import { AbstractControl, ValidationErrors, ValidatorFn } from '@angular/forms';
-import { apenasCaracteresCnpj, apenasDigitos } from '../utils/masks';
+import { apenasCaracteresCnpj, apenasDigitos, pareceCnpj } from '../utils/masks';
 
 export function validadorCnpj(): ValidatorFn {
   return (controle: AbstractControl): ValidationErrors | null => {
@@ -83,21 +83,20 @@ export function validadorCpf(): ValidatorFn {
   };
 }
 
-/** Aceita tanto CPF (11 dígitos) quanto CNPJ (14), usado no campo único de login. */
+/** Aceita tanto CPF (11 dígitos) quanto CNPJ (14, numérico ou alfanumérico), usado no campo único de login. */
 export function validadorCpfOuCnpj(): ValidatorFn {
   return (controle: AbstractControl): ValidationErrors | null => {
-    const digitos = apenasDigitos(controle.value ?? '');
+    const valor = apenasCaracteresCnpj(controle.value ?? '');
 
-    if (!digitos) {
+    if (!valor) {
       return null;
     }
 
-    if (digitos.length <= 11) {
-      return cpfValido(digitos) ? null : { documento: true };
+    if (!pareceCnpj(valor)) {
+      return cpfValido(valor) ? null : { documento: true };
     }
 
-    const cnpj = apenasCaracteresCnpj(controle.value ?? '');
-    return cnpjValido(cnpj) ? null : { documento: true };
+    return cnpjValido(valor) ? null : { documento: true };
   };
 }
 

@@ -82,6 +82,12 @@ export class CandidaturaEnviada {
   protected readonly confirmandoEntrevista = signal(false);
   protected readonly erroConfirmacao = signal<string | null>(null);
 
+  // "Não posso nesta data": pedido de reagendamento
+  protected readonly pedindoOutraData = signal(false);
+  protected readonly mensagemReagendamento = signal('');
+  protected readonly enviandoPedido = signal(false);
+  protected readonly erroPedido = signal<string | null>(null);
+
   protected readonly opcoesAdaptacao: { chave: keyof AdaptacoesCandidatura; rotulo: string }[] = [
     { chave: 'entrevistaRemota', rotulo: 'Entrevista 100% remota' },
     { chave: 'tempoEstendido', rotulo: 'Tempo estendido em testes' },
@@ -142,7 +148,13 @@ export class CandidaturaEnviada {
     if (c.status === 'ENTREVISTA' && c.entrevista) {
       entrevista = {
         titulo: 'Entrevista acessível',
-        detalhe: `${c.entrevista.confirmadaEm ? 'Presença confirmada' : 'Agendada'} · ${formatarDataEntrevista(c.entrevista.data)}`,
+        detalhe: `${
+          c.entrevista.pedidoReagendamentoEm
+            ? 'Você pediu outra data'
+            : c.entrevista.confirmadaEm
+              ? 'Presença confirmada'
+              : 'Agendada'
+        } · ${formatarDataEntrevista(c.entrevista.data)}`,
         situacao: 'atual',
         icone: 'conversa',
         entrevista: c.entrevista
@@ -302,6 +314,29 @@ export class CandidaturaEnviada {
         this.erroConfirmacao.set(erro.error?.mensagem ?? 'Não foi possível confirmar a entrevista. Tente novamente.');
       }
     });
+  }
+
+  protected pedirOutraData(): void {
+    this.enviandoPedido.set(true);
+    this.erroPedido.set(null);
+
+    this.vagaService.pedirReagendamento(this.idPcd(), this.idVaga, this.mensagemReagendamento().trim()).subscribe({
+      next: (candidatura) => {
+        this.enviandoPedido.set(false);
+        this.pedindoOutraData.set(false);
+        this.mensagemReagendamento.set('');
+        this.candidatura.set(candidatura);
+        this.toastService.sucesso('Pedido enviado! A empresa vai marcar uma nova data.');
+      },
+      error: (erro: HttpErrorResponse) => {
+        this.enviandoPedido.set(false);
+        this.erroPedido.set(erro.error?.mensagem ?? 'Não foi possível enviar o pedido. Tente novamente.');
+      }
+    });
+  }
+
+  protected aoDigitarMensagemReagendamento(evento: Event): void {
+    this.mensagemReagendamento.set((evento.target as HTMLTextAreaElement).value);
   }
 
   /** A data da entrevista ainda não chegou (depois dela, não faz sentido confirmar). */

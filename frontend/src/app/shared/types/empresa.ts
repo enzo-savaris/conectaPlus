@@ -1,5 +1,11 @@
 export type StatusEmpresa = 'ATIVA' | 'INATIVA' | 'PENDENTE';
 
+/** Resposta de GET /empresas/situacao: só o status do cadastro e, se recusado, o motivo. */
+export interface SituacaoCadastroEmpresa {
+  status: StatusEmpresa | 'RECUSADA';
+  motivo: string | null;
+}
+
 /** Dados completos da empresa, usados na tela de perfil. */
 export interface Empresa {
   id: number;

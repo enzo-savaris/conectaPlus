@@ -1,4 +1,5 @@
 import { erroDeValidacao } from './erro-app.ts';
+import { FUSO_BRASILIA } from './fuso.ts';
 import { validarId } from './validacao.ts';
 
 /**
@@ -80,7 +81,8 @@ function validarDataEntrevista(valor: unknown, erros: Record<string, string>): s
     return '';
   }
 
-  const data = new Date(`${correspondencia[1]}T${correspondencia[2]}:00`);
+  // A data digitada é horário de Brasília, mesmo que o servidor rode em outro fuso.
+  const data = new Date(`${correspondencia[1]}T${correspondencia[2]}:00${FUSO_BRASILIA}`);
   if (Number.isNaN(data.getTime())) {
     erros['dataEntrevista'] = 'Data da entrevista inválida.';
   } else if (data.getTime() < Date.now()) {
