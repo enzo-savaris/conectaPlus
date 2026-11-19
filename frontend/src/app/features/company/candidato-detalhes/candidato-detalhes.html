@@ -2,7 +2,7 @@
   <button
     type="button"
     (click)="aoClicarVoltar()"
-    class="inline-flex items-center gap-1.5 rounded-full border border-white/12 bg-ink-800/60 px-4 py-1.5 text-xs font-medium text-slate-300 transition hover:border-white/25 hover:bg-ink-700/70 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-400"
+    class="rounded-full inline-flex items-center gap-1.5 border border-white/12 bg-ink-800/60 px-4 py-1.5 text-xs font-bold text-slate-300 transition hover:border-white/25 hover:bg-ink-700/70 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-400 hover:scale-[1.03] active:scale-[0.98]"
   >
     <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
       <path d="M15 19l-7-7 7-7" stroke-linecap="round" stroke-linejoin="round" />
@@ -138,7 +138,7 @@
             [href]="c.curriculoPdfUrl"
             target="_blank"
             rel="noopener"
-            class="inline-flex items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-brand-300 to-brand-600 px-5 py-2.5 text-sm font-semibold text-ink-950 shadow-lg shadow-brand-500/20 transition hover:brightness-110"
+            class="rounded-full inline-flex items-center justify-center gap-2 bg-brand-400 hover:bg-brand-300 px-5 py-2.5 text-sm font-bold text-on-brand transition hover:scale-[1.03] active:scale-[0.98]"
           >
             <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
               <path d="M6 3.5h8l4 4V19a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 4 19V5A1.5 1.5 0 0 1 5.5 3.5Z" />
@@ -153,7 +153,7 @@
             <h2 class="text-sm font-semibold text-white">Habilidades</h2>
             <ul class="mt-3 flex flex-wrap gap-2">
               @for (item of c.habilidades; track item) {
-                <li class="rounded-full border border-brand-400/30 bg-brand-400/10 px-3 py-1.5 text-xs font-medium text-brand-200">
+                <li class="rounded border border-brand-400/30 bg-brand-400/10 px-3 py-1.5 text-xs font-medium text-brand-200">
                   {{ item }}
                 </li>
               }
@@ -168,7 +168,7 @@
           @if (c.recursos.length > 0) {
             <ul class="mt-3 flex flex-wrap gap-2">
               @for (recurso of c.recursos; track recurso) {
-                <li class="rounded-full border border-white/12 bg-ink-800/60 px-3 py-1.5 text-xs font-medium text-slate-200">
+                <li class="rounded border border-white/12 bg-ink-800/60 px-3 py-1.5 text-xs font-medium text-slate-200">
                   {{ recurso }}
                 </li>
               }
@@ -181,7 +181,7 @@
             <h2 class="text-sm font-semibold text-white">Áreas de interesse</h2>
             <ul class="mt-3 flex flex-wrap gap-2">
               @for (item of c.interesses; track item) {
-                <li class="rounded-full border border-white/12 bg-ink-800/60 px-3 py-1.5 text-xs font-medium text-slate-200">
+                <li class="rounded border border-white/12 bg-ink-800/60 px-3 py-1.5 text-xs font-medium text-slate-200">
                   {{ item }}
                 </li>
               }

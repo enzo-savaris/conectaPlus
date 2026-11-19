@@ -3,7 +3,7 @@
     @if (erro()) {
       <a
         routerLink="/vagas"
-        class="inline-flex items-center gap-1.5 rounded-full border border-white/12 bg-ink-800/60 px-4 py-1.5 text-xs font-medium text-slate-300 transition hover:border-white/25 hover:bg-ink-700/70 hover:text-white"
+        class="rounded-full inline-flex items-center gap-1.5 border border-white/12 bg-ink-800/60 px-4 py-1.5 text-xs font-bold text-slate-300 transition hover:border-white/25 hover:bg-ink-700/70 hover:text-white hover:scale-[1.03] active:scale-[0.98]"
       >
         Voltar para vagas
       </a>
@@ -17,7 +17,7 @@
     } @else if (candidatura(); as c) {
       <a
         [routerLink]="['/empresa/vagas', c.idVaga]"
-        class="inline-flex items-center gap-1.5 rounded-full border border-white/12 bg-ink-800/60 px-4 py-1.5 text-xs font-medium text-slate-300 transition hover:border-white/25 hover:bg-ink-700/70 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-400"
+        class="rounded-full inline-flex items-center gap-1.5 border border-white/12 bg-ink-800/60 px-4 py-1.5 text-xs font-bold text-slate-300 transition hover:border-white/25 hover:bg-ink-700/70 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-400 hover:scale-[1.03] active:scale-[0.98]"
       >
         <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
           <path d="M15 19l-7-7 7-7" stroke-linecap="round" stroke-linejoin="round" />
@@ -54,7 +54,7 @@
           <a
             [routerLink]="['/empresa/candidatos', c.candidato.id]"
             [queryParams]="{ origemVaga: c.idVaga }"
-            class="inline-flex items-center gap-1.5 rounded-lg border border-white/12 bg-ink-800/60 px-3 py-1.5 text-xs font-medium text-slate-200 transition hover:border-brand-400/40 hover:bg-ink-700/70 hover:text-brand-200"
+            class="rounded-full inline-flex items-center gap-1.5 border border-white/12 bg-ink-800/60 px-3 py-1.5 text-xs font-bold text-slate-200 transition hover:border-brand-400/40 hover:bg-ink-700/70 hover:scale-[1.03] active:scale-[0.98]"
           >
             Ver perfil completo
           </a>
@@ -80,7 +80,7 @@
                 class="flex size-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold"
                 [class]="
                   etapa.situacao === 'atual'
-                    ? 'bg-brand-400 text-ink-950'
+                    ? 'bg-brand-400 text-on-brand'
                     : etapa.situacao === 'concluida'
                       ? 'border border-brand-400/70 text-brand-300'
                       : etapa.situacao === 'encerrada'
@@ -264,7 +264,7 @@
                     type="button"
                     (click)="acionar(principal.painel)"
                     [disabled]="salvando()"
-                    class="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-brand-300 to-brand-600 px-5 py-2 text-sm font-semibold text-ink-950 shadow-lg shadow-brand-500/20 transition hover:brightness-110 disabled:opacity-60"
+                    class="rounded-full inline-flex items-center gap-2 bg-brand-400 hover:bg-brand-300 px-5 py-2 text-sm font-bold text-on-brand transition disabled:opacity-60 hover:scale-[1.03] active:scale-[0.98]"
                   >
                     {{ salvando() ? 'Salvando…' : principal.rotulo }}
                     <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
@@ -276,8 +276,8 @@
                   <button
                     type="button"
                     (click)="acionar(secundaria.painel)"
-                    class="rounded-lg border px-5 py-2 text-sm font-medium transition"
-                    [class]="secundaria.painel === 'reprovar' ? 'border-white/12 text-slate-300 hover:border-rose-400/40 hover:text-rose-300' : 'border-white/12 text-slate-200 hover:border-brand-400/40 hover:text-brand-200'"
+                    class="rounded-full border px-5 py-2 text-sm font-bold transition hover:scale-[1.03] active:scale-[0.98]"
+                    [class]="secundaria.painel === 'reprovar' ? 'border-white/12 text-slate-300 hover:border-rose-400/40 hover:text-rose-300' : 'border-white/12 text-slate-200 hover:border-brand-400/40'"
                   >
                     {{ secundaria.rotulo }}
                   </button>
@@ -382,7 +382,7 @@
                   <button
                     type="submit"
                     [disabled]="salvando()"
-                    class="rounded-lg bg-gradient-to-r from-brand-300 to-brand-600 px-5 py-2 text-sm font-semibold text-ink-950 transition hover:brightness-110 disabled:opacity-60"
+                    class="rounded-full bg-brand-400 hover:bg-brand-300 px-5 py-2 text-sm font-bold text-on-brand transition disabled:opacity-60 hover:scale-[1.03] active:scale-[0.98]"
                   >
                     {{ salvando() ? 'Salvando…' : 'Confirmar entrevista' }}
                   </button>
@@ -433,7 +433,7 @@
                   <button
                     type="submit"
                     [disabled]="salvando()"
-                    class="rounded-lg bg-gradient-to-r from-brand-300 to-brand-600 px-5 py-2 text-sm font-semibold text-ink-950 transition hover:brightness-110 disabled:opacity-60"
+                    class="rounded-full bg-brand-400 hover:bg-brand-300 px-5 py-2 text-sm font-bold text-on-brand transition disabled:opacity-60 hover:scale-[1.03] active:scale-[0.98]"
                   >
                     {{ salvando() ? 'Salvando…' : 'Salvar registro' }}
                   </button>
@@ -536,7 +536,7 @@
                   <button
                     type="submit"
                     [disabled]="salvando()"
-                    class="rounded-lg bg-gradient-to-r from-brand-300 to-brand-600 px-5 py-2 text-sm font-semibold text-ink-950 transition hover:brightness-110 disabled:opacity-60"
+                    class="rounded-full bg-brand-400 hover:bg-brand-300 px-5 py-2 text-sm font-bold text-on-brand transition disabled:opacity-60 hover:scale-[1.03] active:scale-[0.98]"
                   >
                     {{ salvando() ? 'Enviando…' : 'Enviar proposta' }}
                   </button>
@@ -576,7 +576,7 @@
                   <button
                     type="submit"
                     [disabled]="salvando()"
-                    class="rounded-lg bg-rose-500/80 px-5 py-2 text-sm font-semibold text-white transition hover:bg-rose-500 disabled:opacity-60"
+                    class="rounded-full bg-rose-500/80 px-5 py-2 text-sm font-bold text-white transition hover:bg-rose-500 disabled:opacity-60 hover:scale-[1.03] active:scale-[0.98]"
                   >
                     {{ salvando() ? 'Salvando…' : 'Confirmar encerramento' }}
                   </button>

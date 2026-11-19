@@ -36,7 +36,7 @@
           <li class="inline-flex items-center gap-2" [attr.aria-current]="etapa() === 1 ? 'step' : null">
             <span
               class="flex size-6 items-center justify-center rounded-full text-[11px] font-bold"
-              [class]="etapa() === 1 ? 'bg-brand-400 text-ink-950' : 'border border-brand-400/70 text-brand-300'"
+              [class]="etapa() === 1 ? 'bg-brand-400 text-on-brand' : 'border border-brand-400/70 text-brand-300'"
             >
               @if (etapa() > 1) { ✓ } @else { 1 }
             </span>
@@ -47,7 +47,7 @@
             <li class="inline-flex items-center gap-2" [attr.aria-current]="etapa() === 2 ? 'step' : null">
               <span
                 class="flex size-6 items-center justify-center rounded-full text-[11px] font-bold"
-                [class]="etapa() === 2 ? 'bg-brand-400 text-ink-950' : 'border border-white/15 text-slate-500'"
+                [class]="etapa() === 2 ? 'bg-brand-400 text-on-brand' : 'border border-white/15 text-slate-500'"
               >2</span>
               <span [class]="etapa() === 2 ? 'font-semibold text-white' : 'text-slate-500'">Pagamento seguro</span>
             </li>
@@ -140,7 +140,7 @@
               type="button"
               (click)="confirmarDados()"
               [disabled]="salvandoMatricula() || (pago() && !p.email)"
-              class="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-brand-300 to-brand-600 px-6 py-2.5 text-sm font-semibold text-ink-950 shadow-lg shadow-brand-500/20 transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
+              class="rounded-full inline-flex items-center gap-2 bg-brand-400 hover:bg-brand-300 px-6 py-2.5 text-sm font-bold text-on-brand transition disabled:cursor-not-allowed disabled:opacity-60 hover:scale-[1.03] active:scale-[0.98]"
             >
               {{ salvandoMatricula() ? 'Salvando…' : pago() ? 'Continuar para pagamento' : 'Confirmar matrícula' }}
               <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
@@ -168,7 +168,7 @@
                     role="radio"
                     [attr.aria-checked]="metodo() === 'CARTAO'"
                     (click)="escolherMetodo('CARTAO')"
-                    class="flex items-center justify-center gap-2 rounded-xl border px-3 py-3 text-sm font-medium transition"
+                    class="rounded-full flex items-center justify-center gap-2 border px-3 py-3 text-sm font-bold transition hover:scale-[1.03] active:scale-[0.98]"
                     [class]="metodo() === 'CARTAO' ? 'border-brand-400 bg-brand-400/10 text-brand-200' : 'border-white/10 text-slate-300 hover:border-white/25'"
                   >
                     <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
@@ -255,7 +255,7 @@
                   <button
                     type="submit"
                     [disabled]="!cartaoPronto() || processando()"
-                    class="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-brand-300 to-brand-600 px-6 py-2.5 text-sm font-semibold text-ink-950 shadow-lg shadow-brand-500/20 transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
+                    class="rounded-full mt-5 inline-flex w-full items-center justify-center gap-2 bg-brand-400 hover:bg-brand-300 px-6 py-2.5 text-sm font-bold text-on-brand transition disabled:cursor-not-allowed disabled:opacity-60 hover:scale-[1.03] active:scale-[0.98]"
                   >
                     {{ processando() ? 'Processando pagamento…' : 'Pagar ' + formatarMoeda(valor()) + ' e finalizar matrícula' }}
                   </button>
@@ -313,7 +313,7 @@
                       type="button"
                       (click)="gerarPix()"
                       [disabled]="processando()"
-                      class="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-brand-300 to-brand-600 px-6 py-2.5 text-sm font-semibold text-ink-950 shadow-lg shadow-brand-500/20 transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
+                      class="rounded-full mt-4 inline-flex w-full items-center justify-center gap-2 bg-brand-400 hover:bg-brand-300 px-6 py-2.5 text-sm font-bold text-on-brand transition disabled:cursor-not-allowed disabled:opacity-60 hover:scale-[1.03] active:scale-[0.98]"
                     >
                       {{ processando() ? 'Gerando…' : 'Gerar QR Code Pix' }}
                     </button>
@@ -405,7 +405,7 @@
           <div class="mt-6 flex flex-wrap items-center justify-center gap-4">
             <a
               [routerLink]="['/cursos-disponiveis', c.id]"
-              class="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-brand-300 to-brand-600 px-6 py-2.5 text-sm font-semibold text-ink-950 shadow-lg shadow-brand-500/20 transition hover:brightness-110"
+              class="rounded-full inline-flex items-center gap-2 bg-brand-400 hover:bg-brand-300 px-6 py-2.5 text-sm font-bold text-on-brand transition hover:scale-[1.03] active:scale-[0.98]"
             >
               Acessar curso →
             </a>

@@ -80,7 +80,7 @@
   <nav class="flex flex-1 flex-col gap-1 px-3">
     <a
       [routerLink]="ambiente() === 'empresa' ? '/empresa/painel' : '/painel'"
-      routerLinkActive="bg-white/10 text-brand-300"
+      routerLinkActive="bg-brand-400/10 text-brand-300"
       class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-300 transition hover:bg-white/5 hover:text-white"
       [attr.title]="!expandida() ? 'Início' : null"
     >
@@ -99,7 +99,7 @@
     @if (ambiente() === 'empresa') {
       <a
         routerLink="/vagas"
-        routerLinkActive="bg-white/10 text-brand-300"
+        routerLinkActive="bg-brand-400/10 text-brand-300"
         class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-300 transition hover:bg-white/5 hover:text-white"
         [attr.title]="!expandida() ? 'Vagas' : null"
       >
@@ -117,7 +117,7 @@
 
       <a
         routerLink="/cursos"
-        routerLinkActive="bg-white/10 text-brand-300"
+        routerLinkActive="bg-brand-400/10 text-brand-300"
         class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-300 transition hover:bg-white/5 hover:text-white"
         [attr.title]="!expandida() ? 'Cursos' : null"
       >
@@ -135,7 +135,7 @@
     } @else {
       <a
         routerLink="/vagas-disponiveis"
-        routerLinkActive="bg-white/10 text-brand-300"
+        routerLinkActive="bg-brand-400/10 text-brand-300"
         class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-300 transition hover:bg-white/5 hover:text-white"
         [attr.title]="!expandida() ? 'Vagas Disponíveis' : null"
       >
@@ -153,7 +153,7 @@
 
       <a
         routerLink="/cursos-disponiveis"
-        routerLinkActive="bg-white/10 text-brand-300"
+        routerLinkActive="bg-brand-400/10 text-brand-300"
         class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-300 transition hover:bg-white/5 hover:text-white"
         [attr.title]="!expandida() ? 'Cursos' : null"
       >
@@ -173,7 +173,7 @@
     @if (ambiente() === 'empresa') {
       <a
         routerLink="/empresa/candidatos"
-        routerLinkActive="bg-white/10 text-brand-300"
+        routerLinkActive="bg-brand-400/10 text-brand-300"
         class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-300 transition hover:bg-white/5 hover:text-white"
         [attr.title]="!expandida() ? 'Candidatos' : null"
       >
@@ -191,7 +191,7 @@
 
       <a
         routerLink="/empresa/perfil"
-        routerLinkActive="bg-white/10 text-brand-300"
+        routerLinkActive="bg-brand-400/10 text-brand-300"
         class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-300 transition hover:bg-white/5 hover:text-white"
         [attr.title]="!expandida() ? 'Perfil da empresa' : null"
       >
@@ -209,7 +209,7 @@
     } @else {
       <a
         routerLink="/perfil"
-        routerLinkActive="bg-white/10 text-brand-300"
+        routerLinkActive="bg-brand-400/10 text-brand-300"
         class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-300 transition hover:bg-white/5 hover:text-white"
         [attr.title]="!expandida() ? 'Perfil' : null"
       >
@@ -247,7 +247,7 @@
       }
       @if (acessibilidade.totalAtivos() > 0) {
         <span
-          class="ml-auto flex size-5 items-center justify-center rounded-full bg-brand-400 text-[10px] font-bold text-ink-950"
+          class="ml-auto flex size-5 items-center justify-center rounded-full bg-brand-400 text-[10px] font-bold text-on-brand"
           [class.absolute]="!expandida()"
           [class.top-1]="!expandida()"
           [class.right-1]="!expandida()"
