@@ -134,7 +134,7 @@
                   type="button"
                   (click)="adicionarItem('aprendizados', aprInput)"
                   [disabled]="!empresaAtiva()"
-                  class="shrink-0 rounded-lg border border-white/12 bg-ink-800/60 px-4 py-2.5 text-sm font-medium text-slate-200 transition hover:border-white/25 hover:bg-ink-700/70 disabled:opacity-50"
+                  class="rounded-full shrink-0 border border-white/12 bg-ink-800/60 px-4 py-2.5 text-sm font-bold text-slate-200 transition hover:border-white/25 hover:bg-ink-700/70 disabled:opacity-50 hover:scale-[1.03] active:scale-[0.98]"
                 >
                   + Adicionar
                 </button>
@@ -142,7 +142,7 @@
               @if (aprendizados().length > 0) {
                 <ul class="mt-3 flex flex-wrap gap-2">
                   @for (item of aprendizados(); track $index) {
-                    <li class="inline-flex items-center gap-2 rounded-full border border-brand-400/30 bg-brand-400/10 px-3 py-1.5 text-xs font-medium text-brand-200">
+                    <li class="inline-flex items-center gap-2 rounded border border-brand-400/30 bg-brand-400/10 px-3 py-1.5 text-xs font-medium text-brand-200">
                       {{ item }}
                       <button
                         type="button"
@@ -176,7 +176,7 @@
                   type="button"
                   (click)="adicionarItem('skills', skillInput)"
                   [disabled]="!empresaAtiva()"
-                  class="shrink-0 rounded-lg border border-white/12 bg-ink-800/60 px-4 py-2.5 text-sm font-medium text-slate-200 transition hover:border-white/25 hover:bg-ink-700/70 disabled:opacity-50"
+                  class="rounded-full shrink-0 border border-white/12 bg-ink-800/60 px-4 py-2.5 text-sm font-bold text-slate-200 transition hover:border-white/25 hover:bg-ink-700/70 disabled:opacity-50 hover:scale-[1.03] active:scale-[0.98]"
                 >
                   + Adicionar
                 </button>
@@ -184,7 +184,7 @@
               @if (skills().length > 0) {
                 <ul class="mt-3 flex flex-wrap gap-2">
                   @for (item of skills(); track $index) {
-                    <li class="inline-flex items-center gap-2 rounded-full border border-brand-400/30 bg-brand-400/10 px-3 py-1.5 text-xs font-medium text-brand-200">
+                    <li class="inline-flex items-center gap-2 rounded border border-brand-400/30 bg-brand-400/10 px-3 py-1.5 text-xs font-medium text-brand-200">
                       {{ item }}
                       <button
                         type="button"
@@ -296,7 +296,7 @@
                           [disabled]="!empresaAtiva()"
                           class="rounded px-3 py-1 text-[11px] font-semibold transition disabled:cursor-not-allowed disabled:pointer-events-none disabled:opacity-50"
                           [class.bg-brand-500]="capitulo.tipoConteudo === 'LINK'"
-                          [class.text-ink-950]="capitulo.tipoConteudo === 'LINK'"
+                          [class.text-on-brand]="capitulo.tipoConteudo === 'LINK'"
                           [class.text-slate-300]="capitulo.tipoConteudo !== 'LINK'"
                         >
                           Link
@@ -307,7 +307,7 @@
                           [disabled]="!empresaAtiva()"
                           class="rounded px-3 py-1 text-[11px] font-semibold transition disabled:cursor-not-allowed disabled:pointer-events-none disabled:opacity-50"
                           [class.bg-brand-500]="capitulo.tipoConteudo === 'ARQUIVO'"
-                          [class.text-ink-950]="capitulo.tipoConteudo === 'ARQUIVO'"
+                          [class.text-on-brand]="capitulo.tipoConteudo === 'ARQUIVO'"
                           [class.text-slate-300]="capitulo.tipoConteudo !== 'ARQUIVO'"
                         >
                           Vídeo
@@ -331,7 +331,7 @@
                           (change)="selecionarArquivoCapitulo(indiceModulo, indiceCapitulo, $event)"
                           [disabled]="!empresaAtiva()"
                           aria-label="Vídeo da aula"
-                          class="field-input mt-2 py-1.5 text-xs file:mr-3 file:rounded-md file:border-0 file:bg-brand-500 file:px-2.5 file:py-1 file:text-[11px] file:font-semibold file:text-ink-950 disabled:file:opacity-50 disabled:file:grayscale"
+                          class="field-input mt-2 py-1.5 text-xs file:mr-3 file:rounded-md file:border-0 file:bg-brand-500 file:px-2.5 file:py-1 file:text-[11px] file:font-semibold file:text-on-brand disabled:file:opacity-50 disabled:file:grayscale"
                         />
                         @if (capitulo.arquivo) {
                           <p class="mt-1 text-[11px] text-slate-400">Selecionado: {{ capitulo.arquivo.name }}</p>
@@ -349,7 +349,7 @@
                         (change)="selecionarMaterialCapitulo(indiceModulo, indiceCapitulo, $event)"
                         [disabled]="!empresaAtiva()"
                         aria-label="Material de apoio da aula"
-                        class="field-input mt-1 py-1.5 text-xs file:mr-3 file:rounded-md file:border-0 file:bg-ink-700 file:px-2.5 file:py-1 file:text-[11px] file:font-semibold file:text-white disabled:file:opacity-50 disabled:file:grayscale"
+                        class="field-input mt-1 py-1.5 text-xs file:mr-3 file:rounded-md file:border-0 file:bg-ink-700 file:px-2.5 file:py-1 file:text-[11px] file:font-semibold file:text-on-brand disabled:file:opacity-50 disabled:file:grayscale"
                       />
                       @if (capitulo.material) {
                         <p class="mt-1 text-[11px] text-slate-400">Selecionado: {{ capitulo.material.name }}</p>
@@ -365,7 +365,7 @@
                     type="button"
                     (click)="adicionarCapitulo(indiceModulo)"
                     [disabled]="!empresaAtiva()"
-                    class="self-start rounded-lg border border-dashed border-white/15 px-3 py-1.5 text-[11px] font-semibold text-slate-300 transition hover:border-brand-400/40 hover:text-brand-200 disabled:pointer-events-none disabled:opacity-50"
+                    class="rounded-full self-start border border-dashed border-white/15 px-3 py-1.5 text-[11px] font-bold text-slate-300 transition hover:border-brand-400/40 disabled:pointer-events-none disabled:opacity-50 hover:scale-[1.03] active:scale-[0.98]"
                   >
                     + Adicionar aula
                   </button>
@@ -378,7 +378,7 @@
             type="button"
             (click)="adicionarModulo()"
             [disabled]="!empresaAtiva()"
-            class="mt-3 rounded-lg border border-dashed border-white/15 px-4 py-2 text-xs font-semibold text-slate-300 transition hover:border-brand-400/40 hover:text-brand-200 disabled:pointer-events-none disabled:opacity-50"
+            class="rounded-full mt-3 border border-dashed border-white/15 px-4 py-2 text-xs font-bold text-slate-300 transition hover:border-brand-400/40 disabled:pointer-events-none disabled:opacity-50 hover:scale-[1.03] active:scale-[0.98]"
           >
             + Adicionar módulo
           </button>
@@ -389,7 +389,7 @@
             type="button"
             (click)="aoCancelar()"
             [disabled]="enviando()"
-            class="rounded-lg border border-white/12 bg-ink-800/60 px-6 py-2.5 text-sm font-medium text-slate-200 transition hover:border-white/25 hover:bg-ink-700/70 disabled:pointer-events-none disabled:opacity-50"
+            class="rounded-full border border-white/12 bg-ink-800/60 px-6 py-2.5 text-sm font-bold text-slate-200 transition hover:border-white/25 hover:bg-ink-700/70 disabled:pointer-events-none disabled:opacity-50 hover:scale-[1.03] active:scale-[0.98]"
           >
             {{ idCursoEditando() !== null ? 'Cancelar edição' : 'Cancelar cadastro' }}
           </button>
@@ -397,7 +397,7 @@
           <button
             type="submit"
             [disabled]="enviando() || !empresaAtiva()"
-            class="rounded-lg bg-gradient-to-r from-brand-300 to-brand-600 px-6 py-2.5 text-sm font-semibold text-ink-950 shadow-lg shadow-brand-500/20 transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50 disabled:grayscale disabled:pointer-events-none"
+            class="rounded-full bg-brand-400 hover:bg-brand-300 px-6 py-2.5 text-sm font-bold text-on-brand transition disabled:cursor-not-allowed disabled:opacity-50 disabled:grayscale disabled:pointer-events-none hover:scale-[1.03] active:scale-[0.98]"
           >
             {{
               enviando()

@@ -422,7 +422,7 @@
         <button
           type="button"
           (click)="aoCancelar()"
-          class="rounded-lg border border-white/12 bg-ink-800/60 px-6 py-2.5 text-sm font-medium text-slate-200 transition hover:border-white/25 hover:bg-ink-700/70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-400 sm:min-w-40"
+          class="rounded-full border border-white/12 bg-ink-800/60 px-6 py-2.5 text-sm font-bold text-slate-200 transition hover:border-white/25 hover:bg-ink-700/70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-400 sm:min-w-40 hover:scale-[1.03] active:scale-[0.98]"
         >
           Cancelar
         </button>
@@ -430,7 +430,7 @@
         <button
           type="submit"
           [disabled]="enviando()"
-          class="rounded-lg bg-gradient-to-r from-brand-300 to-brand-600 px-6 py-2.5 text-sm font-semibold text-ink-950 shadow-lg shadow-brand-500/20 transition hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-300 disabled:cursor-not-allowed disabled:opacity-60 sm:min-w-48"
+          class="rounded-full bg-brand-400 hover:bg-brand-300 px-6 py-2.5 text-sm font-bold text-on-brand transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-300 disabled:cursor-not-allowed disabled:opacity-60 sm:min-w-48 hover:scale-[1.03] active:scale-[0.98]"
         >
           {{ enviando() ? 'Cadastrando…' : 'Cadastrar Empresa' }}
         </button>

@@ -2,7 +2,7 @@
 <a
   href="#conteudo"
   (click)="pularParaConteudo($event)"
-  class="a11y-ignorar sr-only z-[200] rounded-lg bg-brand-300 px-4 py-2 text-sm font-semibold text-ink-950 focus:not-sr-only focus:fixed focus:top-3 focus:left-3"
+  class="rounded-full a11y-ignorar sr-only fixed top-0 left-0 z-[200] bg-brand-300 px-4 py-2 text-sm font-bold text-on-brand focus:not-sr-only focus:fixed focus:top-3 focus:left-3 hover:scale-[1.03] active:scale-[0.98]"
 >
   Pular para o conteúdo
 </a>
@@ -90,7 +90,7 @@
             type="button"
             (click)="servico.salvar()"
             [disabled]="servico.salvando()"
-            class="rounded-lg bg-gradient-to-r from-brand-300 to-brand-600 px-6 py-2.5 text-sm font-semibold text-ink-950 shadow-lg shadow-brand-500/20 transition hover:brightness-110 disabled:opacity-60"
+            class="rounded-full bg-brand-400 hover:bg-brand-300 px-6 py-2.5 text-sm font-bold text-on-brand transition disabled:opacity-60 hover:scale-[1.03] active:scale-[0.98]"
           >
             {{ servico.salvando() ? 'Salvando…' : 'Salvar preferências' }}
           </button>
@@ -114,7 +114,7 @@
   <button
     type="button"
     (click)="pararLeitura()"
-    class="a11y-ignorar fixed bottom-4 left-1/2 z-[140] inline-flex -translate-x-1/2 items-center gap-2 rounded-full bg-brand-300 px-5 py-2.5 text-sm font-semibold text-ink-950 shadow-xl"
+    class="rounded-full a11y-ignorar fixed bottom-4 left-1/2 z-[140] inline-flex -translate-x-1/2 items-center gap-2 bg-brand-300 px-5 py-2.5 text-sm font-bold text-on-brand shadow-xl hover:scale-[1.03] active:scale-[0.98]"
   >
     <span class="size-2 animate-pulse rounded-full bg-ink-950" aria-hidden="true"></span>
     Lendo… clique para parar

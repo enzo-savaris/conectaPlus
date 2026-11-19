@@ -3,7 +3,7 @@
     <a
       routerLink="/admin/empresas"
       [queryParams]="{ status: empresa()?.status ?? 'PENDENTE' }"
-      class="inline-flex items-center gap-1.5 rounded-full border border-white/12 bg-ink-800/60 px-4 py-1.5 text-xs font-medium text-slate-300 transition hover:border-white/25 hover:text-white"
+      class="rounded-full inline-flex items-center gap-1.5 border border-white/12 bg-ink-800/60 px-4 py-1.5 text-xs font-bold text-slate-300 transition hover:border-white/25 hover:text-white hover:scale-[1.03] active:scale-[0.98]"
     >
       <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
         <path d="M15 19l-7-7 7-7" stroke-linecap="round" stroke-linejoin="round" />
@@ -79,7 +79,7 @@
               [href]="linkReceita"
               target="_blank"
               rel="noopener"
-              class="mt-4 inline-flex items-center gap-1.5 rounded-lg border border-white/12 bg-ink-800/60 px-3 py-1.5 text-xs font-medium text-brand-300 transition hover:border-brand-400/40"
+              class="rounded-full mt-4 inline-flex items-center gap-1.5 border border-white/12 bg-ink-800/60 px-3 py-1.5 text-xs font-bold text-brand-300 transition hover:border-brand-400/40 hover:scale-[1.03] active:scale-[0.98]"
             >
               Consultar CNPJ na Receita Federal
               <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
@@ -175,7 +175,7 @@
                     (click)="confirmar()"
                     [disabled]="salvando()"
                     class="flex-1 rounded-lg px-4 py-2 text-sm font-semibold transition disabled:opacity-60"
-                    [class]="config.acao === 'APROVAR' ? 'bg-emerald-400 text-ink-950 hover:brightness-110' : 'bg-rose-500/80 text-white hover:bg-rose-500'"
+                    [class]="config.acao === 'APROVAR' ? 'bg-emerald-400 text-ink-950' : 'bg-rose-500/80 text-white hover:bg-rose-500'"
                   >
                     {{ salvando() ? 'Salvando…' : config.botao }}
                   </button>
@@ -191,7 +191,7 @@
                     class="w-full rounded-lg px-4 py-2.5 text-sm font-semibold transition"
                     [class]="
                       config.acao === 'APROVAR'
-                        ? 'bg-gradient-to-r from-brand-300 to-brand-600 text-ink-950 shadow-lg shadow-brand-500/20 hover:brightness-110'
+                        ? 'bg-brand-400 hover:bg-brand-300 text-on-brand'
                         : 'border border-white/12 text-slate-200 hover:border-rose-400/50 hover:text-rose-300'
                     "
                   >
