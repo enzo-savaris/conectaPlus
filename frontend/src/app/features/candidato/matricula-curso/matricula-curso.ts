@@ -8,13 +8,16 @@ import {
   PLATFORM_ID,
   afterNextRender,
   computed,
+  effect,
   inject,
-  signal
+  signal,
+  untracked
 } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 
+import { AcessibilidadeService } from '../../../shared/services/acessibilidade.service';
 import { AuthService } from '../../../shared/services/auth.service';
 import { CursoService } from '../../../shared/services/curso.service';
 import { UsuarioService } from '../../../shared/services/usuario.service';
@@ -143,6 +146,20 @@ export class MatriculaCursoPagina {
       const relogio = setInterval(() => this.agora.set(Date.now()), 1000);
       this.destroyRef.onDestroy(() => clearInterval(relogio));
     }
+
+    // Os campos de número, validade e CVV são iframes do Mercado Pago e não
+    // herdam o CSS da página: quando o usuário troca o contraste ou o tamanho
+    // do texto, remonta o formulário para eles copiarem o visual novo.
+    const acessibilidade = inject(AcessibilidadeService);
+    effect(() => {
+      acessibilidade.preferencias();
+      untracked(() => {
+        if (this.cardForm) {
+          this.desmontarCartao();
+          this.montarCartaoDepoisDeRenderizar();
+        }
+      });
+    });
 
     this.carregar();
   }
@@ -326,12 +343,7 @@ export class MatriculaCursoPagina {
       const MercadoPago = await carregarSdkMercadoPago();
       const mp = new MercadoPago(this.chavePublica, { locale: 'pt-BR' });
 
-      const estiloCampo = {
-        color: '#ffffff',
-        placeholderColor: '#64748b',
-        fontSize: '14px',
-        fontFamily: 'inherit'
-      };
+      const estiloCampo = this.estiloDosCamposSeguros();
 
       this.cardForm = mp.cardForm({
         amount: this.valor().toFixed(2),
@@ -374,6 +386,29 @@ export class MatriculaCursoPagina {
       console.error(erro);
       this.erroCartao.set('Não foi possível carregar o pagamento com cartão. Verifique sua conexão ou pague com Pix.');
     }
+  }
+
+  /**
+   * Cor e tamanho do texto dos campos do Mercado Pago, copiados de um campo
+   * comum da mesma tela. Uma cor fixa sumia quando o fundo mudava (ex.: com
+   * o alto contraste claro, texto branco sobre fundo branco).
+   */
+  private estiloDosCamposSeguros(): Record<string, string> {
+    const referencia = document.getElementById('cartao-nome');
+    const estilo = referencia ? getComputedStyle(referencia) : null;
+    let corPlaceholder = '';
+    try {
+      corPlaceholder = referencia ? getComputedStyle(referencia, '::placeholder').color : '';
+    } catch {
+      // Navegador sem suporte a ::placeholder no getComputedStyle: usa o padrão.
+    }
+
+    return {
+      color: estilo?.color || '#ffffff',
+      placeholderColor: corPlaceholder || '#64748b',
+      fontSize: estilo?.fontSize || '16px',
+      fontFamily: 'inherit'
+    };
   }
 
   /** Sugere o nome, o CPF e o e-mail do perfil (o titular do cartão pode ser outra pessoa e trocar). */
